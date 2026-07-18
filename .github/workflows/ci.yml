@@ -1,0 +1,55 @@
+# .github/workflows/ci.yml
+name: CI - Build Backend & Frontend
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-backend:
+    runs-on: ubuntu-latest
+    # Condition pour ne pas tourner si seuls des fichiers frontend ont changé
+    # Mais pour simplifier, on le lance toujours
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          
+      - name: Cache Maven packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('backend/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+          
+      - name: Build Backend with Maven
+        working-directory: ./backend
+        run: ./mvnw compile
+        # ou mvn compile si mvnw n'existe pas encore
+        # Au début, le projet Spring Boot générera mvnw pour toi
+
+  build-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js 18
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+          
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm ci
+      
+      - name: Build Frontend
+        working-directory: ./frontend
+        run: npx ng build --configuration production
