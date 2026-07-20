@@ -1,0 +1,86 @@
+<h1>Détail du modèle</h1>
+
+<div *ngIf="loading">Chargement en cours...</div>
+
+<div *ngIf="error" style="color: red;">{{ error }}</div>
+
+<div *ngIf="!loading && !error && template">
+    <h1>{{ template.nom }}</h1>
+    <p><strong>Description :</strong> {{ template.description }}</p>
+    <p><strong>Statut :</strong> {{ template.statut }}</p>
+    <p><strong>Version :</strong> {{ template.version }}</p>
+    <p><strong>Derniere Modification :</strong> {{ template.dateModification | date: 'dd/MM/yy HH:mm' }}</p>
+
+    <button *ngIf="template.statut === 'BROUILLON'" (click)="publish()">Publier</button>
+
+    <hr />
+    <h2>Variables</h2>
+    <table *ngIf="variables.length > 0; else noVariables">
+        <thead>
+            <tr>
+                <th>Nom</th>
+                <th>Type</th>
+                <th>Obligatoire</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr *ngFor="let variable of variables">
+                <td>{{ variable.nomVariable }}</td>
+                <td>{{ variable.type }}</td>
+                <td>{{ variable.obligatoire ? 'Oui' : 'Non' }}</td>
+                <td>
+                    <button (click)="deleteVariable(variable.id)">Supprimer</button>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <ng-template #noVariables>
+        <p>Aucunne variable defini pour ce modele.</p>
+    </ng-template>
+
+    <h3>Ajouter une variable</h3>
+
+    <form [formGroup]="variableForm" (ngSubmit)="addVariable()">
+        <div>
+            <label for="nomVariable">Nom :</label>
+            <input type="text" formControlName="nomVariable" id="nomVariable">
+            <div *ngIf="variableForm.get('nomVariable')?.invalid && variableForm.get('nomVariable')?.touched" style="color: red;">Le nom est obligatoire</div>
+        </div>
+
+        <div>
+            <label for="type">Type :</label>
+            <select formControlName="type" id="type">
+                <option value="STRING">STRING</option>
+                <option value="FLOAT">FLOAT</option>
+                <option value="ARRAY">ARRAY</option>
+                <option value="BOOLEAN">BOOLEAN</option>
+                <option value="DATE">DATE</option>
+            </select>
+        </div>
+
+        <div>
+            <label>
+                <input type="checkbox" formControlName="obligatoire">
+                Obligatoire
+            </label>
+        </div>
+
+        <button type="submit" [disabled]="variableForm.invalid">Ajouter</button>
+    </form>
+
+    <hr />
+
+    <h2>Generer un document (Test)</h2>
+
+    <div>
+        <label for="jsonData">Donnee Json</label>
+        <textarea id="jsonData" [(ngModel)]="jsonData" rows="5" cols="50"></textarea>
+    </div>
+
+    <button (click)="generate()">Generer PDF</button>
+    <div *ngIf="generationError" style="color: red;">{{ generationError }}</div>
+        
+
+</div>
