@@ -1,0 +1,38 @@
+<h1>Liste des modèles</h1>
+
+<!-- Message de chargement -->
+<div *ngIf="loading">Chargement en cours...</div>
+
+<!-- Message d'erreur -->
+<div *ngIf="error" style="color: red;">
+  Erreur lors du chargement : {{ error }}
+</div>
+
+<!-- Message si aucun template -->
+<div *ngIf="!loading && !error && templates.length === 0">
+  Aucun modèle pour le moment.
+</div>
+
+<!-- Tableau des templates -->
+<table *ngIf="!loading && !error && templates.length > 0">
+  <thead>
+    <tr>
+      <th>Nom</th>
+      <th>Description</th>
+      <th>Statut</th>
+      <th>Date de modification</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let template of templates">
+      <td>{{ template.nom }}</td>
+      <td>{{ template.description }}</td>
+      <td>{{ template.statut }}</td>
+      <td>{{ template.dateModification | date:'dd/MM/yyyy HH:mm' }}</td>
+      <td>
+        <button [routerLink]="['/templates', template.id]">Détail</button>
+      </td>
+    </tr>
+  </tbody>
+</table>
