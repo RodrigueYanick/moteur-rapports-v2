@@ -11,7 +11,7 @@
     <p><strong>Version :</strong> {{ template.version }}</p>
     <p><strong>Derniere Modification :</strong> {{ template.dateModification | date: 'dd/MM/yy HH:mm' }}</p>
 
-    <button *ngIf="template.statut === 'BROUILLON" (click)="publisher">Publier</button>
+    <button *ngIf="template.statut === 'BROUILLON'" (click)="publish()">Publier</button>
 
     <hr />
     <h2>Variables</h2>
@@ -42,21 +42,22 @@
 
     <h3>Ajouter une variable</h3>
 
-    <form [FormGroup]="variableForm" (ngSubmit)="addVariable">
+    <form [formGroup]="variableForm" (ngSubmit)="addVariable()">
         <div>
             <label for="nomVariable">Nom :</label>
             <input type="text" formControlName="nomVariable" id="nomVariable">
-            <div *ngIf="variableForm.get(nomVariable)?.invalid && variableForm.get(nomVariable)?.touched" style="color: red;">Le nom est obligatoire</div>
+            <div *ngIf="variableForm.get('nomVariable')?.invalid && variableForm.get('nomVariable')?.touched" style="color: red;">Le nom est obligatoire</div>
         </div>
 
         <div>
             <label for="type">Type :</label>
-            <select formControlName="type" id="type"></select>
-            <option value="STRING">STRING</option>
-            <option value="FLOAT">FLOAT</option>
-            <option value="ARRAY">ARRAY</option>
-            <option value="BOOLEAN">BOOLEAN</option>
-            <option value="DATE">DATE</option>
+            <select formControlName="type" id="type">
+                <option value="STRING">STRING</option>
+                <option value="FLOAT">FLOAT</option>
+                <option value="ARRAY">ARRAY</option>
+                <option value="BOOLEAN">BOOLEAN</option>
+                <option value="DATE">DATE</option>
+            </select>
         </div>
 
         <div>
