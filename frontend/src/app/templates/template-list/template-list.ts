@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '../../../../node_modules/@angular/common/types/_common_module-chunk';
 import { RouterLink } from "@angular/router";
 import { Template } from '../../models/template.model';
@@ -11,7 +11,7 @@ import { TemplateApiService } from '../../services/template-api';
   templateUrl: './template-list.html',
   styleUrl: './template-list.scss',
 })
-export class TemplateList {
+export class TemplateList implements OnInit {
   loading = false;
   error = '';
   templates: Template[] = [];
