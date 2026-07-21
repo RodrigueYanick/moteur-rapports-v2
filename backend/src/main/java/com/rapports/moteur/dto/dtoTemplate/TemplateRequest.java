@@ -1,11 +1,13 @@
-package com.rapports.moteur.dto;
+package com.rapports.moteur.dto.dtoTemplate;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 
 import java.util.List;
 
-public record CreateTemplateRequest(
+import com.rapports.moteur.dto.dtoVariable.ReportVariableDTO;
+
+public record TemplateRequest(
         @NotBlank String name,
         @NotBlank String description,
         @NotEmpty List<ReportVariableDTO> variables
