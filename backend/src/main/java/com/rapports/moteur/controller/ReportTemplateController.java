@@ -1,8 +1,8 @@
 package com.rapports.moteur.controller;
 
-import com.rapports.moteur.dto.CreateTemplateRequest;
-import com.rapports.moteur.dto.ReportTemplateDTO;
-import com.rapports.moteur.dto.UpdateTemplateRequest;
+import com.rapports.moteur.dto.dtoTemplate.TemplateRequest;
+import com.rapports.moteur.dto.dtoTemplate.TemplateResponse;
+import com.rapports.moteur.dto.dtoTemplate.UpdateTemplateRequest;
 import com.rapports.moteur.service.ReportTemplateService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/templates")
+@RequestMapping("/api/templates")
 public class ReportTemplateController {
     private final ReportTemplateService service;
 
@@ -21,23 +21,23 @@ public class ReportTemplateController {
     }
 
     @GetMapping
-    public List<ReportTemplateDTO> list() {
+    public List<TemplateResponse> list() {
         return service.findAll();
     }
 
-    @PostMapping
+    @PostMapping 
     @ResponseStatus(HttpStatus.CREATED)
-    public ReportTemplateDTO create(@Valid @RequestBody CreateTemplateRequest request) {
+    public TemplateResponse create(@Valid @RequestBody TemplateRequest request) {
         return service.create(request);
     }
 
     @GetMapping("/{id}")
-    public ReportTemplateDTO get(@PathVariable UUID id) {
+    public TemplateResponse get(@PathVariable UUID id) {
         return service.findById(id);
     }
 
     @PutMapping("/{id}")
-    public ReportTemplateDTO update(@PathVariable UUID id, @Valid @RequestBody UpdateTemplateRequest request) {
+    public TemplateResponse update(@PathVariable UUID id, @Valid @RequestBody UpdateTemplateRequest request) {
         return service.update(id, request);
     }
 

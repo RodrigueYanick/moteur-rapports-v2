@@ -1,13 +1,13 @@
-package com.rapports.moteur.dto;
+package com.rapports.moteur.dto.dtoGeneration;
 
 import com.rapports.moteur.entity.GenerationStatus;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
+// import java.util.UUID;
 
-public record ReportGenerationDTO(
-        UUID id,
-        UUID templateId,
+public record GenerationResponse(
+        // UUID id,
+        // UUID templateId,
         String title,
         String format,
         GenerationStatus status,

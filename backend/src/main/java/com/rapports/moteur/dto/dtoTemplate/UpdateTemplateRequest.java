@@ -1,4 +1,4 @@
-package com.rapports.moteur.dto;
+package com.rapports.moteur.dto.dtoTemplate;
 
 import jakarta.validation.constraints.NotBlank;
 

@@ -1,9 +1,9 @@
 package com.rapports.moteur.service;
 
-import com.rapports.moteur.dto.CreateTemplateRequest;
-import com.rapports.moteur.dto.ReportTemplateDTO;
-import com.rapports.moteur.dto.ReportVariableDTO;
-import com.rapports.moteur.dto.UpdateTemplateRequest;
+import com.rapports.moteur.dto.dtoTemplate.TemplateRequest;
+import com.rapports.moteur.dto.dtoTemplate.TemplateResponse;
+import com.rapports.moteur.dto.dtoTemplate.UpdateTemplateRequest;
+import com.rapports.moteur.dto.dtoVariable.ReportVariableDTO;
 import com.rapports.moteur.entity.ReportTemplate;
 import com.rapports.moteur.entity.ReportVariable;
 import com.rapports.moteur.entity.TemplateStatus;
@@ -21,11 +21,11 @@ public class ReportTemplateService {
         this.repository = repository;
     }
 
-    public List<ReportTemplateDTO> findAll() {
+    public List<TemplateResponse> findAll() {
         return repository.findAll().stream().map(this::toDto).toList();
     }
 
-    public ReportTemplateDTO create(CreateTemplateRequest request) {
+    public TemplateResponse create(TemplateRequest request) {
         ReportTemplate template = new ReportTemplate();
         template.setName(request.name());
         template.setDescription(request.description());
@@ -37,11 +37,11 @@ public class ReportTemplateService {
         return toDto(repository.save(template));
     }
 
-    public ReportTemplateDTO findById(UUID id) {
+    public TemplateResponse findById(UUID id) {
         return toDto(repository.findById(id).orElseThrow(() -> new IllegalArgumentException("Template not found")));
     }
 
-    public ReportTemplateDTO update(UUID id, UpdateTemplateRequest request) {
+    public TemplateResponse update(UUID id, UpdateTemplateRequest request) {
         ReportTemplate template = repository.findById(id).orElseThrow(() -> new IllegalArgumentException("Template not found"));
         template.setName(request.name());
         template.setDescription(request.description());
@@ -52,9 +52,9 @@ public class ReportTemplateService {
         repository.deleteById(id);
     }
 
-    private ReportTemplateDTO toDto(ReportTemplate template) {
-        return new ReportTemplateDTO(
-                template.getId(),
+    private TemplateResponse toDto(ReportTemplate template) {
+        return new TemplateResponse(
+                // template.getId(),
                 template.getName(),
                 template.getDescription(),
                 template.getStatus(),
@@ -66,10 +66,10 @@ public class ReportTemplateService {
 
     private ReportVariableDTO toDto(ReportVariable variable) {
         return new ReportVariableDTO(
-                variable.getId(),
+                // variable.getId(),
                 variable.getName(),
                 variable.getType(),
-                variable.getDefaultValue(),
+                variable.getDescription(),
                 variable.isRequired()
         );
     }
@@ -78,7 +78,7 @@ public class ReportTemplateService {
         ReportVariable variable = new ReportVariable();
         variable.setName(dto.name());
         variable.setType(dto.type());
-        variable.setDefaultValue(dto.defaultValue());
+        variable.setDescription(dto.description());
         variable.setRequired(dto.required());
         return variable;
     }

@@ -12,7 +12,7 @@ public class ReportGeneration {
     private UUID id;
 
     @Column(name = "template_id", nullable = false)
-    private UUID templateId;
+    private UUID templateId; 
 
     @Column(nullable = false, length = 255)
     private String title;
