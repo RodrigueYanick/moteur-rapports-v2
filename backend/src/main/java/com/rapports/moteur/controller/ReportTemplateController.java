@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/templates")
+@RequestMapping("/api/templates")
 public class ReportTemplateController {
     private final ReportTemplateService service;
 
@@ -25,7 +25,7 @@ public class ReportTemplateController {
         return service.findAll();
     }
 
-    @PostMapping
+    @PostMapping 
     @ResponseStatus(HttpStatus.CREATED)
     public ReportTemplateDTO create(@Valid @RequestBody CreateTemplateRequest request) {
         return service.create(request);
