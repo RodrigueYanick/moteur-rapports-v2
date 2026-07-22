@@ -1,19 +1,24 @@
 package com.rapports.moteur.dto.dtoTemplate;
 
-import com.rapports.moteur.dto.dtoVariable.ReportVariableDTO;
 import com.rapports.moteur.entity.TemplateStatus;
+import lombok.*;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
 
-public record TemplateResponse(
-        // UUID id,
-        String name,
-        String description,
-        TemplateStatus status,
-        List<ReportVariableDTO> variables,
-        LocalDateTime createdAt,
-        LocalDateTime updatedAt
-) {
+@Data 
+@NoArgsConstructor 
+@AllArgsConstructor 
+@Builder
+public class TemplateResponse {
+
+    private UUID id;
+    private String nom;
+    private String description;
+    private String contenuDesign;
+    private TemplateStatus statut;
+    private Integer version;
+    private LocalDateTime dateCreation;
+    private LocalDateTime dateModification;
+    
 }

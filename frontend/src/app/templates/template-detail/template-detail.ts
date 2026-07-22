@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormGroup, FormBuilder, Validators, FormsModule } from '@angular/forms';
 import { Template } from '../../models/template.model';
@@ -11,7 +11,7 @@ import { ActivatedRoute, Router } from '@angular/router';
   standalone: true,
   imports: [ CommonModule, ReactiveFormsModule, FormsModule],
   templateUrl: './template-detail.html',
-  styleUrl: './template-detail.scss',
+  styleUrls: ['./template-detail.scss'],
 })
 export class TemplateDetail implements OnInit {
 
@@ -27,7 +27,8 @@ export class TemplateDetail implements OnInit {
   constructor (
     private fb: FormBuilder,
     private api : TemplateApiService,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private cdr: ChangeDetectorRef
   ){
     this.variableForm = this.fb.group({
       nomVariable: ['', Validators.required],
@@ -48,12 +49,14 @@ export class TemplateDetail implements OnInit {
       next: (template) => {
         this.template = template;
         this.loading = false;
-        this.loadVariables(id)
+        this.loadVariables(id);
+        this.cdr.detectChanges();
       },
       error: (err) => {
         this.error = "Impossible de charger les modele";
         this.loading = false;
         console.error(err);
+        this.cdr.detectChanges();
       }
     });
   }
@@ -62,8 +65,12 @@ export class TemplateDetail implements OnInit {
     this.api.getVariables(templateId).subscribe({
       next: (variables) => {
         this.variables = variables;
+        this.cdr.detectChanges();
       }, 
-      error: (err) => console.error(err)
+      error: (err) => {
+        console.error(err);
+        this.cdr.detectChanges();
+      }
     })
   }
 

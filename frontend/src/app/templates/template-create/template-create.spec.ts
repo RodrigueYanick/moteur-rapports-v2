@@ -20,4 +20,11 @@ describe('TemplateCreate', () => {
   it('should create', () => {
     expect(component).toBeTruthy();
   });
+
+  it('should not render the error block when there is no error', () => {
+    fixture.detectChanges();
+
+    const errorElement = fixture.nativeElement.querySelector('div[ngif="error"]');
+    expect(errorElement).toBeNull();
+  });
 });

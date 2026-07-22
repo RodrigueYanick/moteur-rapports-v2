@@ -2,7 +2,8 @@ package com.rapports.moteur.entity;
 
 public enum VariableType {
     STRING,
-    NUMBER,
+    FLOAT,
     BOOLEAN,
-    DATE
+    DATE,
+    ARRAY
 }

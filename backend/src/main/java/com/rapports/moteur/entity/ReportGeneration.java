@@ -1,55 +1,47 @@
 package com.rapports.moteur.entity;
 
 import jakarta.persistence.*;
+import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "report_generations")
+@Table(name = "report_generation")
+@Getter
+@Setter
+@NoArgsConstructor 
+@AllArgsConstructor
+@Builder
 public class ReportGeneration {
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "template_id", nullable = false)
-    private UUID templateId; 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "template_id", nullable = false)
+    private ReportTemplate template;
 
-    @Column(nullable = false, length = 255)
-    private String title;
+    @Column(name = "date_generation")
+    private LocalDateTime dateGeneration;
 
-    @Column(nullable = false, length = 50)
-    private String format;
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "donnees_recues", columnDefinition = "jsonb")
+    private String donneesRecues;   // JSON reçu de l'ERP, stocké en texte
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private GenerationStatus status = GenerationStatus.PENDING;
+    @Column(name = "statut")
+    private GenerationStatus statut;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
+    @Column(name = "url_fichier_genere")
+    private String urlFichierGenere;
 
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
+        dateGeneration = LocalDateTime.now();
+        if (statut == null) statut = GenerationStatus.EN_COURS;
     }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
-
-    public UUID getId() { return id; }
-    public UUID getTemplateId() { return templateId; }
-    public void setTemplateId(UUID templateId) { this.templateId = templateId; }
-    public String getTitle() { return title; }
-    public void setTitle(String title) { this.title = title; }
-    public String getFormat() { return format; }
-    public void setFormat(String format) { this.format = format; }
-    public GenerationStatus getStatus() { return status; }
-    public void setStatus(GenerationStatus status) { this.status = status; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
 }

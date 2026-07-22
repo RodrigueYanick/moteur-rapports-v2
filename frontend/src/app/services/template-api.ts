@@ -12,13 +12,13 @@ import { Variable } from '../models/variable.model';
 })
 export class TemplateApiService {
 
-  private baseUrl = '/api/templates';   // le proxy redirige vers http://localhost:8080/api/templates
+  private baseUrl = '/api/templates';   // le proxy redirige vers http://localhost:8081/api/templates
 
   constructor(private http: HttpClient) { }
 
   // Liste tous les templates
   getTemplates(): Observable<Template[]> {
-    return this.http.get<Template[]>(this.baseUrl);
+    return this.http.get<Template[]>(`${this.baseUrl}/all`);
   }
 
   // Détail d'un template
@@ -28,7 +28,7 @@ export class TemplateApiService {
 
   // Créer un nouveau template
   createTemplate(form: TemplateForm): Observable<Template> {
-    return this.http.post<Template>(this.baseUrl, form);
+    return this.http.post<Template>(`${this.baseUrl}/create`, form);
   }
 
   // Modifier un template

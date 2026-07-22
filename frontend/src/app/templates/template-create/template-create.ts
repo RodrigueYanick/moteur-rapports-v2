@@ -1,15 +1,15 @@
 import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { TemplateApiService } from '../../services/template-api';
 import { Router } from '@angular/router';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-template-create',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './template-create.html',
-  styleUrl: './template-create.scss',
+  styleUrls: ['./template-create.scss'],
 })
 export class TemplateCreate {
   error: string | null = null;
@@ -30,7 +30,7 @@ export class TemplateCreate {
     const formData = this.form.value
     this.api.createTemplate(formData).subscribe({
       next: (template) => {
-        this.router.navigate(['/template', template.id]);
+        this.router.navigate(['/templates', template.id]);
       },
       error: (err) => {
         this.error = "Erreur lors de la creation";

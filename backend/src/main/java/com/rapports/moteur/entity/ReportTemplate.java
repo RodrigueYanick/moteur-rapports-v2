@@ -1,57 +1,58 @@
 package com.rapports.moteur.entity;
 
 import jakarta.persistence.*;
+import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "report_templates")
+@Table(name = "report_template")
+@Getter 
+@Setter
+@NoArgsConstructor 
+@AllArgsConstructor
+@Builder
 public class ReportTemplate {
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(nullable = false, length = 255)
-    private String name;
+    @Column(nullable = false)
+    private String nom;
 
-    @Column(nullable = false, length = 1000)
     private String description;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "contenu_design", columnDefinition = "jsonb")
+    private String contenuDesign;   // sera un objet JSON stocké en String (Jackson sérialisera)
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private TemplateStatus status = TemplateStatus.DRAFT;
+    private TemplateStatus statut;
 
-    @OneToMany(mappedBy = "template", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ReportVariable> variables = new ArrayList<>();
+    @Column(nullable = false)
+    private Integer version;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    @Column(name = "date_creation")
+    private LocalDateTime dateCreation;
 
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
+    @Column(name = "date_modification")
+    private LocalDateTime dateModification;
 
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
+        dateCreation = LocalDateTime.now();
+        dateModification = LocalDateTime.now();
+        if (version == null) version = 1;
+        if (statut == null) statut = TemplateStatus.BROUILLON;
     }
 
     @PreUpdate
     protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
+        dateModification = LocalDateTime.now();
     }
-
-    public UUID getId() { return id; }
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
-    public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
-    public TemplateStatus getStatus() { return status; }
-    public void setStatus(TemplateStatus status) { this.status = status; }
-    public List<ReportVariable> getVariables() { return variables; }
-    public void setVariables(List<ReportVariable> variables) { this.variables = variables; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
 }

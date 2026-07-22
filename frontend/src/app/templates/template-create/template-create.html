@@ -1,21 +1,22 @@
 <h1>Créer un nouveau modèle</h1>
 
-<form [formGroup]="form" (ngSubmit)="onSubmit()">
-
-    <div>
-        <label for="nom">Nom :</label>
-        <input type="text" id="nom" formControlName="nom">
-        <div *ngIf=" form.get('nom')?.invalid && form.get('nom')?.touched" style="color: red;">
-            Le nom est obligatoire .
-        </div>
+<form [formGroup]="form" (ngSubmit)="onSubmit()" class="form">
+  <div class="form-group">
+    <label for="nom">Nom *</label>
+    <input id="nom" type="text" formControlName="nom" class="form-control" />
+    <div class="error" *ngIf="form.get('nom')?.invalid && form.get('nom')?.touched">
+      Le nom est obligatoire.
     </div>
+  </div>
 
-    <div>
-        <label for="description">Description :</label>
-        <input type="text" id="description" formControlName="description">
-    </div>
+  <div class="form-group">
+    <label for="description">Description</label>
+    <input id="description" type="text" formControlName="description" class="form-control" />
+  </div>
 
-    <button type="submit" [disabled]="form.invalid || submitting">Creer</button>
-    <div ngIf="error" style="color: red;">{{ error }}</div>
+  <button type="submit" [disabled]="form.invalid || submitting" class="btn btn-primary">
+    {{ submitting ? 'Création...' : 'Créer' }}
+  </button>
 
+  <div *ngIf="error" class="error message">{{ error }}</div>
 </form>

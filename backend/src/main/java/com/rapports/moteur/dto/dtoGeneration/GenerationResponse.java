@@ -1,17 +1,11 @@
 package com.rapports.moteur.dto.dtoGeneration;
 
-import com.rapports.moteur.entity.GenerationStatus;
+import lombok.*;
 
-import java.time.LocalDateTime;
-// import java.util.UUID;
+import java.util.UUID;
 
-public record GenerationResponse(
-        // UUID id,
-        // UUID templateId,
-        String title,
-        String format,
-        GenerationStatus status,
-        LocalDateTime createdAt,
-        LocalDateTime updatedAt
-) {
+@Data @NoArgsConstructor @AllArgsConstructor @Builder
+public class GenerationResponse {
+    private UUID generationId;
+    private String status;   // "EN_COURS"
 }

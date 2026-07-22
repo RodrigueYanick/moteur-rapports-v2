@@ -1,8 +1,9 @@
 package com.rapports.moteur.controller;
 
-import com.rapports.moteur.dto.dtoTemplate.TemplateRequest;
+import com.rapports.moteur.dto.dtoTemplate.TemplateCreate;
 import com.rapports.moteur.dto.dtoTemplate.TemplateResponse;
-import com.rapports.moteur.dto.dtoTemplate.UpdateTemplateRequest;
+import com.rapports.moteur.dto.dtoVariable.VariableRequest;
+import com.rapports.moteur.dto.dtoVariable.VariableResponse;
 import com.rapports.moteur.service.ReportTemplateService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -20,14 +21,14 @@ public class ReportTemplateController {
         this.service = service;
     }
 
-    @GetMapping
+    @GetMapping("/all")
     public List<TemplateResponse> list() {
         return service.findAll();
     }
 
-    @PostMapping 
+    @PostMapping("/create")
     @ResponseStatus(HttpStatus.CREATED)
-    public TemplateResponse create(@Valid @RequestBody TemplateRequest request) {
+    public TemplateResponse create(@Valid @RequestBody TemplateCreate request) {
         return service.create(request);
     }
 
@@ -36,14 +37,31 @@ public class ReportTemplateController {
         return service.findById(id);
     }
 
-    @PutMapping("/{id}")
-    public TemplateResponse update(@PathVariable UUID id, @Valid @RequestBody UpdateTemplateRequest request) {
-        return service.update(id, request);
+    @GetMapping("/{id}/variables")
+    public List<VariableResponse> getVariables(@PathVariable UUID id) {
+        return service.findVariables(id);
     }
 
-    @DeleteMapping("/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable UUID id) {
-        service.delete(id);
+    @PostMapping("/{id}/variables")
+    @ResponseStatus(HttpStatus.CREATED)
+    public VariableResponse addVariable(@PathVariable UUID id, @Valid @RequestBody VariableRequest request) {
+        return service.addVariable(id, request);
     }
+
+    @DeleteMapping("/{id}/variables/{variableId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteVariable(@PathVariable UUID id, @PathVariable UUID variableId) {
+        service.deleteVariable(id, variableId);
+    }
+
+    // @PutMapping("/{id}")
+    // public TemplateResponse update(@PathVariable UUID id, @Valid @RequestBody UpdateTemplateRequest request) {
+    //     return service.update(id, request);
+    // }
+
+    // @DeleteMapping("/{id}")
+    // @ResponseStatus(HttpStatus.NO_CONTENT)
+    // public void delete(@PathVariable UUID id) {
+    //     service.delete(id);
+    // }
 }

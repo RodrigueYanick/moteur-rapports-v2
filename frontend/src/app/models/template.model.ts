@@ -2,7 +2,7 @@ export interface Template{
     id: string;
     nom: string;
     description?: string;
-    contentDesigne: any;
+    contenuDesign?: any | null;
     statut: 'BROUILLON' | 'PUBLIE' | 'ARCHIVE';
     version: number;
     dateCreation: string;
