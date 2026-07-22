@@ -1,9 +1,13 @@
 package com.rapports.moteur.entity;
 
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
-import java.util.UUID;
+import lombok.Data;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+@Data
 @Entity
 @Table(name = "report_generations")
 public class ReportGeneration {
@@ -12,13 +16,15 @@ public class ReportGeneration {
     private UUID id;
 
     @Column(name = "template_id", nullable = false)
-    private UUID templateId;
+    private UUID templateId; //cle etrangere vers ReportTemplate
 
     @Column(nullable = false, length = 255)
     private String title;
 
     @Column(nullable = false, length = 50)
     private String format;
+    @OneToMany(mappedBy = "generation", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ReportTemplate> templates = new ArrayList<>();
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -41,15 +47,15 @@ public class ReportGeneration {
         updatedAt = LocalDateTime.now();
     }
 
-    public UUID getId() { return id; }
-    public UUID getTemplateId() { return templateId; }
-    public void setTemplateId(UUID templateId) { this.templateId = templateId; }
-    public String getTitle() { return title; }
-    public void setTitle(String title) { this.title = title; }
-    public String getFormat() { return format; }
-    public void setFormat(String format) { this.format = format; }
-    public GenerationStatus getStatus() { return status; }
-    public void setStatus(GenerationStatus status) { this.status = status; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    // public UUID getId() { return id; }
+    // public UUID getTemplateId() { return templateId; }
+    // public void setTemplateId(UUID templateId) { this.templateId = templateId; }
+    // public String getTitle() { return title; }
+    // public void setTitle(String title) { this.title = title; }
+    // public String getFormat() { return format; }
+    // public void setFormat(String format) { this.format = format; }
+    // public GenerationStatus getStatus() { return status; }
+    // public void setStatus(GenerationStatus status) { this.status = status; }
+    // public LocalDateTime getCreatedAt() { return createdAt; }
+    // public LocalDateTime getUpdatedAt() { return updatedAt; }
 }

@@ -1,0 +1,13 @@
+target/
+.git/
+.gitignore
+README.md
+CONTRAT_INTERFACE.md
+backend/target/
+backend/.git/
+backend/.idea/
+backend/.vscode/
+backend/.mvn/wrapper/
+frontend/
+**/.DS_Store
+**/*.log

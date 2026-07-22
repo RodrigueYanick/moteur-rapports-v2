@@ -1,9 +1,10 @@
-package com.rapports.moteur.dto;
+package com.rapports.moteur.dto.dtoTemplate;
 
 import jakarta.validation.constraints.NotBlank;
 
 public record UpdateTemplateRequest(
         @NotBlank String name,
-        @NotBlank String description
+        @NotBlank String description,
+        @NotBlank String contenuDesign
 ) {
 }
