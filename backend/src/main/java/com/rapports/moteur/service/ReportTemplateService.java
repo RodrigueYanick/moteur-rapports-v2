@@ -29,6 +29,7 @@ public class ReportTemplateService {
         ReportTemplate template = new ReportTemplate();
         template.setName(request.name());
         template.setDescription(request.description());
+        template.setContenuDesign(request.contenuDesign());
         template.setStatus(TemplateStatus.ACTIVE);
 
         List<ReportVariable> variables = request.variables().stream().map(this::toEntity).toList();
@@ -45,6 +46,8 @@ public class ReportTemplateService {
         ReportTemplate template = repository.findById(id).orElseThrow(() -> new IllegalArgumentException("Template not found"));
         template.setName(request.name());
         template.setDescription(request.description());
+        template.setContenuDesign(request.contenuDesign());
+        template.setVersion(template.getVersion() + 1);
         return toDto(repository.save(template));
     }
 
@@ -54,10 +57,12 @@ public class ReportTemplateService {
 
     private TemplateResponse toDto(ReportTemplate template) {
         return new TemplateResponse(
-                // template.getId(),
+                template.getId(),
                 template.getName(),
                 template.getDescription(),
+                template.getContenuDesign(),
                 template.getStatus(),
+                template.getVersion(),
                 template.getVariables().stream().map(this::toDto).toList(),
                 template.getCreatedAt(),
                 template.getUpdatedAt()

@@ -10,6 +10,7 @@ import com.rapports.moteur.dto.dtoVariable.ReportVariableDTO;
 public record TemplateRequest(
         @NotBlank String name,
         @NotBlank String description,
+        @NotBlank String contenuDesign,
         @NotEmpty List<ReportVariableDTO> variables
 ) {
 }

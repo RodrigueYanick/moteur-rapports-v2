@@ -5,11 +5,14 @@ import com.rapports.moteur.dto.dtoGeneration.GenerationResponse;
 import com.rapports.moteur.entity.GenerationStatus;
 import com.rapports.moteur.entity.ReportGeneration;
 import com.rapports.moteur.repository.ReportGenerationRepository;
+
+import lombok.Data;
+
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.UUID;
-
+@Data
 @Service
 public class ReportGenerationService {
     private final ReportGenerationRepository repository;

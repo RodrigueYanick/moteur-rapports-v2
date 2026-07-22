@@ -8,10 +8,12 @@ import java.util.List;
 import java.util.UUID;
 
 public record TemplateResponse(
-        // UUID id,
+        UUID id,
         String name,
         String description,
+        String contenuDesign,
         TemplateStatus status,
+        Integer version,
         List<ReportVariableDTO> variables,
         LocalDateTime createdAt,
         LocalDateTime updatedAt

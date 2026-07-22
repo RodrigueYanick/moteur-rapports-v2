@@ -4,6 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 
 public record UpdateTemplateRequest(
         @NotBlank String name,
-        @NotBlank String description
+        @NotBlank String description,
+        @NotBlank String contenuDesign
 ) {
 }
