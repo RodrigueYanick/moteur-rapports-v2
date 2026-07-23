@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5454/moteur_rapports}
-    username: ${DB_USERNAME:reportuser}
-    password: ${DB_PASSWORD:rodrigue}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/moteur_rapports}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:20040}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -12,7 +12,7 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
 server:
-  port: 8082
+  port: 8080
 
 app:
   storage-path: ${STORAGE_PATH:./data/reports}
