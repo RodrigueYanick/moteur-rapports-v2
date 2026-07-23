@@ -6,6 +6,7 @@ import com.rapports.moteur.entity.ReportTemplate;
 import com.rapports.moteur.repository.ReportGenerationRepository;
 import com.rapports.moteur.repository.ReportTemplateRepository;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -34,7 +35,9 @@ public class AsyncGenerationProcessor {
     }
 
     @Async("generationExecutor")
-    public void processAsync(UUID generationId, UUID templateId, Map<String, Object> data,
+    public void processAsync(@NonNull UUID generationId,
+                             @NonNull UUID templateId,
+                             Map<String, Object> data,
                              String storagePath) {
         ReportGeneration generation = generationRepository.findById(generationId)
                 .orElseThrow(() -> new IllegalStateException("Generation introuvable : " + generationId));

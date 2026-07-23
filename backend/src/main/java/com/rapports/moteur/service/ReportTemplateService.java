@@ -16,30 +16,21 @@ import com.rapports.moteur.repository.ReportVariableRepository;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class ReportTemplateService {
 
-    @Autowired
-    private VariableMapper variableMapper;
-
-    @Autowired
-    private ReportTemplateRepository repository;
-
-    @Autowired
-    private ReportVariableRepository variableRepository;
-
-    @Autowired
-    private TemplateMapper mapper;
+    private final VariableMapper variableMapper;
+    private final ReportTemplateRepository repository;
+    private final ReportVariableRepository variableRepository;
+    private final TemplateMapper mapper;
 
     public List<TemplateResponse> findAll() {
         List<ReportTemplate> templates = repository.findAll();
@@ -67,19 +58,17 @@ public class ReportTemplateService {
         return mapper.toDto(saved);
     }
 
-    public TemplateResponse findById(UUID id) {
-        Optional<ReportTemplate> template = repository.findById(id);
-        if (template.isPresent()) {
-            return mapper.toDto(template.get());
-        }
-        return null;
+    public TemplateResponse findById(@NonNull UUID id) {
+        ReportTemplate template = repository.findById(id)
+                .orElseThrow(() -> new TemplateNotFoundException("Template introuvable : " + id));
+        return mapper.toDto(template);
     }
 
-    public void delete(UUID id) {
+    public void delete(@NonNull UUID id) {
         repository.deleteById(id);
     }
 
-    public List<VariableResponse> findVariables(UUID templateId) {
+    public List<VariableResponse> findVariables(@NonNull UUID templateId) {
         List<ReportVariable> variables = variableRepository.findByTemplate_Id(templateId);
         List<VariableResponse> variableResponses = new ArrayList<>();
         for (ReportVariable variable : variables) {
@@ -88,7 +77,7 @@ public class ReportTemplateService {
         return variableResponses;
     }
 
-    public VariableResponse addVariable(UUID templateId, VariableRequest request) {
+    public VariableResponse addVariable(@NonNull UUID templateId, VariableRequest request) {
         ReportTemplate template = repository.findById(templateId)
                 .orElseThrow(() -> new IllegalArgumentException("Template not found"));
 
@@ -101,7 +90,7 @@ public class ReportTemplateService {
         return variableMapper.toDto(variableRepository.save(variable));
     }
 
-    public void deleteVariable(UUID templateId, UUID variableId) {
+    public void deleteVariable(@NonNull UUID templateId, @NonNull UUID variableId) {
         ReportVariable variable = variableRepository.findById(variableId)
                 .orElseThrow(() -> new IllegalArgumentException("Variable not found"));
 
@@ -117,7 +106,7 @@ public class ReportTemplateService {
      * Seul un template en BROUILLON peut être publié.
      */
     @Transactional
-    public TemplateResponse publish(UUID id) {
+    public TemplateResponse publish(@NonNull UUID id) {
         ReportTemplate entity = repository.findById(id)
                 .orElseThrow(() -> new TemplateNotFoundException("Template introuvable : " + id));
 
@@ -138,7 +127,7 @@ public class ReportTemplateService {
      * Les champs autorisés : nom, description, contenuDesign.
      */
     @Transactional
-    public TemplateResponse update(UUID id, TemplateCreate request) {
+    public TemplateResponse update(@NonNull UUID id, TemplateCreate request) {
         ReportTemplate entity = repository.findById(id)
                 .orElseThrow(() -> new TemplateNotFoundException("Template introuvable : " + id));
 

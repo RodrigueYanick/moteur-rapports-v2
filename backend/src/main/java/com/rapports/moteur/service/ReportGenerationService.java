@@ -13,6 +13,7 @@ import com.rapports.moteur.repository.ReportTemplateRepository;
 import com.rapports.moteur.repository.ReportVariableRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.lang.NonNull;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -20,8 +21,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
-@Data
 @Service
 public class ReportGenerationService {
 
@@ -59,7 +60,7 @@ public class ReportGenerationService {
     // ---------- SYNCHRONE ----------
 
     @Transactional
-    public byte[] generateSync(UUID templateId, Object rawData) {
+    public byte[] generateSync(@NonNull UUID templateId, Object rawData) {
         ReportTemplate template = getPublishedTemplate(templateId);
         Map<String, Object> data = toDataMap(rawData);
         List<ReportVariable> variables = variableRepository.findByTemplate_Id(templateId);
@@ -82,7 +83,7 @@ public class ReportGenerationService {
 
     // ---------- ASYNCHRONE ----------
 
-    public GenerationResponse generateAsync(UUID templateId, Object rawData) {
+    public GenerationResponse generateAsync(@NonNull UUID templateId, Object rawData) {
         ReportTemplate template = getPublishedTemplate(templateId);
         Map<String, Object> data = toDataMap(rawData);
         List<ReportVariable> variables = variableRepository.findByTemplate_Id(templateId);
@@ -91,8 +92,8 @@ public class ReportGenerationService {
         ReportGeneration generation = createGenerationEntry(template, data);
 
         // Délégation à un service séparé pour que @Async fonctionne
-        asyncProcessor.processAsync(generation.getId(), templateId, data,
-                appProperties.getStoragePath());
+        asyncProcessor.processAsync(Objects.requireNonNull(generation.getId()), templateId, data,
+            appProperties.getStoragePath());
 
         return GenerationResponse.builder()
                 .generationId(generation.getId())
@@ -102,17 +103,17 @@ public class ReportGenerationService {
 
     // ---------- CONSULTATION ----------
 
-    public GenerationDto getGeneration(UUID generationId) {
+    public GenerationDto getGeneration(@NonNull UUID generationId) {
         return generationMapper.toDto(generationRepository.findById(generationId)
                 .orElseThrow(() -> new IllegalStateException("Generation introuvable : " + generationId)));
     }
 
-    public List<GenerationDto> getHistory(UUID templateId) {
+    public List<GenerationDto> getHistory(@NonNull UUID templateId) {
         return generationRepository.findByTemplate_IdOrderByDateGenerationDesc(templateId)
                 .stream().map(generationMapper::toDto).toList();
     }
 
-    public byte[] downloadPdf(UUID generationId) {
+    public byte[] downloadPdf(@NonNull UUID generationId) {
         ReportGeneration generation = generationRepository.findById(generationId)
                 .orElseThrow(() -> new IllegalStateException("Generation introuvable : " + generationId));
 
@@ -128,7 +129,7 @@ public class ReportGenerationService {
 
     // ---------- HELPERS ----------
 
-    private ReportTemplate getPublishedTemplate(UUID templateId) {
+    private ReportTemplate getPublishedTemplate(@NonNull UUID templateId) {
         ReportTemplate template = templateRepository.findById(templateId)
                 .orElseThrow(() -> new TemplateNotFoundException("Template introuvable : " + templateId));
         if (template.getStatut() != TemplateStatus.PUBLIE) {
@@ -143,6 +144,7 @@ public class ReportGenerationService {
         throw new ValidationException(List.of("Le corps de la requete doit etre un objet JSON"));
     }
 
+    @SuppressWarnings("null")
     private ReportGeneration createGenerationEntry(ReportTemplate template, Map<String, Object> data) {
         String donneesJson;
         try {

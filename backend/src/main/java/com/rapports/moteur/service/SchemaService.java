@@ -8,6 +8,7 @@ import com.rapports.moteur.mapper.VariableMapper;
 import com.rapports.moteur.repository.ReportTemplateRepository;
 import com.rapports.moteur.repository.ReportVariableRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.lang.NonNull;
 
 import java.util.List;
 import java.util.UUID;
@@ -27,8 +28,8 @@ public class SchemaService {
         this.variableMapper = variableMapper;
     }
 
-    public TemplateSchemaDto getSchema(UUID templateId) {
-        ReportTemplate template = templateRepository.findById(templateId)
+        public TemplateSchemaDto getSchema(@NonNull UUID templateId) {
+                ReportTemplate template = templateRepository.findById(templateId)
                 .orElseThrow(() -> new TemplateNotFoundException("Template introuvable : " + templateId));
 
         List<VariableResponse> variables = variableRepository.findByTemplate_Id(templateId)

@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
+import org.springframework.lang.NonNull;
 
 @Service
 public class VariableService {
@@ -34,7 +35,7 @@ public class VariableService {
     /**
      * Récupère toutes les variables d'un template donné.
      */
-    public List<VariableResponse> getVariables(UUID templateId) {
+    public List<VariableResponse> getVariables(@NonNull UUID templateId) {
         // Vérifie que le template existe (optionnel, mais recommandé)
         templateRepository.findById(templateId)
                 .orElseThrow(() -> new TemplateNotFoundException("Template introuvable : " + templateId));
@@ -49,7 +50,7 @@ public class VariableService {
      * Ajoute une variable à un template (uniquement si le template est en brouillon).
      */
     @Transactional
-    public VariableResponse addVariable(UUID templateId, VariableRequest request) {
+    public VariableResponse addVariable(@NonNull UUID templateId, VariableRequest request) {
         ReportTemplate template = templateRepository.findById(templateId)
                 .orElseThrow(() -> new TemplateNotFoundException("Template introuvable : " + templateId));
 
@@ -76,7 +77,7 @@ public class VariableService {
      * Supprime une variable (uniquement si le template est en brouillon).
      */
     @Transactional
-    public void deleteVariable(UUID templateId, UUID variableId) {
+    public void deleteVariable(@NonNull UUID templateId, @NonNull UUID variableId) {
         // Vérifie que le template existe
         ReportTemplate template = templateRepository.findById(templateId)
                 .orElseThrow(() -> new TemplateNotFoundException("Template introuvable : " + templateId));
