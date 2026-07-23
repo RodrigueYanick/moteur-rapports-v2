@@ -7,7 +7,7 @@ import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
-
+@Data
 @Entity
 @Table(name = "report_template")
 @Getter 
@@ -51,7 +51,7 @@ public class ReportTemplate {
         if (statut == null) statut = TemplateStatus.BROUILLON;
     }
 
-    @PreUpdate
+    @PreUpdate // Méthode appelée avant la mise à jour de l'entité
     protected void onUpdate() {
         dateModification = LocalDateTime.now();
     }
