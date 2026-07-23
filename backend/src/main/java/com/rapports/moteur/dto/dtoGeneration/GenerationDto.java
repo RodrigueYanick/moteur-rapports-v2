@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 import com.rapports.moteur.entity.GenerationStatus;
-
+/* */
 @Data 
 @NoArgsConstructor 
 @AllArgsConstructor 

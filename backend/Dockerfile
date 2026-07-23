@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM maven:3.9.9-eclipse-temurin-21 AS builder
+FROM maven:3.9.9-eclipse-temurin-25 AS builder
 WORKDIR /workspace
 
 COPY backend/pom.xml ./backend/pom.xml
@@ -12,7 +12,7 @@ COPY backend/src/main/resources/db/migration ./backend/src/main/resources/db/mig
 
 RUN mvn -f backend/pom.xml clean package -DskipTests
 
-FROM eclipse-temurin:21-jre-jammy
+FROM eclipse-temurin:25-jre-jammy
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*

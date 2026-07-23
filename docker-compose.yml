@@ -2,14 +2,14 @@ version: '3.8'
 
 services:
   postgres:
-    image: postgres:15-alpine   # plus léger
+    image: postgres:15-alpine
     container_name: report-postgres
     environment:
-      POSTGRES_DB: reportdb
+      POSTGRES_DB: moteur_rapports
       POSTGRES_USER: reportuser
-      POSTGRES_PASSWORD: secret
+      POSTGRES_PASSWORD: rodrigue
     ports:
-      - "5432:5432"
+      - "5454:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
 
