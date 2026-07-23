@@ -5,6 +5,8 @@ import lombok.*;
 
 import java.util.UUID;
 
+import java.util.UUID;
+@Data
 @Entity
 @Table(name = "report_variable")
 @Getter 
