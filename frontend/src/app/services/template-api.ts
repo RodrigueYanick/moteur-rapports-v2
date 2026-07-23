@@ -18,7 +18,7 @@ export class TemplateApiService {
 
   // Liste tous les templates
   getTemplates(): Observable<Template[]> {
-    return this.http.get<Template[]>(`${this.baseUrl}/all`);
+    return this.http.get<Template[]>(`${this.baseUrl}`);
   }
 
   // Détail d'un template
@@ -28,7 +28,7 @@ export class TemplateApiService {
 
   // Créer un nouveau template
   createTemplate(form: TemplateForm): Observable<Template> {
-    return this.http.post<Template>(`${this.baseUrl}/create`, form);
+    return this.http.post<Template>(`${this.baseUrl}`, form);
   }
 
   // Modifier un template

@@ -27,8 +27,8 @@
     </button>
   </section>
 
-  <!-- Section Variables -->
-  <section class="card">
+  <!-- Section Variables : gestion complète si BROUILLON, sinon lecture seule -->
+  <section class="card" *ngIf="template.statut === 'BROUILLON'">
     <h2>Variables</h2>
 
     <table *ngIf="variables.length > 0; else noVariables" class="table">
@@ -85,6 +85,29 @@
 
       <button type="submit" [disabled]="variableForm.invalid" class="btn btn-primary">Ajouter</button>
     </form>
+  </section>
+
+  <!-- Section Variables en lecture seule quand le template n'est pas BROUILLON -->
+  <section class="card" *ngIf="template.statut !== 'BROUILLON'">
+    <h2>Variables (lecture seule)</h2>
+    <p>Le template est publié, les variables ne peuvent plus être modifiées.</p>
+    <table *ngIf="variables.length > 0" class="table">
+      <thead>
+        <tr>
+          <th>Nom</th>
+          <th>Type</th>
+          <th>Obligatoire</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let variable of variables">
+          <td>{{ variable.nomVariable }}</td>
+          <td><span class="badge small badge-type">{{ variable.type }}</span></td>
+          <td>{{ variable.obligatoire ? '✅' : '❌' }}</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="message info" *ngIf="variables.length === 0">Aucune variable définie pour ce modèle.</p>
   </section>
 
   <!-- Génération PDF (test) -->

@@ -1,10 +1,12 @@
 package com.rapports.moteur.controller;
 
-import com.rapports.moteur.dto.dtoGeneration.GenerationResponse;
+import com.rapports.moteur.dto.dtoGeneration.GenerationDto;
 import com.rapports.moteur.service.ReportGenerationService;
-import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.UUID;
@@ -12,25 +14,12 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/generations")
 public class ReportGenerationController {
-    private final ReportGenerationService service;
 
-    public ReportGenerationController(ReportGenerationService service) {
-        this.service = service;
+    @Autowired
+    private ReportGenerationService service;
+
+    @GetMapping
+    public List<GenerationDto> getGenerationsForTemplate(@RequestParam UUID templateId) {
+        return service.getHistory(templateId);
     }
-
-    // @GetMapping
-    // public List<GenerationResponse> list() {
-    //     return service.findAll();
-    // }
-
-    // @PostMapping
-    // @ResponseStatus(HttpStatus.CREATED)
-    // public GenerationResponse create(@Valid @RequestBody GenerateRequest request) {
-    //     return service.generate(request);
-    // }
-
-    // @GetMapping("/{id}")
-    // public GenerationResponse get(@PathVariable UUID id) {
-    //     return service.findById(id);
-    // }
 }
