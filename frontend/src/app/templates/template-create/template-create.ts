@@ -19,8 +19,7 @@ export class TemplateCreate {
   constructor(private fb: FormBuilder, private api: TemplateApiService, private router: Router){
     this.form = this.fb.group({
       nom: ['', Validators.required],
-      description: [''],
-      contenuDesign: ['']   // <-- ajout ici
+      description: ['']
     });
   }
 

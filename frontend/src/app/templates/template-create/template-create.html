@@ -14,11 +14,6 @@
     <input id="description" type="text" formControlName="description" class="form-control" />
   </div>
 
-  <div class="form-group">
-    <label for="contenuDesign">Design (JSON, optionnel)</label>
-    <textarea id="contenuDesign" formControlName="contenuDesign" class="form-control" rows="4"></textarea>
-  </div>
-
   <button type="submit" [disabled]="form.invalid || submitting" class="btn btn-primary">
     {{ submitting ? 'Création...' : 'Créer' }}
   </button>
