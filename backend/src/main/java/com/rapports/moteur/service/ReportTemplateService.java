@@ -1,18 +1,16 @@
 package com.rapports.moteur.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rapports.moteur.dto.dtoTemplate.TemplateCreate;
 import com.rapports.moteur.dto.dtoTemplate.TemplateResponse;
-import com.rapports.moteur.dto.dtoVariable.VariableRequest;
-import com.rapports.moteur.dto.dtoVariable.VariableResponse;
+import com.rapports.moteur.dto.dtoVariable.ExtractedVariable;
 import com.rapports.moteur.entity.ReportTemplate;
-import com.rapports.moteur.entity.ReportVariable;
 import com.rapports.moteur.entity.TemplateStatus;
 import com.rapports.moteur.exceptions.TemplateNotFoundException;
 import com.rapports.moteur.exceptions.ValidationException;
 import com.rapports.moteur.mapper.TemplateMapper;
-import com.rapports.moteur.mapper.VariableMapper;
 import com.rapports.moteur.repository.ReportTemplateRepository;
-import com.rapports.moteur.repository.ReportVariableRepository;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -27,10 +25,10 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ReportTemplateService {
 
-    private final VariableMapper variableMapper;
     private final ReportTemplateRepository repository;
-    private final ReportVariableRepository variableRepository;
     private final TemplateMapper mapper;
+    private final SchemaExtractorService schemaExtractorService;
+    private final ObjectMapper objectMapper;
 
     public List<TemplateResponse> findAll() {
         List<ReportTemplate> templates = repository.findAll();
@@ -68,42 +66,14 @@ public class ReportTemplateService {
         repository.deleteById(id);
     }
 
-    public List<VariableResponse> findVariables(@NonNull UUID templateId) {
-        List<ReportVariable> variables = variableRepository.findByTemplate_Id(templateId);
-        List<VariableResponse> variableResponses = new ArrayList<>();
-        for (ReportVariable variable : variables) {
-            variableResponses.add(variableMapper.toDto(variable));
-        }
-        return variableResponses;
-    }
-
-    public VariableResponse addVariable(@NonNull UUID templateId, VariableRequest request) {
-        ReportTemplate template = repository.findById(templateId)
-                .orElseThrow(() -> new IllegalArgumentException("Template not found"));
-
-        ReportVariable variable = new ReportVariable();
-        variable.setTemplate(template);
-        variable.setNomVariable(request.getNomVariable());
-        variable.setType(request.getType());
-        variable.setObligatoire(request.getObligatoire() != null ? request.getObligatoire() : false);
-
-        return variableMapper.toDto(variableRepository.save(variable));
-    }
-
-    public void deleteVariable(@NonNull UUID templateId, @NonNull UUID variableId) {
-        ReportVariable variable = variableRepository.findById(variableId)
-                .orElseThrow(() -> new IllegalArgumentException("Variable not found"));
-
-        if (!variable.getTemplate().getId().equals(templateId)) {
-            throw new IllegalArgumentException("Variable does not belong to the requested template");
-        }
-
-        variableRepository.delete(variable);
-    }
-
     /**
-     * Publie un template : change le statut en PUBLIE et incrémente la version.
+     * Publie un template : extrait automatiquement le schéma des variables depuis
+     * contenuDesign, change le statut en PUBLIE et incrémente la version.
      * Seul un template en BROUILLON peut être publié.
+     *
+     * À partir de la publication, la table ReportVariable n'est plus utilisée pour
+     * ce template : le schéma extrait (champ "schema") devient la seule source de
+     * vérité des variables à compléter (voir SchemaService.getSchema).
      */
     @Transactional
     public TemplateResponse publish(@NonNull UUID id) {
@@ -112,6 +82,13 @@ public class ReportTemplateService {
 
         if (entity.getStatut() != TemplateStatus.BROUILLON) {
             throw new ValidationException("Seul un template en brouillon peut être publié");
+        }
+
+        List<ExtractedVariable> variablesExtraites = schemaExtractorService.extraire(entity.getContenuDesign());
+        try {
+            entity.setSchema(objectMapper.writeValueAsString(variablesExtraites));
+        } catch (JsonProcessingException e) {
+            throw new ValidationException("Impossible de sérialiser le schéma extrait : " + e.getMessage());
         }
 
         entity.setStatut(TemplateStatus.PUBLIE);

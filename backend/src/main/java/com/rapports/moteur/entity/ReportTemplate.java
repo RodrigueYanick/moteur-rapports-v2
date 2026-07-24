@@ -30,6 +30,10 @@ public class ReportTemplate {
     @Column(name = "contenu_design", columnDefinition = "jsonb")
     private String contenuDesign;   // sera un objet JSON stocké en String (Jackson sérialisera)
 
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "schema", columnDefinition = "jsonb")
+    private String schema;   // JSON Schema (liste d'ExtractedVariable) extrait automatiquement à la publication
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TemplateStatus statut;
