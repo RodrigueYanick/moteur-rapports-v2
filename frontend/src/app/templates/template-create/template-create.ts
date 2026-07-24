@@ -26,6 +26,18 @@ export class TemplateCreate {
 
   onSubmit(): void {
     if(this.form.invalid) return;
+
+    // Validation du contenuDesign s’il est fourni
+    const design = this.form.get('contenuDesign')?.value;
+    if (design && design.trim().length > 0) {
+      try {
+        JSON.parse(design);
+      } catch (e) {
+        this.error = "Le design JSON est invalide. Corrigez-le.";
+        return;
+      }
+    }
+
     this.submitting = true;
     this.error = '';
     const formData = this.form.value
