@@ -47,17 +47,17 @@ export class TemplateApiService {
   }
 
   // Gestion des variables (pour l'instant manuelle, avant l'étape 3)
-  getVariables(templateId: string): Observable<Variable[]> {
-    return this.http.get<Variable[]>(`${this.baseUrl}/${templateId}/variables`);
-  }
+  // getVariables(templateId: string): Observable<Variable[]> {
+  //   return this.http.get<Variable[]>(`${this.baseUrl}/${templateId}/variables`);
+  // }
 
-  addVariable(templateId: string, variable: Partial<Variable>): Observable<Variable> {
-    return this.http.post<Variable>(`${this.baseUrl}/${templateId}/variables`, variable);
-  }
+  // addVariable(templateId: string, variable: Partial<Variable>): Observable<Variable> {
+  //   return this.http.post<Variable>(`${this.baseUrl}/${templateId}/variables`, variable);
+  // }
 
-  deleteVariable(templateId: string, variableId: string): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/${templateId}/variables/${variableId}`);
-  }
+  // deleteVariable(templateId: string, variableId: string): Observable<void> {
+  //   return this.http.delete<void>(`${this.baseUrl}/${templateId}/variables/${variableId}`);
+  // }
 
   // Génération de document (renvoie un Blob PDF)
   generateDocument(id: string, data: any): Observable<Blob> {

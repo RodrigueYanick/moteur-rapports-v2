@@ -27,87 +27,36 @@
     </button>
   </section>
 
-  <!-- Section Variables : gestion complète si BROUILLON, sinon lecture seule -->
-  <section class="card" *ngIf="template.statut === 'BROUILLON'">
-    <h2>Variables</h2>
-
-    <table *ngIf="variables.length > 0; else noVariables" class="table">
+  <!-- Section Variables (schéma extrait automatiquement) -->
+  <section class="card" *ngIf="template.statut === 'PUBLIE'">
+    <h2>Variables (schéma extrait)</h2>
+    <table *ngIf="schema && schema.variables && schema.variables.length > 0; else noSchemaVars" class="table">
       <thead>
         <tr>
           <th>Nom</th>
           <th>Type</th>
           <th>Obligatoire</th>
-          <th>Action</th>
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let variable of variables">
+        <tr *ngFor="let variable of schema.variables">
           <td>{{ variable.nomVariable }}</td>
           <td><span class="badge small badge-type">{{ variable.type }}</span></td>
           <td>{{ variable.obligatoire ? '✅' : '❌' }}</td>
-          <td>
-            <button class="btn btn-danger" (click)="deleteVariable(variable.id)">Supprimer</button>
-          </td>
         </tr>
       </tbody>
     </table>
-
-    <ng-template #noVariables>
-      <p class="message info">Aucune variable définie pour ce modèle.</p>
+    <ng-template #noSchemaVars>
+      <p class="message info">Aucune variable extraite.</p>
     </ng-template>
-
-    <h3>Ajouter une variable</h3>
-    <form [formGroup]="variableForm" (ngSubmit)="addVariable()" class="form-inline">
-      <div class="form-group">
-        <label for="nomVariable">Nom</label>
-        <input id="nomVariable" type="text" formControlName="nomVariable" class="form-control" />
-        <div class="error" *ngIf="variableForm.get('nomVariable')?.invalid && variableForm.get('nomVariable')?.touched">
-          Nom requis.
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label for="type">Type</label>
-        <select id="type" formControlName="type" class="form-control">
-          <option value="STRING">STRING</option>
-          <option value="FLOAT">FLOAT</option>
-          <option value="DATE">DATE</option>
-          <option value="BOOLEAN">BOOLEAN</option>
-          <option value="ARRAY">ARRAY</option>
-        </select>
-      </div>
-
-      <div class="form-group checkbox-group">
-        <label>
-          <input type="checkbox" formControlName="obligatoire" /> Obligatoire
-        </label>
-      </div>
-
-      <button type="submit" [disabled]="variableForm.invalid" class="btn btn-primary">Ajouter</button>
-    </form>
   </section>
 
-  <!-- Section Variables en lecture seule quand le template n'est pas BROUILLON -->
-  <section class="card" *ngIf="template.statut !== 'BROUILLON'">
-    <h2>Variables (lecture seule)</h2>
-    <p>Le template est publié, les variables ne peuvent plus être modifiées.</p>
-    <table *ngIf="variables.length > 0" class="table">
-      <thead>
-        <tr>
-          <th>Nom</th>
-          <th>Type</th>
-          <th>Obligatoire</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let variable of variables">
-          <td>{{ variable.nomVariable }}</td>
-          <td><span class="badge small badge-type">{{ variable.type }}</span></td>
-          <td>{{ variable.obligatoire ? '✅' : '❌' }}</td>
-        </tr>
-      </tbody>
-    </table>
-    <p class="message info" *ngIf="variables.length === 0">Aucune variable définie pour ce modèle.</p>
+  <!-- Message pour template non publié (brouillon ou archivé) -->
+  <section class="card" *ngIf="template.statut !== 'PUBLIE'">
+    <h2>Variables</h2>
+    <p class="message info">
+      Publiez le template pour extraire automatiquement les variables nécessaires.
+    </p>
   </section>
 
   <!-- Génération PDF (test) -->
