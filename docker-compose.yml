@@ -6,10 +6,10 @@ services:
     container_name: report-postgres
     environment:
       POSTGRES_DB: moteur_rapports
-      POSTGRES_USER: reportuser
-      POSTGRES_PASSWORD: rodrigue
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 20040
     ports:
-      - "5454:5432"
+      - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
 

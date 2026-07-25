@@ -1,3 +1,4 @@
+<h1>   </h1>
 <div *ngIf="loading" class="message">Chargement en cours...</div>
 <div *ngIf="error" class="message error">{{ error }}</div>
 
@@ -22,8 +23,9 @@
       <dd>{{ template.dateModification | date:'dd/MM/yyyy HH:mm' }}</dd>
     </dl>
 
-    <button *ngIf="template.statut === 'BROUILLON'" class="btn btn-primary" (click)="publish()">
-      Publier
+    <button *ngIf="template.statut === 'BROUILLON'" class="btn btn-primary" 
+            (click)="publish()" [disabled]="publishing">
+      {{ publishing ? 'Publication...' : 'Publier' }}
     </button>
   </section>
 

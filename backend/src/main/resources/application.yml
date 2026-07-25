@@ -17,4 +17,3 @@ server:
 
 app:
   storage-path: ${STORAGE_PATH:./data/reports}
-  jwt-secret: ${JWT_SECRET:changeme-dev}

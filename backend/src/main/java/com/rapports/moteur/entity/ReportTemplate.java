@@ -2,11 +2,11 @@ package com.rapports.moteur.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
+
+import org.hibernate.annotations.ColumnTransformer;
 @Data
 @Entity
 @Table(name = "report_template")
@@ -26,9 +26,13 @@ public class ReportTemplate {
 
     private String description;
 
-    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "contenu_design", columnDefinition = "jsonb")
-    private String contenuDesign;   // sera un objet JSON stocké en String (Jackson sérialisera)
+    @ColumnTransformer(write = "?::jsonb")
+    private String contenuDesign;
+
+    @Column(name = "schema", columnDefinition = "jsonb")
+    @ColumnTransformer(write = "?::jsonb")
+    private String schema;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

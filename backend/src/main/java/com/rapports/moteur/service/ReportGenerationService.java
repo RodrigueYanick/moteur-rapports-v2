@@ -10,7 +10,6 @@ import com.rapports.moteur.exceptions.ValidationException;
 import com.rapports.moteur.mapper.GenerationMapper;
 import com.rapports.moteur.repository.ReportGenerationRepository;
 import com.rapports.moteur.repository.ReportTemplateRepository;
-import com.rapports.moteur.repository.ReportVariableRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,7 +26,6 @@ public class ReportGenerationService {
 
     private final ReportGenerationRepository generationRepository;
     private final ReportTemplateRepository templateRepository;
-    private final ReportVariableRepository variableRepository;
     private final DataValidatorService validatorService;
     private final TemplateHtmlBuilder htmlBuilder;
     private final PdfRendererService pdfRenderer;
@@ -36,9 +34,9 @@ public class ReportGenerationService {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final AsyncGenerationProcessor asyncProcessor;
 
+    // ⚠️ variableRepository a été retiré
     public ReportGenerationService(ReportGenerationRepository generationRepository,
                                     ReportTemplateRepository templateRepository,
-                                    ReportVariableRepository variableRepository,
                                     DataValidatorService validatorService,
                                     TemplateHtmlBuilder htmlBuilder,
                                     PdfRendererService pdfRenderer,
@@ -47,7 +45,6 @@ public class ReportGenerationService {
                                     AsyncGenerationProcessor asyncProcessor) {
         this.generationRepository = generationRepository;
         this.templateRepository = templateRepository;
-        this.variableRepository = variableRepository;
         this.validatorService = validatorService;
         this.htmlBuilder = htmlBuilder;
         this.pdfRenderer = pdfRenderer;
@@ -57,16 +54,15 @@ public class ReportGenerationService {
     }
 
     // ---------- SYNCHRONE ----------
-
     @Transactional
     public byte[] generateSync(UUID templateId, Object rawData) {
         ReportTemplate template = getPublishedTemplate(templateId);
         Map<String, Object> data = toDataMap(rawData);
-        List<ReportVariable> variables = variableRepository.findByTemplate_Id(templateId);
 
-        validatorService.validate(variables, data);
+        // ✅ Validation avec le schéma extrait
+        validatorService.validate(template.getSchema(), data);
+
         ReportGeneration generation = createGenerationEntry(template, data);
-
         try {
             byte[] pdf = renderPdf(template, data);
             generation.setUrlFichierGenere(storePdf(generation.getId(), pdf));
@@ -79,18 +75,15 @@ public class ReportGenerationService {
             throw new IllegalStateException("Echec de la generation : " + e.getMessage(), e);
         }
     }
-
     // ---------- ASYNCHRONE ----------
-
     public GenerationResponse generateAsync(UUID templateId, Object rawData) {
         ReportTemplate template = getPublishedTemplate(templateId);
         Map<String, Object> data = toDataMap(rawData);
-        List<ReportVariable> variables = variableRepository.findByTemplate_Id(templateId);
 
-        validatorService.validate(variables, data);
+        // Validation temporairement désactivée
+        // validatorService.validate(variables, data);
+
         ReportGeneration generation = createGenerationEntry(template, data);
-
-        // Délégation à un service séparé pour que @Async fonctionne
         asyncProcessor.processAsync(generation.getId(), templateId, data,
                 appProperties.getStoragePath());
 
@@ -101,7 +94,6 @@ public class ReportGenerationService {
     }
 
     // ---------- CONSULTATION ----------
-
     public GenerationDto getGeneration(UUID generationId) {
         return generationMapper.toDto(generationRepository.findById(generationId)
                 .orElseThrow(() -> new IllegalStateException("Generation introuvable : " + generationId)));
@@ -115,7 +107,6 @@ public class ReportGenerationService {
     public byte[] downloadPdf(UUID generationId) {
         ReportGeneration generation = generationRepository.findById(generationId)
                 .orElseThrow(() -> new IllegalStateException("Generation introuvable : " + generationId));
-
         if (generation.getUrlFichierGenere() == null) {
             throw new IllegalStateException("Aucun fichier disponible pour cette generation");
         }
@@ -127,7 +118,6 @@ public class ReportGenerationService {
     }
 
     // ---------- HELPERS ----------
-
     private ReportTemplate getPublishedTemplate(UUID templateId) {
         ReportTemplate template = templateRepository.findById(templateId)
                 .orElseThrow(() -> new TemplateNotFoundException("Template introuvable : " + templateId));

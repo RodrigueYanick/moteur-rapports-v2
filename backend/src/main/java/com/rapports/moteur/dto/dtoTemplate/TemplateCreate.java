@@ -1,7 +1,6 @@
 package com.rapports.moteur.dto.dtoTemplate;
 
 import jakarta.validation.constraints.NotBlank;
-import lombok.Builder;
 import lombok.Data;
 
 @Data
