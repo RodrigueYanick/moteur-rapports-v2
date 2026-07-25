@@ -24,6 +24,7 @@ export class TemplateDetail implements OnInit {
   loading = false;
   error = '';
   schema: TemplateSchema | null = null;
+  publishing = false;
   
 
   constructor (
@@ -58,21 +59,25 @@ export class TemplateDetail implements OnInit {
     });
   }
 
-  loadTemplate(): void {
-    const id = this.route.snapshot.paramMap.get('id');
-    if(!id) return;
+  loadTemplate(id?: string): void {
+    // Si aucun id n'est passé, on le récupère depuis la route
+    const templateId = id || this.route.snapshot.paramMap.get('id');
+    if (!templateId) return;
+
     this.loading = true;
-    this.api.getTemplate(id).subscribe({
+    this.error = '';
+    this.template = null; // réinitialise pour éviter l'ancien affichage
+    this.api.getTemplate(templateId).subscribe({
       next: (template) => {
         this.template = template;
         this.loading = false;
-        if(this.template.statut === 'PUBLIE'){
+        if (template.statut === 'PUBLIE') {
           this.loadSchema();
         }
         this.cdr.markForCheck();
       },
       error: (err) => {
-        this.error = "Impossible de charger les modele";
+        this.error = 'Impossible de charger le modèle.';
         this.loading = false;
         console.error(err);
         this.cdr.markForCheck();
@@ -80,62 +85,66 @@ export class TemplateDetail implements OnInit {
     });
   }
 
-  // loadVariables(templateId: string): void {
-  //   this.api.getVariables(templateId).subscribe({
-  //     next: (variables) => {
-  //       this.variables = variables;
-  //       this.cdr.detectChanges();
-  //     }, 
-  //     error: (err) => {
-  //       console.error(err);
-  //       this.cdr.detectChanges();
-  //     }
-  //   })
-  // }
+  loadVariables(templateId: string): void {
+    this.api.getVariables(templateId).subscribe({
+      next: (variables) => {
+        this.variables = variables;
+        this.cdr.markForCheck();
+      }, 
+      error: (err) => {
+        console.error(err);
+        this.cdr.markForCheck();
+      }
+    })
+  }
 
   publish(): void {
-    if(!this.template) return 
+    if (!this.template || this.publishing) return;
+    this.publishing = true;
     this.api.publishTemplate(this.template.id).subscribe({
       next: (updated) => {
         this.template = updated;
-        // recharger les templates extrait automatiquement 
         this.loadSchema();
+        this.publishing = false;
         this.cdr.markForCheck();
       },
-      error: err => {
-        alert('echec de la publication.');
+      error: (err) => {
+        // Gère l'erreur silencieusement (le statut est peut-être déjà à PUBLIE)
+        console.warn('Publication échouée, rechargement du template...');
+        this.loadTemplate(this.template!.id); // recharge tout pour avoir le vrai état
+        this.publishing = false;
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  addVariable(): void {
+    if (!this.template || this.variableForm.invalid) return;
+    const formVal = this.variableForm.value;
+    const newVar = {
+      nomVariable: formVal.nomVariable,
+      type: formVal.type,
+      obligatoire: formVal.obligatoire
+    };
+    this.api.addVariable(this.template.id, newVar).subscribe({
+      next: () => {
+        this.loadVariables(this.template!.id);
+        this.variableForm.reset({ type: 'STRING', obligatoire: false });
+      },
+      error: (err) => {
+        alert('Erreur lors de l\'ajout de la variable (peut-être un doublon ou template publié).');
         console.error(err);
       }
     });
   }
 
-  // addVariable(): void {
-  //   if (!this.template || this.variableForm.invalid) return;
-  //   const formVal = this.variableForm.value;
-  //   const newVar = {
-  //     nomVariable: formVal.nomVariable,
-  //     type: formVal.type,
-  //     obligatoire: formVal.obligatoire
-  //   };
-  //   this.api.addVariable(this.template.id, newVar).subscribe({
-  //     next: () => {
-  //       this.loadVariables(this.template!.id);
-  //       this.variableForm.reset({ type: 'STRING', obligatoire: false });
-  //     },
-  //     error: (err) => {
-  //       alert('Erreur lors de l\'ajout de la variable (peut-être un doublon ou template publié).');
-  //       console.error(err);
-  //     }
-  //   });
-  // }
-
-  // deleteVariable(variableId: string): void {
-  //   if (!this.template) return;
-  //   this.api.deleteVariable(this.template.id, variableId).subscribe({
-  //     next: () => this.loadVariables(this.template!.id),
-  //     error: (err) => console.error(err)
-  //   });
-  // }
+  deleteVariable(variableId: string): void {
+    if (!this.template) return;
+    this.api.deleteVariable(this.template.id, variableId).subscribe({
+      next: () => this.loadVariables(this.template!.id),
+      error: (err) => console.error(err)
+    });
+  }
 
 generate(): void {
   if (!this.template) return;

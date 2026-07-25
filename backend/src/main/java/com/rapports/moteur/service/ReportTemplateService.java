@@ -1,45 +1,36 @@
 package com.rapports.moteur.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.rapports.moteur.dto.dtoTemplate.TemplateCreate;
 import com.rapports.moteur.dto.dtoTemplate.TemplateResponse;
-import com.rapports.moteur.dto.dtoVariable.VariableRequest;
-import com.rapports.moteur.dto.dtoVariable.VariableResponse;
+import com.rapports.moteur.dto.dtoVariable.ExtractedVariable;
 import com.rapports.moteur.entity.ReportTemplate;
-import com.rapports.moteur.entity.ReportVariable;
 import com.rapports.moteur.entity.TemplateStatus;
 import com.rapports.moteur.exceptions.TemplateNotFoundException;
 import com.rapports.moteur.exceptions.ValidationException;
 import com.rapports.moteur.mapper.TemplateMapper;
-import com.rapports.moteur.mapper.VariableMapper;
 import com.rapports.moteur.repository.ReportTemplateRepository;
-import com.rapports.moteur.repository.ReportVariableRepository;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class ReportTemplateService {
 
-    @Autowired
-    private VariableMapper variableMapper;
-
-    @Autowired
-    private ReportTemplateRepository repository;
-
-    @Autowired
-    private ReportVariableRepository variableRepository;
-
-    @Autowired
-    private TemplateMapper mapper;
+    private final ReportTemplateRepository repository;
+    private final TemplateMapper mapper;
+    private final SchemaExtractorService schemaExtractorService;
+    private final ObjectMapper objectMapper;
 
     public List<TemplateResponse> findAll() {
         List<ReportTemplate> templates = repository.findAll();
@@ -67,78 +58,69 @@ public class ReportTemplateService {
         return mapper.toDto(saved);
     }
 
-    public TemplateResponse findById(UUID id) {
-        Optional<ReportTemplate> template = repository.findById(id);
-        if (template.isPresent()) {
-            return mapper.toDto(template.get());
-        }
-        return null;
+    public TemplateResponse findById(@NonNull UUID id) {
+        ReportTemplate template = repository.findById(id)
+                .orElseThrow(() -> new TemplateNotFoundException("Template introuvable : " + id));
+        return mapper.toDto(template);
     }
 
-    public void delete(UUID id) {
+    public void delete(@NonNull UUID id) {
         repository.deleteById(id);
     }
 
-    public List<VariableResponse> findVariables(UUID templateId) {
-        List<ReportVariable> variables = variableRepository.findByTemplate_Id(templateId);
-        List<VariableResponse> variableResponses = new ArrayList<>();
-        for (ReportVariable variable : variables) {
-            variableResponses.add(variableMapper.toDto(variable));
-        }
-        return variableResponses;
-    }
-
-    public VariableResponse addVariable(UUID templateId, VariableRequest request) {
-        ReportTemplate template = repository.findById(templateId)
-                .orElseThrow(() -> new IllegalArgumentException("Template not found"));
-
-        ReportVariable variable = new ReportVariable();
-        variable.setTemplate(template);
-        variable.setNomVariable(request.getNomVariable());
-        variable.setType(request.getType());
-        variable.setObligatoire(request.getObligatoire() != null ? request.getObligatoire() : false);
-
-        return variableMapper.toDto(variableRepository.save(variable));
-    }
-
-    public void deleteVariable(UUID templateId, UUID variableId) {
-        ReportVariable variable = variableRepository.findById(variableId)
-                .orElseThrow(() -> new IllegalArgumentException("Variable not found"));
-
-        if (!variable.getTemplate().getId().equals(templateId)) {
-            throw new IllegalArgumentException("Variable does not belong to the requested template");
-        }
-
-        variableRepository.delete(variable);
-    }
-
     /**
-     * Publie un template : change le statut en PUBLIE et incrémente la version.
+     * Publie un template : extrait automatiquement le schéma des variables depuis
+     * contenuDesign, change le statut en PUBLIE et incrémente la version.
      * Seul un template en BROUILLON peut être publié.
+     *
+     * À partir de la publication, la table ReportVariable n'est plus utilisée pour
+     * ce template : le schéma extrait (champ "schema") devient la seule source de
+     * vérité des variables à compléter (voir SchemaService.getSchema).
      */
     @Transactional
     public TemplateResponse publish(UUID id) {
         ReportTemplate entity = repository.findById(id)
                 .orElseThrow(() -> new TemplateNotFoundException("Template introuvable : " + id));
-
         if (entity.getStatut() != TemplateStatus.BROUILLON) {
             throw new ValidationException("Seul un template en brouillon peut être publié");
         }
 
+        // Extraction automatique du schéma
+        if (entity.getContenuDesign() != null && !entity.getContenuDesign().isBlank()) {
+            List<ExtractedVariable> variables = schemaExtractorService.extract(entity.getContenuDesign());
+            String variablesJson = buildVariablesJson(variables);
+            entity.setSchema(variablesJson);
+        } else {
+            entity.setSchema(null);   // ou "[]"
+        }
+
         entity.setStatut(TemplateStatus.PUBLIE);
         entity.setVersion(entity.getVersion() + 1);
-        // la date de modification est mise à jour par @PreUpdate
         repository.save(entity);
         return mapper.toDto(entity);
     }
 
+    private String buildVariablesJson(List<ExtractedVariable> variables) {
+        ArrayNode array = objectMapper.createArrayNode();
+        for (ExtractedVariable var : variables) {
+            ObjectNode node = array.addObject();
+            node.put("nomVariable", var.getNom());
+            node.put("type", var.getType());
+            node.put("obligatoire", var.getObligatoire());
+        }
+        try {
+            return objectMapper.writeValueAsString(array);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Erreur génération JSON variables", e);
+        }
+    }
 
     /**
      * Met à jour les champs modifiables d'un template (uniquement s'il est en mode BROUILLON).
      * Les champs autorisés : nom, description, contenuDesign.
      */
     @Transactional
-    public TemplateResponse update(UUID id, TemplateCreate request) {
+    public TemplateResponse update(@NonNull UUID id, TemplateCreate request) {
         ReportTemplate entity = repository.findById(id)
                 .orElseThrow(() -> new TemplateNotFoundException("Template introuvable : " + id));
 

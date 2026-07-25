@@ -14,9 +14,13 @@
     <input id="description" type="text" formControlName="description" class="form-control" />
   </div>
 
+  <!-- Nouveau champ : Design JSON -->
   <div class="form-group">
-    <label for="contenuDesign">Design (JSON, optionnel)</label>
-    <textarea id="contenuDesign" formControlName="contenuDesign" class="form-control" rows="4"></textarea>
+    <label for="contenuDesign">Design JSON (optionnel)</label>
+    <textarea id="contenuDesign" formControlName="contenuDesign" class="form-control" rows="6"></textarea>
+    <div class="error" *ngIf="form.get('contenuDesign')?.invalid && form.get('contenuDesign')?.touched">
+      Le design doit être un JSON valide.
+    </div>
   </div>
 
   <button type="submit" [disabled]="form.invalid || submitting" class="btn btn-primary">

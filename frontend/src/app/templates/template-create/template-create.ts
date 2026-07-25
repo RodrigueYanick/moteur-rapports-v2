@@ -20,7 +20,7 @@ export class TemplateCreate {
     this.form = this.fb.group({
       nom: ['', Validators.required],
       description: [''],
-      contenuDesign: ['']   // <-- ajout ici
+      contenuDesign: ['']
     });
   }
 

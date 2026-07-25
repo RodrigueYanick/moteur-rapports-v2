@@ -3,53 +3,58 @@ name: CI - Build Backend & Frontend
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, Morel, Rodrigue, Morino ]
   pull_request:
     branches: [ main ]
 
 jobs:
   build-backend:
+    name: Build & Test Backend (Java 17)
     runs-on: ubuntu-latest
-    # Condition pour ne pas tourner si seuls des fichiers frontend ont changé
-    # Mais pour simplifier, on le lance toujours
     steps:
-      - uses: actions/checkout@v4
-      
-      - name: Set up JDK 25
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      # Configuration du JDK 17 Temurin et mise en cache des dépendances Maven
+      - name: Configuration de Java 17 (Temurin)
         uses: actions/setup-java@v4
         with:
-          java-version: '25'
+          java-version: '17'
           distribution: 'temurin'
-          
-      - name: Cache Maven packages
-        uses: actions/cache@v3
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('backend/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2
-          
-      - name: Build Backend with Maven
+          cache: 'maven'
+
+      # Compilation du projet Spring Boot (avec wrapper mvnw s'il existe, sinon mvn)
+      - name: Compiler le Backend Spring Boot
         working-directory: ./backend
-        run: ./mvnw compile
-        # ou mvn compile si mvnw n'existe pas encore
-        # Au début, le projet Spring Boot générera mvnw pour toi
+        run: |
+          if [ -f "mvnw" ]; then
+            chmod +x mvnw
+            ./mvnw clean compile
+          else
+            mvn clean compile
+          fi
 
   build-frontend:
+    name: Build Frontend (Angular 21 & Node 22)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup Node.js 18
-        uses: actions/setup-node@v3
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      # Configuration de l'environnement Node.js 22
+      - name: Configuration de Node.js 22
+        uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: '22'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
-          
-      - name: Install dependencies
+
+      # Installation propre des paquets npm du frontend
+      - name: Installer les dépendances npm
         working-directory: ./frontend
         run: npm ci
-      
-      - name: Build Frontend
+
+      # Compilation de l'application Angular pour la production
+      - name: Compiler l'application Angular
         working-directory: ./frontend
         run: npx ng build --configuration production
