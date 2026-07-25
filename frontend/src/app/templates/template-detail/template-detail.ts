@@ -46,10 +46,14 @@ export class TemplateDetail implements OnInit {
   loadSchema(): void{
     if(!this.template) return;
     this.api.getSchema(this.template.id).subscribe({
-      next: (schema) =>this.schema = schema,
+      next: (schema) => {
+        this.schema = schema;
+        this.cdr.markForCheck();
+      },
       error: (err) => {
         console.error("Erreur lor du chargement", err);
         this.schema = null;
+        this.cdr.markForCheck();
       }
     });
   }
@@ -65,12 +69,13 @@ export class TemplateDetail implements OnInit {
         if(this.template.statut === 'PUBLIE'){
           this.loadSchema();
         }
+        this.cdr.markForCheck();
       },
       error: (err) => {
         this.error = "Impossible de charger les modele";
         this.loading = false;
         console.error(err);
-        this.cdr.detectChanges();
+        this.cdr.markForCheck();
       }
     });
   }
@@ -95,6 +100,7 @@ export class TemplateDetail implements OnInit {
         this.template = updated;
         // recharger les templates extrait automatiquement 
         this.loadSchema();
+        this.cdr.markForCheck();
       },
       error: err => {
         alert('echec de la publication.');
@@ -167,6 +173,7 @@ generate(): void {
         this.generationError = 'Erreur lors de la génération. Vérifiez les données et que le template est publié.';
       }
       console.error(err);
+      this.cdr.markForCheck();
     }
   });
 }
