@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.rapports.moteur.dto.dtoTemplate.TemplateCreate;
 import com.rapports.moteur.dto.dtoTemplate.TemplateResponse;
 import com.rapports.moteur.dto.dtoVariable.ExtractedVariable;
+import com.rapports.moteur.entity.Categorie;
 import com.rapports.moteur.entity.ReportTemplate;
 import com.rapports.moteur.entity.TemplateStatus;
 import com.rapports.moteur.exceptions.TemplateNotFoundException;
@@ -45,15 +46,16 @@ public class ReportTemplateService {
         ReportTemplate entity = mapper.toEntity(request);
         entity.setStatut(TemplateStatus.BROUILLON);
         entity.setVersion(1);
-        // Valeur par défaut pour éviter les null
+
+        // Valeurs par défaut si non fournies
+        if (entity.getCategorie() == null) entity.setCategorie(Categorie.AUTRES);
+        if (entity.getFormatPapier() == null) entity.setFormatPapier("A4");
+
+        // Design par défaut
         if (entity.getContenuDesign() == null || entity.getContenuDesign().isBlank()) {
-            entity.setContenuDesign("""
-                { "blocs": [
-                    { "type": "titre", "contenu": "Rapport {{nom_template}}" },
-                    { "type": "texte", "contenu": "Données fournies :" }
-                ]}
-            """);
+            entity.setContenuDesign("{\"blocs\":[{\"type\":\"titre\",\"contenu\":\"Rapport {{nom_template}}\"},{\"type\":\"texte\",\"contenu\":\"Données fournies :\"}]}");
         }
+
         ReportTemplate saved = repository.save(entity);
         return mapper.toDto(saved);
     }
@@ -136,6 +138,25 @@ public class ReportTemplateService {
         // La date de modification sera automatiquement mise à jour par @PreUpdate
         repository.save(entity);
         return mapper.toDto(entity);
+    }
+
+    @Transactional
+    public TemplateResponse duplicate(UUID id) {
+        ReportTemplate original = repository.findById(id)
+                .orElseThrow(() -> new TemplateNotFoundException("Template introuvable : " + id));
+
+        ReportTemplate copy = new ReportTemplate();
+        copy.setNom(original.getNom() + " (copie)");
+        copy.setDescription(original.getDescription());
+        copy.setContenuDesign(original.getContenuDesign());
+        copy.setCategorie(original.getCategorie());
+        copy.setFormatPapier(original.getFormatPapier());
+        copy.setStatut(TemplateStatus.BROUILLON);
+        copy.setVersion(1);
+        // Le champ schema sera réextrait à la prochaine publication, donc on ne le copie pas.
+
+        ReportTemplate saved = repository.save(copy);
+        return mapper.toDto(saved);
     }
 
 

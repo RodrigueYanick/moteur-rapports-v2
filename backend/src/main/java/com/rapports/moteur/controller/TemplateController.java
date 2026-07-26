@@ -120,4 +120,9 @@ public class TemplateController {
     public ResponseEntity<List<GenerationDto>> generations(@PathVariable @NonNull UUID id) {
         return ResponseEntity.ok(generationService.getHistory(id));
     }
+
+    @PostMapping("/{id}/duplicate")
+    public ResponseEntity<TemplateResponse> duplicate(@PathVariable UUID id) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(templateService.duplicate(id));
+    }
 }

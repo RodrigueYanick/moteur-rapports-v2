@@ -15,6 +15,8 @@ public class TemplateMapper {
                 .nom(entity.getNom())
                 .description(entity.getDescription())
                 .contenuDesign(entity.getContenuDesign())
+                .categorie(entity.getCategorie())
+                .formatPapier(entity.getFormatPapier())
                 .statut(entity.getStatut())
                 .version(entity.getVersion())
                 .dateCreation(entity.getDateCreation())
@@ -22,11 +24,13 @@ public class TemplateMapper {
                 .build();
     }
 
-    public ReportTemplate toEntity(TemplateCreate create){
+    public ReportTemplate toEntity(TemplateCreate create) {
         ReportTemplate template = new ReportTemplate();
         template.setNom(create.getNom());
         template.setContenuDesign(create.getContenuDesign());
         template.setDescription(create.getDescription());
+        template.setCategorie(create.getCategorie());
+        template.setFormatPapier(create.getFormatPapier());
         return template;
     }
 }

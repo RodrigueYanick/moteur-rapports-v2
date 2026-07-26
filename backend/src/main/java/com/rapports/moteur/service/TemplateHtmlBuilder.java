@@ -42,6 +42,22 @@ public class TemplateHtmlBuilder {
             case "titre" -> "<h1>" + replaceVars(bloc.path("contenu").asText(""), data) + "</h1>";
             case "texte" -> "<p>" + replaceVars(bloc.path("contenu").asText(""), data) + "</p>";
             case "tableau" -> renderTableau(bloc, data);
+            case "ligne" -> {
+            int epaisseur = bloc.path("style").path("epaisseur").asInt(1);
+            String couleur = bloc.path("style").path("couleur").asText("#000000");
+            int largeur = bloc.path("style").path("largeur").asInt(100);
+            yield "<hr style='border-top:" + epaisseur + "px solid " + escape(couleur) + "; width:" + largeur + "%;' />";
+        }
+        case "image" -> {
+            String url = bloc.path("url").asText("");
+            url = replaceVars(url, data);
+            int largeur = bloc.path("style").path("largeur").asInt(100);
+            String alignement = bloc.path("style").path("alignement").asText("left");
+            String style = "width:" + largeur + "px;";
+            if ("center".equals(alignement)) style += "display:block;margin:0 auto;";
+            else if ("right".equals(alignement)) style += "display:block;margin-left:auto;";
+            yield "<img src='" + escape(url) + "' style='" + style + "' />";
+        }
             default -> "";
         };
     }

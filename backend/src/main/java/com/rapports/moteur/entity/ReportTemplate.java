@@ -47,6 +47,15 @@ public class ReportTemplate {
     @Column(name = "date_modification")
     private LocalDateTime dateModification;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "categorie", nullable = false, length = 50)
+    @Builder.Default
+    private Categorie categorie = Categorie.AUTRES;
+
+    @Column(name = "format_papier", nullable = false, length = 10)
+    @Builder.Default
+    private String formatPapier = "A4";
+
     @PrePersist
     protected void onCreate() {
         dateCreation = LocalDateTime.now();
