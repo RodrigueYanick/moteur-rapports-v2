@@ -50,11 +50,31 @@ public class SchemaExtractorService {
             }
         }
 
+        // Variables dans l'URL des blocs image
+        if ("image".equals(type) && bloc.has("url")) {
+            String url = bloc.path("url").asText();
+            Matcher matcher = VAR_PATTERN.matcher(url);
+            while (matcher.find()) {
+                String varName = matcher.group(1).trim();
+                varTypes.putIfAbsent(varName, "STRING");
+            }
+        }
+
         // Pour un tableau, la "source" est une variable de type ARRAY
         if ("tableau".equals(type) && bloc.has("source")) {
             String source = bloc.path("source").asText().trim();
             source = source.replace("{{", "").replace("}}", "").trim();
             varTypes.put(source, "ARRAY");
+        }
+
+        // Variables dans le champ "url" des blocs image
+        if ("image".equals(type) && bloc.has("url")) {
+            String url = bloc.path("url").asText();
+            Matcher matcher = VAR_PATTERN.matcher(url);
+            while (matcher.find()) {
+                String varName = matcher.group(1).trim();
+                varTypes.putIfAbsent(varName, "STRING");
+            }
         }
     }
 

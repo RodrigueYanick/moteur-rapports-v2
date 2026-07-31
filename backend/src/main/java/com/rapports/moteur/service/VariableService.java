@@ -96,4 +96,23 @@ public class VariableService {
 
         variableRepository.delete(variable);
     }
+
+    @Transactional
+    public VariableResponse updateVariable(UUID templateId, UUID variableId, VariableRequest request) {
+        ReportTemplate template = templateRepository.findById(templateId)
+                .orElseThrow(() -> new TemplateNotFoundException("Template introuvable"));
+        if (template.getStatut() != TemplateStatus.BROUILLON) {
+            throw new ValidationException("Modification impossible sur un template publié");
+        }
+        ReportVariable variable = variableRepository.findById(variableId)
+                .orElseThrow(() -> new ValidationException("Variable introuvable"));
+        if (!variable.getTemplate().getId().equals(templateId)) {
+            throw new ValidationException("Variable n'appartenant pas à ce template");
+        }
+        variable.setNomVariable(request.getNomVariable());
+        variable.setType(request.getType());
+        variable.setObligatoire(request.getObligatoire());
+        variable.setDescription(request.getDescription());
+        return variableMapper.toDto(variableRepository.save(variable));
+    }
 }

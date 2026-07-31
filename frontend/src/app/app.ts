@@ -7,8 +7,8 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
   imports: [RouterOutlet, RouterLink, RouterLinkActive],
   template: `
     <nav class="navbar">
-      <a routerLink="/templates" routerLinkActive="Active" [routerLinkActiveOptions]="{exact: false}">Modeles</a>
-      <a routerLink="/templates/new" routerLinkActive="Active">Creer</a>
+      <a routerLink="/bibliotheque" routerLinkActive="active">Bibliothèque</a>
+      <a routerLink="/templates/new" routerLinkActive="active">Créer</a>
     </nav>
     <main>
       <router-outlet></router-outlet>

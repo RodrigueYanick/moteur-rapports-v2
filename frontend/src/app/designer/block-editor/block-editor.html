@@ -1,0 +1,324 @@
+<div class="editor-panel" *ngIf="block">
+  <div class="panel-header">
+    <lucide-icon [img]="icons.settings" [size]="16"></lucide-icon>
+    <h3>Propriétés</h3>
+    <button type="button" class="close-btn" (click)="closed.emit()">
+      <lucide-icon [img]="icons.close" [size]="16"></lucide-icon>
+    </button>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="save()">
+
+    <!-- ======================== GÉNÉRAL ======================== -->
+    <div class="section">
+      <button type="button" class="section-header" (click)="toggleSection('general')">
+        <span>Général</span>
+        <lucide-icon [img]="sectionsOpen['general'] ? icons.chevronUp : icons.chevronDown" [size]="14"></lucide-icon>
+      </button>
+      <div class="section-body" *ngIf="sectionsOpen['general']">
+        <div class="field">
+          <label>Nom</label>
+          <input type="text" formControlName="nom" placeholder="Nom du bloc" />
+        </div>
+        <div class="field">
+          <label>Identifiant</label>
+          <input type="text" [value]="block.id" disabled class="readonly" />
+        </div>
+        <div class="field">
+          <label>Type</label>
+          <input type="text" [value]="block.type" disabled class="readonly" />
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================== POSITION ======================== -->
+    <div class="section">
+      <button type="button" class="section-header" (click)="toggleSection('position')">
+        <span>Position</span>
+        <lucide-icon [img]="sectionsOpen['position'] ? icons.chevronUp : icons.chevronDown" [size]="14"></lucide-icon>
+      </button>
+      <div class="section-body" *ngIf="sectionsOpen['position']">
+        <div class="field-row">
+          <div class="field">
+            <label>X</label>
+            <input type="number" formControlName="posX" />
+          </div>
+          <div class="field">
+            <label>Y</label>
+            <input type="number" formControlName="posY" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================== DIMENSIONS ======================== -->
+    <div class="section">
+      <button type="button" class="section-header" (click)="toggleSection('dimensions')">
+        <span>Dimensions</span>
+        <lucide-icon [img]="sectionsOpen['dimensions'] ? icons.chevronUp : icons.chevronDown" [size]="14"></lucide-icon>
+      </button>
+      <div class="section-body" *ngIf="sectionsOpen['dimensions']">
+        <div class="field-row">
+          <div class="field">
+            <label>Largeur</label>
+            <input type="number" formControlName="largeurBox" />
+          </div>
+          <div class="field">
+            <label>Hauteur</label>
+            <input type="number" formControlName="hauteurBox" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================== APPARENCE ======================== -->
+    <div class="section">
+      <button type="button" class="section-header" (click)="toggleSection('apparence')">
+        <span>Apparence</span>
+        <lucide-icon [img]="sectionsOpen['apparence'] ? icons.chevronUp : icons.chevronDown" [size]="14"></lucide-icon>
+      </button>
+      <div class="section-body" *ngIf="sectionsOpen['apparence']">
+        <div class="field">
+          <label>Opacité <span class="value-badge">{{ form.value.opacite }}%</span></label>
+          <input type="range" formControlName="opacite" min="0" max="100" />
+        </div>
+        <div class="switch-row">
+          <span>Visible</span>
+          <label class="switch">
+            <input type="checkbox" formControlName="visible" />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="switch-row">
+          <span>Verrouillé</span>
+          <label class="switch">
+            <input type="checkbox" formControlName="locked" />
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================== ALIGNEMENT (texte/titre) ======================== -->
+    <div class="section" *ngIf="block.type === 'titre' || block.type === 'texte'">
+      <button type="button" class="section-header" (click)="toggleSection('alignement')">
+        <span>Alignement</span>
+        <lucide-icon [img]="sectionsOpen['alignement'] ? icons.chevronUp : icons.chevronDown" [size]="14"></lucide-icon>
+      </button>
+      <div class="section-body" *ngIf="sectionsOpen['alignement']">
+        <label class="subtle-label">Horizontal</label>
+        <div class="align-buttons">
+          <button type="button" [class.active]="form.value.align === 'left'" (click)="setAlign('left')" title="Aligner à gauche">
+            <lucide-icon [img]="icons.alignLeft" [size]="16"></lucide-icon>
+          </button>
+          <button type="button" [class.active]="form.value.align === 'center'" (click)="setAlign('center')" title="Centrer">
+            <lucide-icon [img]="icons.alignCenter" [size]="16"></lucide-icon>
+          </button>
+          <button type="button" [class.active]="form.value.align === 'right'" (click)="setAlign('right')" title="Aligner à droite">
+            <lucide-icon [img]="icons.alignRight" [size]="16"></lucide-icon>
+          </button>
+        </div>
+
+        <label class="subtle-label">Vertical</label>
+        <div class="align-buttons">
+          <button type="button" [class.active]="form.value.verticalAlign === 'top'" (click)="setVerticalAlign('top')" title="Haut">
+            <lucide-icon [img]="icons.alignTop" [size]="16"></lucide-icon>
+          </button>
+          <button type="button" [class.active]="form.value.verticalAlign === 'middle'" (click)="setVerticalAlign('middle')" title="Milieu">
+            <lucide-icon [img]="icons.alignMiddle" [size]="16"></lucide-icon>
+          </button>
+          <button type="button" [class.active]="form.value.verticalAlign === 'bottom'" (click)="setVerticalAlign('bottom')" title="Bas">
+            <lucide-icon [img]="icons.alignBottom" [size]="16"></lucide-icon>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================== TYPOGRAPHIE (texte/titre) ======================== -->
+    <div class="section" *ngIf="block.type === 'titre' || block.type === 'texte'">
+      <button type="button" class="section-header" (click)="toggleSection('typographie')">
+        <span>Typographie</span>
+        <lucide-icon [img]="sectionsOpen['typographie'] ? icons.chevronUp : icons.chevronDown" [size]="14"></lucide-icon>
+      </button>
+      <div class="section-body" *ngIf="sectionsOpen['typographie']">
+        <div class="field">
+          <label>Contenu</label>
+          <textarea formControlName="contenu" rows="3"></textarea>
+          <div class="var-buttons">
+            <button type="button" class="var-pill" *ngFor="let v of availableVariables" (click)="insertVariable(v)">{{ v }}</button>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label>Police</label>
+            <select formControlName="fontFamily">
+              <option *ngFor="let f of fontFamilies" [value]="f">{{ f }}</option>
+            </select>
+          </div>
+          <div class="field small">
+            <label>Taille</label>
+            <input type="number" formControlName="fontSize" min="8" max="72" />
+          </div>
+        </div>
+
+        <label class="subtle-label">Style</label>
+        <div class="style-toggle-row">
+          <button type="button" class="style-toggle" [class.active]="form.value.bold"
+                  (click)="form.get('bold')?.setValue(!form.value.bold)" title="Gras">
+            <lucide-icon [img]="icons.bold" [size]="16"></lucide-icon>
+          </button>
+          <button type="button" class="style-toggle" [class.active]="form.value.italic"
+                  (click)="form.get('italic')?.setValue(!form.value.italic)" title="Italique">
+            <lucide-icon [img]="icons.italic" [size]="16"></lucide-icon>
+          </button>
+          <button type="button" class="style-toggle" [class.active]="form.value.underline"
+                  (click)="form.get('underline')?.setValue(!form.value.underline)" title="Souligné">
+            <lucide-icon [img]="icons.underline" [size]="16"></lucide-icon>
+          </button>
+          <input type="color" formControlName="color" title="Couleur du texte" />
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================== LIGNE ======================== -->
+    <div class="section" *ngIf="block.type === 'ligne'">
+      <div class="section-header static">Style de la ligne</div>
+      <div class="section-body">
+        <div class="field-row">
+          <div class="field">
+            <label>Épaisseur</label>
+            <input type="number" formControlName="epaisseur" min="1" max="10" />
+          </div>
+          <div class="field">
+            <label>Largeur %</label>
+            <input type="number" formControlName="largeurLigne" min="1" max="100" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Couleur</label>
+          <input type="color" formControlName="couleurLigne" />
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================== IMAGE ======================== -->
+    <div class="section" *ngIf="block.type === 'image'">
+      <div class="section-header static">Image</div>
+      <div class="section-body">
+        <div class="field">
+          <label>URL</label>
+          <input type="text" formControlName="url" placeholder="https://..." />
+          <div class="var-buttons">
+            <button type="button" *ngFor="let v of availableVariables" (click)="insertVariableIntoUrl(v)">{{ v }}</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Largeur (px)</label>
+          <input type="number" formControlName="largeurImage" min="10" />
+        </div>
+        <label class="subtle-label">Alignement</label>
+        <div class="align-buttons">
+          <button type="button" [class.active]="form.value.alignImage === 'left'" (click)="setImageAlign('left')">
+            <lucide-icon [img]="icons.alignLeft" [size]="16"></lucide-icon>
+          </button>
+          <button type="button" [class.active]="form.value.alignImage === 'center'" (click)="setImageAlign('center')">
+            <lucide-icon [img]="icons.alignCenter" [size]="16"></lucide-icon>
+          </button>
+          <button type="button" [class.active]="form.value.alignImage === 'right'" (click)="setImageAlign('right')">
+            <lucide-icon [img]="icons.alignRight" [size]="16"></lucide-icon>
+          </button>
+          
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================== TABLEAU ======================== -->
+    <div class="section" *ngIf="block.type === 'tableau'">
+      <div class="section-header static">Tableau</div>
+      <div class="section-body">
+        <ng-container *ngIf="block.lignes; else dynamicTable">
+          <label class="subtle-label">Dimensions</label>
+          <div class="field-row">
+            <div class="field">
+              <label>Lignes</label>
+              <input type="number" [(ngModel)]="tableRows" (change)="updateTableDimensions()"
+                min="1" max="20" [ngModelOptions]="{standalone: true}" />
+            </div>
+            <div class="field">
+              <label>Colonnes</label>
+              <input type="number" [(ngModel)]="tableCols" (change)="updateTableDimensions()"
+                min="1" max="10" [ngModelOptions]="{standalone: true}" />
+            </div>
+          </div>
+          <div class="field">
+            <label>Couleur</label>
+            <input type="color" formControlName="couleurLigneTableau" />
+          </div>
+          <label class="subtle-label">Cellules</label>
+          <table class="edit-table">
+            <tr *ngFor="let row of block.lignes; let i = index; trackBy: trackByIndex">
+              <td *ngFor="let cell of row; let j = index; trackBy: trackByIndex">
+                <input type="text" [ngModel]="cell" (ngModelChange)="updateCell(i, j, $event)"
+                  placeholder="Cellule" [ngModelOptions]="{standalone: true}" />
+              </td>
+            </tr>
+          </table>
+        </ng-container>
+
+        <ng-template #dynamicTable>
+          <div class="field">
+            <label>Source (variable ARRAY)</label>
+            <input type="text" formControlName="source" />
+          </div>
+          <div class="colonnes-section">
+            <label class="subtle-label">Colonnes</label>
+            <div *ngFor="let col of colonnes.controls; let i = index" class="colonne-row">
+              <input placeholder="Titre" [formControl]="asFormControl(col.get('titre'))" />
+              <input placeholder="Variable" [formControl]="asFormControl(col.get('variable'))" />
+              <button type="button" class="icon-remove" (click)="removeColonne(i)">
+                <lucide-icon [img]="icons.close" [size]="14"></lucide-icon>
+              </button>
+            </div>
+            <button type="button" class="add-colonne-btn" (click)="addColonne()">
+              <lucide-icon [img]="icons.add" [size]="14"></lucide-icon>
+              Colonne
+            </button>
+          </div>
+        </ng-template>
+      </div>
+    </div>
+
+    <!-- ======================== DONNÉES ======================== -->
+    <div class="section" *ngIf="isDynamic">
+      <button type="button" class="section-header" (click)="toggleSection('donnees')">
+        <lucide-icon [img]="icons.data" [size]="14"></lucide-icon>
+        <span>Données</span>
+        <lucide-icon [img]="sectionsOpen['donnees'] ? icons.chevronUp : icons.chevronDown" [size]="14" class="chevron-end"></lucide-icon>
+      </button>
+      <div class="section-body" *ngIf="sectionsOpen['donnees']">
+        <div class="field">
+          <label>Source de données</label>
+          <input type="text" [value]="block.type === 'tableau' ? 'Tableau ERP' : 'Champ ERP'" disabled class="readonly" />
+        </div>
+        <div class="field">
+          <label>Variable</label>
+          <input type="text" [value]="detectedVariable" disabled class="readonly" />
+        </div>
+        <div class="field">
+          <label>Format</label>
+          <input type="text" formControlName="dataFormat" placeholder="ex: dd/MM/yyyy, #,##0.00" />
+        </div>
+        <div class="field">
+          <label>Valeur par défaut</label>
+          <input type="text" formControlName="dataDefault" placeholder="Valeur si absente" />
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button type="submit" class="save-btn" [disabled]="form.invalid">Enregistrer</button>
+      <button type="button" class="cancel-btn" (click)="closed.emit()">Fermer</button>
+    </div>
+  </form>
+</div>

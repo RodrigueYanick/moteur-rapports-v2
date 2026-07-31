@@ -90,6 +90,13 @@ public class TemplateController {
         return ResponseEntity.noContent().build();
     }
 
+    @PutMapping("/{templateId}/variables/{variableId}")
+    public ResponseEntity<VariableResponse> updateVariable(@PathVariable UUID templateId,
+                                                        @PathVariable UUID variableId,
+                                                        @Valid @RequestBody VariableRequest request) {
+        return ResponseEntity.ok(variableService.updateVariable(templateId, variableId, request));
+    }
+
     // ---------- Schema ----------
     @GetMapping("/{id}/schema")
     public ResponseEntity<TemplateSchemaDto> schema(@PathVariable @NonNull UUID id) {

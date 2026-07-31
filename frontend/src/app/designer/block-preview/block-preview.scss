@@ -1,0 +1,39 @@
+$bg-panel: #1a1d29;
+$border: #2a2e3d;
+$accent: #6d5efc;
+$text-primary: #e8e9ee;
+$text-secondary: #9498a8;
+
+.preview-container {
+  background: $bg-panel;
+  border-top: 1px solid $border;
+  color: $text-primary;
+}
+
+.preview-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: $accent;
+  font-weight: 600;
+}
+
+.preview-content {
+  padding: 12px;
+  max-height: 320px;
+  overflow: auto;
+  display: flex;
+  justify-content: center;
+}
+
+.preview-sheet {
+  transform: scale(0.28);
+  transform-origin: top center;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  border-radius: 2px;
+  overflow: hidden;
+}

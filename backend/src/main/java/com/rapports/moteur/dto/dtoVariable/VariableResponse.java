@@ -15,4 +15,5 @@ public class VariableResponse {
     private String nomVariable;
     private VariableType type;
     private Boolean obligatoire;
+    private String description;
 }

@@ -1,0 +1,48 @@
+<div class="filler-panel">
+  <h3>📋 Remplir le modèle</h3>
+
+  <button class="btn btn-primary" (click)="saveDocument()">💾 Sauvegarder le document</button>
+
+  
+  <div *ngIf="loading">Chargement...</div>
+  <div *ngIf="error" class="error">{{ error }}</div>
+
+  <div *ngIf="!loading && !error" class="variables-list">
+    <div class="variable-item" *ngFor="let v of variables">
+      <div class="variable-header">
+        <span class="var-name">{{ v.nomVariable }}</span>
+        <span class="var-type">({{ v.type }})</span>
+      </div>
+      <div class="variable-desc" *ngIf="v.description">{{ v.description }}</div>
+      <div class="variable-input">
+        <!-- Texte -->
+        <input *ngIf="v.type === 'STRING' || v.type === 'FLOAT' || v.type === 'DATE'"
+               [type]="v.type === 'FLOAT' ? 'number' : 'text'"
+               [value]="values[v.nomVariable] || ''"
+               (input)="onValueChange(v.nomVariable, $event)" />
+        <!-- Booléen -->
+        <label *ngIf="v.type === 'BOOLEAN'">
+          <input type="checkbox"
+                 [checked]="values[v.nomVariable] === true"
+                 (change)="onValueChange(v.nomVariable, $event.target.checked)" />
+          {{ values[v.nomVariable] ? 'Oui' : 'Non' }}
+        </label>  
+        <!-- Image (URL) -->
+        <input *ngIf="v.type === 'IMAGE'" type="text"
+               [value]="values[v.nomVariable] || ''"
+               (input)="onValueChange(v.nomVariable, $event)" />
+        <!-- Tableau -->
+        <div *ngIf="v.type === 'ARRAY'" class="table-editor">
+          <button type="button" (click)="addRow(v.nomVariable)">+ Ajouter une ligne</button>
+          <table *ngIf="values[v.nomVariable]?.length > 0">
+            <tr *ngFor="let row of values[v.nomVariable]; let i = index">
+              <td *ngFor="let col of row | keyvalue">
+                <input type="text" [(ngModel)]="row[col.key]" (ngModelChange)="onValueChange(v.nomVariable, values[v.nomVariable])" />
+              </td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

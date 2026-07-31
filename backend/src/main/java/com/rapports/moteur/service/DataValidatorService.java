@@ -2,6 +2,7 @@ package com.rapports.moteur.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.rapports.moteur.entity.VariableType;
 import com.rapports.moteur.exceptions.ValidationException;
 import org.springframework.stereotype.Service;
 
@@ -68,5 +69,27 @@ public class DataValidatorService {
             case "ARRAY" -> value instanceof List;
             default -> true; // type inconnu, on accepte
         };
+    }
+
+    private boolean isTypeValid(VariableType type, Object value) {
+        return switch (type) {
+            case STRING, DATE -> value instanceof String;
+            case FLOAT -> isNumeric(value);
+            case BOOLEAN -> value instanceof Boolean;
+            case ARRAY -> value instanceof List;
+        };
+    }
+
+    private boolean isNumeric(Object value) {
+        if (value instanceof Number) return true;
+        if (value instanceof String s) {
+            try {
+                Double.parseDouble(s);
+                return true;
+            } catch (NumberFormatException e) {
+                return false;
+            }
+        }
+        return false;
     }
 }

@@ -14,14 +14,32 @@
     <input id="description" type="text" formControlName="description" class="form-control" />
   </div>
 
-  <!-- Nouveau champ : Design JSON -->
   <div class="form-group">
-    <label for="contenuDesign">Design JSON (optionnel)</label>
-    <textarea id="contenuDesign" formControlName="contenuDesign" class="form-control" rows="6"></textarea>
-    <div class="error" *ngIf="form.get('contenuDesign')?.invalid && form.get('contenuDesign')?.touched">
-      Le design doit être un JSON valide.
-    </div>
+    <label for="categorie">Catégorie</label>
+    <select id="categorie" formControlName="categorie" class="form-control">
+      <option value="VENTES">Ventes</option>
+      <option value="ACHATS">Achats</option>
+      <option value="FINANCE">Finance</option>
+      <option value="RH">Ressources Humaines</option>
+      <option value="LOGISTIQUE">Logistique</option>
+      <option value="STOCK">Stock</option>
+      <option value="PRODUCTION">Production</option>
+      <option value="ADMINISTRATION">Administration</option>
+      <option value="AUTRES">Autres</option>
+    </select>
   </div>
+
+  <div class="form-group">
+    <label for="formatPapier">Format papier</label>
+    <select id="formatPapier" formControlName="formatPapier" class="form-control">
+      <option value="A4">A4</option>
+      <option value="A5">A5</option>
+      <option value="Letter">Letter</option>
+      <option value="Legal">Legal</option>
+    </select>
+  </div>
+
+  <!-- <app-report-designer [(blocks)]="blocks" (blocksChange)="saveDesign()"></app-report-designer> -->
 
   <button type="submit" [disabled]="form.invalid || submitting" class="btn btn-primary">
     {{ submitting ? 'Création...' : 'Créer' }}

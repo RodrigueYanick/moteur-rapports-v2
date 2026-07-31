@@ -1,0 +1,46 @@
+<h1></h1>
+<div class="library-container">
+  <div class="library-header">
+    <h1>Bibliothèque de modèles</h1>
+    <button routerLink="/templates/new" class="btn btn-primary">+ Créer un modèle</button>
+  </div>
+
+  <!-- Filtres -->
+  <div class="filters">
+    <select [(ngModel)]="filterCategorie" (change)="applyFilters()">
+      <option value="">Toutes les catégories</option>
+      <option *ngFor="let cat of categories" [value]="cat">{{ cat }}</option>
+    </select> 
+    <select [(ngModel)]="filterStatut" (change)="applyFilters()">
+      <option value="">Tous les statuts</option>
+      <option *ngFor="let s of statuts" [value]="s">{{ s }}</option>
+    </select>
+  </div>
+
+  <!-- Message de chargement / erreur -->
+  <div *ngIf="loading" class="message">Chargement...</div>
+  <div *ngIf="error" class="message error">{{ error }}</div>
+
+  <!-- Grille de cartes -->
+  <div class="cards-grid" *ngIf="!loading && !error">
+    <div class="card" *ngFor="let template of filteredTemplates">
+      <div class="card-header">
+        <h3>{{ template.nom }}</h3>
+        <span class="badge" [ngClass]="template.statut">{{ template.statut }}</span>
+      </div>
+      <div class="card-body">
+        <p><strong>Catégorie :</strong> {{ template.categorie || 'AUTRES' }}</p>
+        <p><strong>Format :</strong> {{ template.formatPapier || 'A4' }}</p>
+        <p><strong>Version :</strong> {{ template.version }}</p>
+        <p><strong>Modifié le :</strong> {{ template.dateModification | date:'dd/MM/yyyy HH:mm' }}</p>
+      </div>
+      <div class="card-actions">
+        <button [routerLink]="['/templates', template.id]" class="btn btn-secondary">Détail</button>
+        <button (click)="duplicateTemplate(template.id)" class="btn btn-secondary">Dupliquer</button>
+        <button (click)="deleteTemplate(template.id)" class="btn btn-danger">Supprimer</button>
+      </div>
+    </div>
+  </div>
+
+  <p *ngIf="!loading && !error && filteredTemplates.length === 0" class="message info">Aucun modèle trouvé.</p>
+</div>

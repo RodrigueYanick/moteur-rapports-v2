@@ -1,0 +1,139 @@
+$accent: #6d5efc;
+$text-secondary: #6b7280;
+
+.canvas {
+  background: white;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+  border-radius: 2px;
+  margin: 0 auto;
+  position: relative;
+  overflow: hidden;
+}
+
+.canvas-block {
+  position: absolute;
+  cursor: move;
+  border: 1px dashed transparent;
+  border-radius: 4px;
+  padding: 8px;
+  box-sizing: border-box;   // ← important : le padding ne doit pas agrandir la boîte au-delà de largeurBox/hauteurBox
+  transition: border-color 0.1s;
+
+  &:hover { border-color: rgba(109, 94, 252, 0.3); }
+  &.selected { border-color: $accent; border-style: solid; }
+  &.locked { cursor: not-allowed; opacity: 0.65; }
+}
+
+.block-content {
+  width: 100%;
+  height: 100%;
+}
+
+.canvas-table {
+  width: 100%;
+  height: 100%;
+
+  table {
+    width: 100%;
+    height: 100%;
+    border-collapse: collapse;
+
+    td {
+      border: 1px solid #ddd;
+      padding: 4px;
+    }
+  }
+}
+
+.canvas-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.image-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 2px dashed #d1d5db;
+  background: #f9fafb;
+  color: $text-secondary;
+  font-size: 12px;
+  font-style: italic;
+  min-height: 50px;
+  border-radius: 6px;
+}
+
+.canvas-table table {
+  border-collapse: collapse;
+
+  td {
+    border: 1px solid #444242;
+    padding: 4px;
+    min-width: 40px;
+    min-height: 20px;
+  }
+}
+
+.table-placeholder {
+  padding: 12px;
+  border: 1px dashed #d1d5db;
+  border-radius: 6px;
+  color: $text-secondary;
+  font-size: 12px;
+  font-style: italic;
+}
+
+.canvas-wrapper {
+  overflow: hidden;
+  background: #e0e0e0;
+}
+
+
+.grid-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-image: linear-gradient(rgba(0,0,0,0.05) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(0,0,0,0.05) 1px, transparent 1px);
+  background-size: 20px 20px;
+  pointer-events: none;
+}
+
+.guides-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  border: 2px dashed rgba(255, 0, 0, 0.3);
+  pointer-events: none;
+}
+
+.code-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  height: 100%;
+  border: 2px dashed #d1d5db;
+  background: #f9fafb;
+  color: #6b7280;
+  font-size: 10px;
+  border-radius: 6px;
+  box-sizing: border-box;
+  text-align: center;
+  padding: 4px;
+}
+
+.signature-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  height: 100%;
+  border-bottom: 1px solid #999;
+  color: #999;
+  font-size: 12px;
+  font-style: italic;
+}

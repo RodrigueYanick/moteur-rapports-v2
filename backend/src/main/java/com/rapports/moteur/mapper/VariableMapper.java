@@ -15,6 +15,7 @@ public class VariableMapper {
             .nomVariable(variable.getNomVariable())
             .type(variable.getType())
             .obligatoire(variable.getObligatoire())
+            .description(variable.getDescription())
             .build();
     }
 
@@ -23,6 +24,7 @@ public class VariableMapper {
         variable.setNomVariable(create.getNomVariable());
         variable.setType(create.getType());
         variable.setObligatoire(create.getObligatoire() != null ? create.getObligatoire() : false);
+        variable.setDescription(create.getDescription());
         return variable;
     }
 

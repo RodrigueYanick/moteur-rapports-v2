@@ -20,7 +20,9 @@ export class TemplateCreate {
     this.form = this.fb.group({
       nom: ['', Validators.required],
       description: [''],
-      contenuDesign: ['']
+      contenuDesign: [''],
+      categorie: ['AUTRES'],
+      formatPapier: ['A4']
     });
   }
 

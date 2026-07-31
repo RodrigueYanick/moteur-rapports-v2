@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormGroup, FormBuilder, Validators, FormsModule } from '@angular/forms';
 import { Template } from '../../models/template.model';
@@ -6,11 +6,17 @@ import { Variable } from '../../models/variable.model';
 import { TemplateApiService } from '../../services/template-api';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TemplateSchema } from '../../models/template-schema.model';
+import { ReportDesigner } from '../../designer/report-designer/report-designer';
+import { DesignBlock } from '../../designer/models/design-block.model';
+import { DesignSerializer } from '../../designer/services/design-serializer.service';
+import { BlockEditor } from '../../designer/block-editor/block-editor';
+import { Subject, debounceTime } from 'rxjs';
+import { MockDataService } from '../../designer/services/mock-data.service';
 
 @Component({
   selector: 'app-template-detail',
   standalone: true,
-  imports: [ CommonModule, ReactiveFormsModule, FormsModule],
+  imports: [ CommonModule, ReactiveFormsModule, FormsModule, ReportDesigner],
   templateUrl: './template-detail.html',
   styleUrls: ['./template-detail.scss'],
 })
@@ -25,13 +31,19 @@ export class TemplateDetail implements OnInit {
   error = '';
   schema: TemplateSchema | null = null;
   publishing = false;
+  blocks: DesignBlock[] = [];
+  savingStatus: 'idle' | 'saving' | 'saved' = 'idle';
+  private saveSubject = new Subject<void>();
+  templateId: string|null = null;
   
 
   constructor (
     private fb: FormBuilder,
     private api : TemplateApiService,
     private route: ActivatedRoute,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private serializer: DesignSerializer,
+    private mockDataService: MockDataService
   ){
     this.variableForm = this.fb.group({
       nomVariable: ['', Validators.required],
@@ -42,7 +54,105 @@ export class TemplateDetail implements OnInit {
 
   ngOnInit(): void {
     this.loadTemplate();
+
+    // Auto‑save avec debounce de 2 secondes
+    this.saveSubject.pipe(debounceTime(2000)).subscribe(() => {
+      this.doSave();
+    });
   }
+
+  ngOnChanges(changes: SimpleChanges): void {
+      if (changes['templateId']) {
+          console.log('Sidebar templateId reçu :', this.templateId);
+      }
+  }
+
+  generateWithMockData(dataOverride?: any): void {
+    if (!this.template) return;
+    if (this.template.statut !== 'PUBLIE') {
+      this.generationError = 'Le template doit être publié avant de pouvoir générer un document.';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    // Récupère d'abord les variables explicites du template
+    this.api.getVariables(this.template.id).subscribe({
+      next: (variables) => {
+        // Prépare un objet avec des valeurs par défaut pour toutes les variables
+        const defaultData: Record<string, any> = {};
+        for (const v of variables) {
+          switch (v.type) {
+            case 'ARRAY': defaultData[v.nomVariable] = []; break;
+            case 'FLOAT': defaultData[v.nomVariable] = 0; break;
+            case 'BOOLEAN': defaultData[v.nomVariable] = false; break;
+            case 'IMAGE': defaultData[v.nomVariable] = false; break;
+            default: defaultData[v.nomVariable] = '';
+          }
+        }
+
+        // Fusionne avec les données passées (priorité aux valeurs réelles)
+        const data = { ...defaultData, ...(dataOverride || this.mockDataService.generate(this.blocks)) };
+
+        this.generationError = '';
+        this.api.generateDocument(this.template!.id, data).subscribe({
+          next: (blob: Blob) => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${this.template!.nom || 'document'}.pdf`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+          },
+          error: (err) => this.handleGenerationError(err)
+        });
+      },
+      error: (err) => {
+        this.generationError = 'Impossible de charger les variables du template.';
+        console.error(err);
+      }
+    });
+  }
+
+  private handleGenerationError(err: any): void {
+    if (err.status === 400 && err.error) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const body = JSON.parse(reader.result as string);
+          if (body.errors && Array.isArray(body.errors)) {
+            this.generationError = body.errors.join('\n');
+          } else if (body.message) {
+            this.generationError = body.message;
+          } else {
+            this.generationError = 'Erreur de validation.';
+          }
+        } catch (e) {
+          this.generationError = 'Erreur de validation (réponse non lisible).';
+        }
+      };
+      reader.readAsText(err.error);
+    } else {
+      this.generationError = 'Erreur lors de la génération. Vérifiez les données et que le template est publié.';
+    }
+    console.error(err);
+  }
+
+  onExportRequest(data?: any): void {
+    if (data) {
+      this.generateWithMockData(data);   // données réelles
+    } else {
+      this.generateWithMockData();       // mock
+    }
+  }
+
+  openPreview(): void {
+    // Fait défiler jusqu'à l'aperçu ou ouvre une modale
+    const previewElement = document.querySelector('app-block-preview');
+    if (previewElement) {
+      previewElement.scrollIntoView({ behavior: 'smooth' });
+    }
+  }
+
 
   loadSchema(): void{
     if(!this.template) return;
@@ -50,7 +160,7 @@ export class TemplateDetail implements OnInit {
       next: (schema) =>{
         this.schema = schema;
       this.cdr.detectChanges();
-      },
+      }, 
       error: (err) => {
         console.error("Erreur lor du chargement", err);
         this.schema = null;
@@ -60,17 +170,23 @@ export class TemplateDetail implements OnInit {
   }
 
   loadTemplate(id?: string): void {
-    // Si aucun id n'est passé, on le récupère depuis la route
     const templateId = id || this.route.snapshot.paramMap.get('id');
     if (!templateId) return;
 
+    this.templateId = templateId;
     this.loading = true;
     this.error = '';
-    this.template = null; // réinitialise pour éviter l'ancien affichage
+    this.template = null;
+    this.blocks = [];           // réinitialise la liste des blocs
+
     this.api.getTemplate(templateId).subscribe({
       next: (template) => {
         this.template = template;
         this.loading = false;
+
+        // Charge le design dans le designer
+        this.loadDesign();
+
         if (template.statut === 'PUBLIE') {
           this.loadSchema();
         }
@@ -100,19 +216,34 @@ export class TemplateDetail implements OnInit {
 
   publish(): void {
     if (!this.template || this.publishing) return;
-    this.publishing = true;
-    this.api.publishTemplate(this.template.id).subscribe({
-      next: (updated) => {
-        this.template = updated;
-        this.loadSchema();
-        this.publishing = false;
-        this.cdr.detectChanges();
+    // Sauvegarde immédiate avant de publier
+    const contenuDesign = this.serializer.serialize(this.blocks);
+    this.api.updateTemplate(this.template.id, {
+      nom: this.template.nom,
+      description: this.template.description,
+      contenuDesign: contenuDesign,
+      categorie: (this.template as any).categorie || 'AUTRES',
+      formatPapier: (this.template as any).formatPapier || 'A4'
+    }).subscribe({
+      next: () => {
+        // Maintenant on peut publier
+        this.publishing = true;
+        this.api.publishTemplate(this.template!.id).subscribe({
+          next: (updated) => {
+            this.template = updated;
+            this.loadSchema();
+            this.publishing = false;
+            this.cdr.detectChanges();
+          },
+          error: (err) => {
+            console.error('Échec publication', err);
+            this.publishing = false;
+          }
+        });
       },
       error: (err) => {
-        // Gère l'erreur silencieusement (le statut est peut-être déjà à PUBLIE)
-        console.warn('Publication échouée, rechargement du template...');
-        this.loadTemplate(this.template!.id); // recharge tout pour avoir le vrai état
-        this.publishing = false;
+        alert('Impossible de sauvegarder le design avant publication.');
+        console.error(err);
       }
     });
   }
@@ -145,44 +276,93 @@ export class TemplateDetail implements OnInit {
     });
   }
 
-generate(): void {
-  if (!this.template) return;
-  this.generationError = '';
-  let data: any;
-  try {
-    data = JSON.parse(this.jsonData);
-  } catch (e) {
-    this.generationError = 'JSON invalide.';
-    return;
+  generate(): void {
+    if (!this.template) return;
+    this.generationError = '';
+    let data: any;
+    try {
+      data = JSON.parse(this.jsonData);
+    } catch (e) {
+      this.generationError = 'JSON invalide.';
+      return;
+    }
+
+    this.api.generateDocument(this.template.id, data).subscribe({
+      next: (blob: Blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${this.template!.nom || 'document'}.pdf`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+      },
+      error: (err) => {
+        this.handleGenerationError(err);
+      }
+    });
   }
 
-  this.api.generateDocument(this.template.id, data).subscribe({
-    next: (blob: Blob) => {
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${this.template!.nom || 'document'}.pdf`;
-      a.click();
-      window.URL.revokeObjectURL(url);
-    },
-    error: (err) => {
-      // Extraction des erreurs de validation (400 Bad Request)
-      if (err.status === 400 && err.error) {
-        const body = err.error;
-        if (body.errors && Array.isArray(body.errors)) {
-          // Liste d'erreurs renvoyée par ValidationException
-          this.generationError = body.errors.join('\n');
-        } else if (body.message) {
-          this.generationError = body.message;
-        } else {
-          this.generationError = 'Erreur de validation.';
-        }
-      } else {
-        this.generationError = 'Erreur lors de la génération. Vérifiez les données et que le template est publié.';
-      }
-      console.error(err);
+  // Renomme private doSave() en méthode publique, ou ajoute :
+  saveNow(): void {
+    this.doSave();
+  }
+
+
+  loadDesign(): void {
+    if (this.template?.contenuDesign) {
+      this.blocks = this.serializer.deserialize(this.template.contenuDesign);
+    } else {
+      this.blocks = [];
     }
-  });
-}
+    this.cdr.detectChanges();
+  }
+
+  triggerSave(): void {
+    if (!this.template || this.template.statut !== 'BROUILLON') return;
+    console.log('triggerSave called, current status:', this.savingStatus);
+    if (this.savingStatus === 'idle' || this.savingStatus === 'saved') {
+      this.savingStatus = 'saving';
+      this.cdr.detectChanges();
+    }
+    this.saveSubject.next();
+  }
+
+  private doSave(): void {
+    console.log('doSave exécuté');
+    if (!this.template) {
+      this.savingStatus = 'idle';
+      return;
+    }
+    const contenuDesign = this.serializer.serialize(this.blocks);
+    // On récupère les champs étendus depuis le template actuel
+    const updateData: any = {
+      nom: this.template.nom,
+      description: this.template.description,
+      contenuDesign: contenuDesign,
+      categorie: (this.template as any).categorie || 'AUTRES',
+      formatPapier: (this.template as any).formatPapier || 'A4'
+    };
+    this.api.updateTemplate(this.template.id, updateData).subscribe({
+      next: (updated) => {
+        this.template = updated;
+        this.savingStatus = 'saved';
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Erreur sauvegarde design', err);
+        // Affiche le corps de l'erreur serveur
+        if (err.error) {
+          console.log('Détail erreur serveur :', err.error);
+        }
+        this.savingStatus = 'idle';
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  onBlocksChange(newBlocks: DesignBlock[]): void {
+    this.blocks = newBlocks;
+    this.triggerSave();
+  }
 
 }
