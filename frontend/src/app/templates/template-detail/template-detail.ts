@@ -157,14 +157,14 @@ export class TemplateDetail implements OnInit {
   loadSchema(): void{
     if(!this.template) return;
     this.api.getSchema(this.template.id).subscribe({
-      next: (schema) =>{
+      next: (schema) => {
         this.schema = schema;
-      this.cdr.detectChanges();
-      }, 
+        this.cdr.markForCheck();
+      },
       error: (err) => {
         console.error("Erreur lor du chargement", err);
         this.schema = null;
-        
+        this.cdr.markForCheck();
       }
     });
   }
@@ -190,13 +190,13 @@ export class TemplateDetail implements OnInit {
         if (template.statut === 'PUBLIE') {
           this.loadSchema();
         }
-        this.cdr.detectChanges();
+        this.cdr.markForCheck();
       },
       error: (err) => {
         this.error = 'Impossible de charger le modèle.';
         this.loading = false;
         console.error(err);
-        this.cdr.detectChanges();
+        this.cdr.markForCheck();
       }
     });
   }
@@ -205,45 +205,31 @@ export class TemplateDetail implements OnInit {
     this.api.getVariables(templateId).subscribe({
       next: (variables) => {
         this.variables = variables;
-        this.cdr.detectChanges();
+        this.cdr.markForCheck();
       }, 
       error: (err) => {
         console.error(err);
-        this.cdr.detectChanges();
+        this.cdr.markForCheck();
       }
     })
   }
 
   publish(): void {
     if (!this.template || this.publishing) return;
-    // Sauvegarde immédiate avant de publier
-    const contenuDesign = this.serializer.serialize(this.blocks);
-    this.api.updateTemplate(this.template.id, {
-      nom: this.template.nom,
-      description: this.template.description,
-      contenuDesign: contenuDesign,
-      categorie: (this.template as any).categorie || 'AUTRES',
-      formatPapier: (this.template as any).formatPapier || 'A4'
-    }).subscribe({
-      next: () => {
-        // Maintenant on peut publier
-        this.publishing = true;
-        this.api.publishTemplate(this.template!.id).subscribe({
-          next: (updated) => {
-            this.template = updated;
-            this.loadSchema();
-            this.publishing = false;
-            this.cdr.detectChanges();
-          },
-          error: (err) => {
-            console.error('Échec publication', err);
-            this.publishing = false;
-          }
-        });
+    this.publishing = true;
+    this.api.publishTemplate(this.template.id).subscribe({
+      next: (updated) => {
+        this.template = updated;
+        this.loadSchema();
+        this.publishing = false;
+        this.cdr.markForCheck();
       },
       error: (err) => {
-        alert('Impossible de sauvegarder le design avant publication.');
-        console.error(err);
+        // Gère l'erreur silencieusement (le statut est peut-être déjà à PUBLIE)
+        console.warn('Publication échouée, rechargement du template...');
+        this.loadTemplate(this.template!.id); // recharge tout pour avoir le vrai état
+        this.publishing = false;
+        this.cdr.markForCheck();
       }
     });
   }
@@ -299,20 +285,8 @@ export class TemplateDetail implements OnInit {
       error: (err) => {
         this.handleGenerationError(err);
       }
-    });
-  }
-
-  // Renomme private doSave() en méthode publique, ou ajoute :
-  saveNow(): void {
-    this.doSave();
-  }
-
-
-  loadDesign(): void {
-    if (this.template?.contenuDesign) {
-      this.blocks = this.serializer.deserialize(this.template.contenuDesign);
-    } else {
-      this.blocks = [];
+      console.error(err);
+      this.cdr.markForCheck();
     }
     this.cdr.detectChanges();
   }
