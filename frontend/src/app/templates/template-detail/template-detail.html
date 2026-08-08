@@ -1,4 +1,22 @@
-<h1>   </h1>
+<!-- Designer visible seulement pour les brouillons -->
+<ng-container *ngIf="template?.statut === 'BROUILLON' || template?.statut === 'PUBLIE'">
+  <app-report-designer
+    [blocks]="blocks"
+    [templateId]="templateId"
+    [templateName]="template?.nom || ''"
+    [savingStatus]="savingStatus"
+    (exportRequest)="onExportRequest($event)"
+    (blocksChange)="onBlocksChange($event)"
+    (publishRequest)="publish()"
+    (previewRequest)="openPreview()"
+    (manualSaveRequest)="saveNow()">
+  </app-report-designer>
+  <div class="save-status" style="background: #f0f0f0; padding: 4px 8px;">
+    <span *ngIf="savingStatus === 'saving'">⏳ Enregistrement...</span>
+    <span *ngIf="savingStatus === 'saved'">✅ Enregistré</span>
+  </div>
+</ng-container>
+
 <div *ngIf="loading" class="message">Chargement en cours...</div>
 <div *ngIf="error" class="message error">{{ error }}</div>
 
@@ -21,6 +39,12 @@
 
       <dt>Dernière modification</dt>
       <dd>{{ template.dateModification | date:'dd/MM/yyyy HH:mm' }}</dd>
+
+      <dt>Catégorie</dt>
+      <dd>{{ template.categorie || 'AUTRES' }}</dd>
+
+      <dt>Format</dt>
+      <dd>{{ template.formatPapier || 'A4' }}</dd>
     </dl>
 
     <button *ngIf="template.statut === 'BROUILLON'" class="btn btn-primary" 
@@ -67,6 +91,12 @@
     <div class="form-group">
       <label for="jsonData">Données JSON :</label>
       <textarea id="jsonData" [(ngModel)]="jsonData" rows="5" class="form-control"></textarea>
+    </div>
+    <div class="form-group">
+      <button class="btn btn-primary" (click)="generateWithMockData()">Générer PDF (données factices)</button>
+      <small style="display: block; margin-top: 0.25rem;">
+        ⚠️ Utilise toujours des données simulées, même si tu es en mode "Remplir". Pour générer avec tes vraies valeurs, utilise le bouton "Exporter" dans la barre d'outils du designer, en mode "Remplir".
+      </small>
     </div>
     <button class="btn btn-primary" (click)="generate()">Générer PDF</button>
     <div *ngIf="generationError" class="error message">{{ generationError }}</div>

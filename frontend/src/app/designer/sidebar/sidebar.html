@@ -1,0 +1,73 @@
+<div class="sidebar">
+  <div class="tabs">
+    <button [class.active]="activeTab === 'library'" (click)="setActiveTab('library')">
+      <lucide-icon [img]="icons.library" [size]="15"></lucide-icon>
+      Bibliothèque
+    </button>
+    <button [class.active]="activeTab === 'layers'" (click)="setActiveTab('layers')">
+      <lucide-icon [img]="icons.layers" [size]="15"></lucide-icon>
+      Calques
+    </button>
+    <button [class.active]="activeTab === 'variables'" (click)="setActiveTab('variables')">
+        <lucide-icon [img]="icons.code" [size]="15"></lucide-icon>
+        Variables
+    </button>
+  </div>
+
+  <div class="tab-content">
+    <!-- ======================== BIBLIOTHÈQUE ======================== -->
+    <div *ngIf="activeTab === 'library'" class="library-tab">
+      <div class="category" *ngFor="let cat of categories">
+        <button type="button" class="category-header" (click)="toggleCategory(cat)">
+          <lucide-icon [img]="cat.open ? icons.chevronDown : icons.chevronRight" [size]="13" class="category-chevron"></lucide-icon>
+          <span>{{ cat.label }}</span>
+          <span class="category-count">{{ cat.items.length }}</span>
+        </button>
+
+        <div class="category-body" [class.open]="cat.open">
+          <div class="category-grid">
+            <div class="component-card"
+                 *ngFor="let item of cat.items"
+                 [class.active]="recentlyAddedType === item.type"
+                 (click)="onAddBlock(item.type)">
+              <div class="card-icon">
+                <lucide-icon [img]="item.icon" [size]="20"></lucide-icon>
+              </div>
+              <span class="card-label">{{ item.label }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================== CALQUES ======================== -->
+    <div *ngIf="activeTab === 'layers'" class="layers-tab">
+      <div class="layer-item" *ngFor="let block of blocks" [class.selected]="block === selectedBlock">
+        <div class="layer-info" (click)="onSelectBlock(block)">
+          <lucide-icon [img]="blockIcon(block.type)" [size]="14" class="layer-icon"></lucide-icon>
+          <div class="layer-text">
+            <span class="layer-type">{{ block.type }}</span>
+            <span class="layer-name">{{ block.nom || block.contenu || block.url || '(vide)' }}</span>
+          </div>
+        </div>
+        <div class="layer-actions">
+          <button (click)="onToggleVisibility(block)" [title]="block.visible ? 'Masquer' : 'Afficher'">
+            <lucide-icon [img]="block.visible ? icons.eye : icons.eyeOff" [size]="14"></lucide-icon>
+          </button>
+          <button (click)="onToggleLock(block)" [title]="block.locked ? 'Déverrouiller' : 'Verrouiller'">
+            <lucide-icon [img]="block.locked ? icons.lock : icons.unlock" [size]="14"></lucide-icon>
+          </button>
+        </div>
+      </div>
+      <div *ngIf="blocks.length === 0" class="empty-message">Aucun bloc pour l'instant</div>
+    </div>
+
+    <!-- ======================== VARIABLES ======================== -->
+    <div *ngIf="activeTab === 'variables'" class="variables-tab">
+        <app-variable-manager 
+          [templateId]="templateId"
+          (variablesLoaded)="explicitVariablesChange.emit($event)">
+        </app-variable-manager>
+    </div>
+  </div>
+</div>

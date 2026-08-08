@@ -1,6 +1,5 @@
 package com.rapports.moteur.dto.dtoVariable;
 
-import com.rapports.moteur.entity.VariableType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

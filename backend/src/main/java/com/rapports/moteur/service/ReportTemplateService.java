@@ -7,12 +7,15 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.rapports.moteur.dto.dtoTemplate.TemplateCreate;
 import com.rapports.moteur.dto.dtoTemplate.TemplateResponse;
 import com.rapports.moteur.dto.dtoVariable.ExtractedVariable;
+import com.rapports.moteur.entity.Categorie;
 import com.rapports.moteur.entity.ReportTemplate;
+import com.rapports.moteur.entity.ReportVariable;
 import com.rapports.moteur.entity.TemplateStatus;
 import com.rapports.moteur.exceptions.TemplateNotFoundException;
 import com.rapports.moteur.exceptions.ValidationException;
 import com.rapports.moteur.mapper.TemplateMapper;
 import com.rapports.moteur.repository.ReportTemplateRepository;
+import com.rapports.moteur.repository.ReportVariableRepository;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -20,8 +23,10 @@ import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -31,6 +36,7 @@ public class ReportTemplateService {
     private final TemplateMapper mapper;
     private final SchemaExtractorService schemaExtractorService;
     private final ObjectMapper objectMapper;
+    private final ReportVariableRepository variableRepository;
 
     public List<TemplateResponse> findAll() {
         List<ReportTemplate> templates = repository.findAll();
@@ -45,15 +51,16 @@ public class ReportTemplateService {
         ReportTemplate entity = mapper.toEntity(request);
         entity.setStatut(TemplateStatus.BROUILLON);
         entity.setVersion(1);
-        // Valeur par défaut pour éviter les null
+
+        // Valeurs par défaut si non fournies
+        if (entity.getCategorie() == null) entity.setCategorie(Categorie.AUTRES);
+        if (entity.getFormatPapier() == null) entity.setFormatPapier("A4");
+
+        // Design par défaut
         if (entity.getContenuDesign() == null || entity.getContenuDesign().isBlank()) {
-            entity.setContenuDesign("""
-                { "blocs": [
-                    { "type": "titre", "contenu": "Rapport {{nom_template}}" },
-                    { "type": "texte", "contenu": "Données fournies :" }
-                ]}
-            """);
+            entity.setContenuDesign("{\"blocs\":[]}");
         }
+
         ReportTemplate saved = repository.save(entity);
         return mapper.toDto(saved);
     }
@@ -85,21 +92,45 @@ public class ReportTemplateService {
             throw new ValidationException("Seul un template en brouillon peut être publié");
         }
 
-        // Extraction automatique du schéma
-        if (entity.getContenuDesign() != null && !entity.getContenuDesign().isBlank()) {
-            List<ExtractedVariable> variables = schemaExtractorService.extract(entity.getContenuDesign());
-            String variablesJson = buildVariablesJson(variables);
-            entity.setSchema(variablesJson);
+        // Priorité aux variables définies explicitement par l'utilisateur
+        List<ReportVariable> explicitVariables = variableRepository.findByTemplate_Id(id);
+        List<ExtractedVariable> variablesToStore;
+
+        if (!explicitVariables.isEmpty()) {
+            // Utilise les variables explicites
+            variablesToStore = explicitVariables.stream()
+                    .map(this::mapToExtractedVariable)
+                    .collect(Collectors.toList());
         } else {
-            entity.setSchema(null);   // ou "[]"
+            // Fallback : extraction automatique depuis le design
+            if (entity.getContenuDesign() != null && !entity.getContenuDesign().isBlank()) {
+                variablesToStore = schemaExtractorService.extract(entity.getContenuDesign());
+            } else {
+                variablesToStore = Collections.emptyList();
+            }
         }
 
+        // Construit le JSON du schéma
+        String variablesJson = buildVariablesJson(variablesToStore);
+        entity.setSchema(variablesJson);
+
+        // Passe en statut publié
         entity.setStatut(TemplateStatus.PUBLIE);
         entity.setVersion(entity.getVersion() + 1);
         repository.save(entity);
         return mapper.toDto(entity);
     }
 
+    // Convertit une ReportVariable (entité) en ExtractedVariable (utilisé pour le JSON)
+    private ExtractedVariable mapToExtractedVariable(ReportVariable variable) {
+        return ExtractedVariable.builder()
+                .nom(variable.getNomVariable())
+                .type(variable.getType().name())
+                .obligatoire(variable.getObligatoire())
+                .build();
+    }
+
+// Construit le JSON à partir de la liste d'ExtractedVariable (existant, inchangé)
     private String buildVariablesJson(List<ExtractedVariable> variables) {
         ArrayNode array = objectMapper.createArrayNode();
         for (ExtractedVariable var : variables) {
@@ -136,6 +167,25 @@ public class ReportTemplateService {
         // La date de modification sera automatiquement mise à jour par @PreUpdate
         repository.save(entity);
         return mapper.toDto(entity);
+    }
+
+    @Transactional
+    public TemplateResponse duplicate(UUID id) {
+        ReportTemplate original = repository.findById(id)
+                .orElseThrow(() -> new TemplateNotFoundException("Template introuvable : " + id));
+
+        ReportTemplate copy = new ReportTemplate();
+        copy.setNom(original.getNom() + " (copie)");
+        copy.setDescription(original.getDescription());
+        copy.setContenuDesign(original.getContenuDesign());
+        copy.setCategorie(original.getCategorie());
+        copy.setFormatPapier(original.getFormatPapier());
+        copy.setStatut(TemplateStatus.BROUILLON);
+        copy.setVersion(1);
+        // Le champ schema sera réextrait à la prochaine publication, donc on ne le copie pas.
+
+        ReportTemplate saved = repository.save(copy);
+        return mapper.toDto(saved);
     }
 
 

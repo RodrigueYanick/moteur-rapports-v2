@@ -1,0 +1,61 @@
+<div class="variable-manager">
+  <h4>📝 Variables</h4>
+
+  <div *ngIf="loading">Chargement...</div>
+  <div *ngIf="error" class="error">{{ error }}</div>
+
+  <!-- Liste -->
+  <div class="var-list" *ngIf="variables.length > 0; else noVars">
+    <div class="var-item" *ngFor="let v of variables" [class.editing]="editingVariableId === v.id">
+      <div class="var-info">
+        <span class="var-name">{{ v.nomVariable }}</span>
+        <span class="var-type">({{ v.type }})</span>
+        <span class="var-obl">{{ v.obligatoire ? '⚠️' : '' }}</span>
+      </div>
+      <div class="var-actions">
+        <button (click)="edit(v)" title="Modifier">✏️</button>
+        <button (click)="delete(v)" title="Supprimer">🗑️</button>
+      </div>
+    </div>
+  </div>
+  <ng-template #noVars>
+    <p class="no-vars">Aucune variable définie.</p>
+  </ng-template>
+
+  <!-- Formulaire -->
+  <form [formGroup]="form" (ngSubmit)="save()" class="var-form">
+    <div class="form-row">
+      <label>Nom</label>
+      <input type="text" formControlName="nomVariable" placeholder="ex: prix_total" />
+      <div class="error" *ngIf="form.get('nomVariable')?.invalid && form.get('nomVariable')?.touched">
+        Nom invalide (lettres, chiffres, _)
+      </div>
+    </div>
+    <div class="form-row">
+      <label>Type</label>
+      <select formControlName="type">
+        <option value="STRING">Texte</option>
+        <option value="FLOAT">Nombre</option>
+        <option value="DATE">Date</option>
+        <option value="BOOLEAN">Oui/Non</option>
+        <option value="ARRAY">Tableau</option>
+        <option value="IMAGE">Image</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label>Description</label>
+      <input type="text" formControlName="description" placeholder="Description" />
+    </div>
+    <div class="form-row checkbox">
+      <label>
+        <input type="checkbox" formControlName="obligatoire" /> Obligatoire
+      </label>
+    </div>
+    <div class="form-actions">
+      <button type="submit" [disabled]="form.invalid">
+        {{ editingVariableId ? 'Modifier' : 'Ajouter' }}
+      </button>
+      <button type="button" *ngIf="editingVariableId" (click)="resetForm()">Annuler</button>
+    </div>
+  </form>
+</div>

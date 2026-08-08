@@ -2,6 +2,7 @@ package com.rapports.moteur.dto.dtoTemplate;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
+import com.rapports.moteur.entity.Categorie;
 
 @Data
 public class TemplateCreate {
@@ -12,4 +13,8 @@ public class TemplateCreate {
     private String description;
 
     private String contenuDesign;
+
+    private Categorie categorie;
+    
+    private String formatPapier;
 }

@@ -7,4 +7,6 @@ export interface Template{
     version: number;
     dateCreation: string;
     dateModification: string;
+    categorie?: string;
+    formatPapier?: string;
 }

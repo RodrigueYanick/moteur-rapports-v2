@@ -1,0 +1,88 @@
+.library-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.library-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.filters {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  select {
+    padding: 0.4rem;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+  }
+}
+
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.card {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 1rem;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: column;
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+
+    h3 { margin: 0; font-size: 1.1rem; }
+  }
+
+  .card-body {
+    flex: 1;
+    p { margin: 0.25rem 0; font-size: 0.9rem; }
+  }
+
+  .card-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+}
+
+.badge {
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: white;
+  &.brouillon { background-color: #f39c12; }
+  &.publie { background-color: #27ae60; }
+  &.archive { background-color: #95a5a6; }
+}
+
+.message {
+  padding: 1rem;
+  text-align: center;
+  &.error { color: #e74c3c; }
+  &.info { color: #7f8c8d; }
+}
+
+.btn {
+  padding: 0.4rem 0.8rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  &-primary { background-color: #3498db; color: white; }
+  &-secondary { background-color: #ecf0f1; color: #2c3e50; }
+  &-danger { background-color: #e74c3c; color: white; }
+}

@@ -5,4 +5,7 @@ export interface Generation {
   donneesRecues: any;
   statutGeneration: 'EN_COURS' | 'SUCCES' | 'ECHEC';
   urlFichierGenere?: string;
+  dateCreation: string;
+  dateModification: string;
+  
 }

@@ -1,0 +1,71 @@
+.variable-manager {
+  padding: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.var-list {
+  margin-bottom: 1rem;
+}
+
+.var-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid #eee;
+  &.editing { background-color: #f0f0f0; }
+}
+
+.var-info {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+}
+
+.var-name { font-weight: bold; }
+.var-type { color: #888; font-size: 0.8rem; }
+
+.var-actions button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  margin-left: 0.3rem;
+}
+
+.var-form {
+  background: #f9f9f9;
+  padding: 0.5rem;
+  border-radius: 6px;
+}
+
+.form-row {
+  margin-bottom: 0.5rem;
+  label { display: block; font-weight: 600; margin-bottom: 0.1rem; }
+  input, select { width: 100%; padding: 0.3rem; border: 1px solid #ccc; border-radius: 4px; }
+}
+
+.checkbox label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: normal;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  button {
+    padding: 0.3rem 0.8rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    background: #3498db;
+    color: white;
+    &:disabled { background: #ccc; }
+  }
+}
+
+.error { color: #e74c3c; font-size: 0.8rem; }
+.no-vars { font-style: italic; color: #888; }

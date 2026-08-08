@@ -32,4 +32,7 @@ public class ReportVariable {
 
     @Column(nullable = false)
     private Boolean obligatoire;
+
+    @Column(name = "description", length = 500)
+    private String description;
 }

@@ -16,5 +16,7 @@ public class VariableRequest {
     private VariableType type;
 
     private Boolean obligatoire = false;
+
+    private String description;
     
 }
