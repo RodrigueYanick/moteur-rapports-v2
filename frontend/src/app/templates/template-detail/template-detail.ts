@@ -147,7 +147,9 @@ export class TemplateDetail implements OnInit {
 
   openPreview(): void {
     const previewElement = document.querySelector('app-block-preview');
-    if (previewElement) previewElement.scrollIntoView({ behavior: 'smooth' });
+    if (previewElement) {
+      previewElement.scrollIntoView({ behavior: 'smooth' });
+    }
   }
 
   loadTemplate(id?: string): void {
