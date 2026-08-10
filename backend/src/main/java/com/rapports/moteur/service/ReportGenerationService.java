@@ -163,4 +163,12 @@ public class ReportGenerationService {
             throw new IllegalStateException("Impossible de stocker le PDF", e);
         }
     }
+
+
+    public String generateHtml(UUID templateId, Object rawData) {
+        ReportTemplate template = getPublishedTemplate(templateId);
+        Map<String, Object> data = toDataMap(rawData);
+        validatorService.validate(template.getSchema(), data);
+        return htmlBuilder.build(template.getContenuDesign(), data);
+    }
 }

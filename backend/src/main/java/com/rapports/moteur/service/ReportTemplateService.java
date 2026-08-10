@@ -37,20 +37,21 @@ public class ReportTemplateService {
     private final SchemaExtractorService schemaExtractorService;
     private final ObjectMapper objectMapper;
     private final ReportVariableRepository variableRepository;
+    private final EntrepriseService entrepriseService; 
+    
+
 
     public List<TemplateResponse> findAll() {
-        List<ReportTemplate> templates = repository.findAll();
-        List<TemplateResponse> templateDtos = new ArrayList<>();
-        for (ReportTemplate template: templates){
-            templateDtos.add(mapper.toDto(template));
-        }
-        return templateDtos;
+        String code = entrepriseService.getCurrentCodeEntreprise();
+        List<ReportTemplate> templates = repository.findByCodeEntreprise(code);
+        return templates.stream().map(mapper::toDto).collect(Collectors.toList());
     }
 
     public TemplateResponse create(TemplateCreate request) {
         ReportTemplate entity = mapper.toEntity(request);
         entity.setStatut(TemplateStatus.BROUILLON);
         entity.setVersion(1);
+        entity.setCodeEntreprise(entrepriseService.getCurrentCodeEntreprise()); 
 
         // Valeurs par défaut si non fournies
         if (entity.getCategorie() == null) entity.setCategorie(Categorie.AUTRES);
@@ -182,11 +183,25 @@ public class ReportTemplateService {
         copy.setFormatPapier(original.getFormatPapier());
         copy.setStatut(TemplateStatus.BROUILLON);
         copy.setVersion(1);
-        // Le champ schema sera réextrait à la prochaine publication, donc on ne le copie pas.
 
-        ReportTemplate saved = repository.save(copy);
-        return mapper.toDto(saved);
+        ReportTemplate savedCopy = repository.save(copy);
+
+        // 🔁 Duplication des variables explicites
+        List<ReportVariable> originalVariables = variableRepository.findByTemplate_Id(id);
+        List<ReportVariable> newVariables = new ArrayList<>();
+        for (ReportVariable var : originalVariables) {
+            ReportVariable newVar = ReportVariable.builder()
+                    .template(savedCopy)
+                    .nomVariable(var.getNomVariable())
+                    .type(var.getType())
+                    .obligatoire(var.getObligatoire())
+                    .description(var.getDescription())
+                    .build();
+            newVariables.add(newVar);
+        }
+        variableRepository.saveAll(newVariables);
+
+        return mapper.toDto(savedCopy);
     }
-
 
 }

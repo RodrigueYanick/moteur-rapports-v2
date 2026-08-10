@@ -24,6 +24,7 @@ public class DocumentService {
     private final DocumentRepository documentRepository;
     private final ReportTemplateRepository templateRepository;
     private final ObjectMapper objectMapper;
+    private final EntrepriseService entrepriseService;
 
     @Transactional
     public DocumentResponse create(UUID templateId, DocumentCreate request) {
@@ -95,6 +96,20 @@ public class DocumentService {
                 .statut(document.getStatut().name())
                 .dateCreation(document.getDateCreation())
                 .dateModification(document.getDateModification())
+                .templateNom(document.getTemplate().getNom())
                 .build();
+    }
+
+
+    // (ajoute le paramètre au constructeur existant)
+
+    public List<DocumentResponse> getAll() {
+        String code = entrepriseService.getCurrentCodeEntreprise();
+        List<Document> documents = documentRepository.findByCodeEntreprise(code);
+        // Filtre les documents dont le template appartient au code entreprise
+        return documents.stream()
+                .filter(doc -> doc.getTemplate().getCodeEntreprise().equals(code))
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
     }
 }

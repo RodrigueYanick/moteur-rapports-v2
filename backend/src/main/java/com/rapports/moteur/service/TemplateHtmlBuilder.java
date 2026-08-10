@@ -21,24 +21,71 @@ public class TemplateHtmlBuilder {
     }
 
     public String build(String contenuDesignJson, Map<String, Object> data) {
-        StringBuilder html = new StringBuilder("<html><head><meta charset='UTF-8'/><style>body{margin:0;}</style></head><body>");
+        StringBuilder html = new StringBuilder(
+            "<html><head><meta charset='UTF-8'/><style>"
+            + "body{margin:0;} .page{page-break-after:always;} .page:last-child{page-break-after:auto;}"
+            + "</style></head><body>"
+        );
         try {
             JsonNode root = objectMapper.readTree(contenuDesignJson);
-            if (root.has("blocs")) {
-                html.append("<div style='position:relative;width:794px;height:1123px;background:white;'>");
-                for (JsonNode bloc : root.path("blocs")) {
-                    int x = bloc.path("x").asInt(0);
-                    int y = bloc.path("y").asInt(0);
-                    html.append("<div style='position:absolute;left:").append(x).append("px;top:").append(y).append("px;'>");
-                    html.append(renderBloc(bloc, data));
-                    html.append("</div>");
+            if (root.has("pages") && root.path("pages").isArray()) {
+                for (JsonNode page : root.path("pages")) {
+                    html.append(renderPage(page.path("blocs"), data));
                 }
-                html.append("</div>");
+            } else if (root.has("blocs")) {
+                // Rétrocompatibilité : ancien format sans pages
+                html.append(renderPage(root.path("blocs"), data));
             }
         } catch (Exception e) {
             html.append("<p>Erreur de design : ").append(e.getMessage()).append("</p>");
         }
         return html.append("</body></html>").toString();
+    }
+
+    private static final Map<String, int[]> DEFAULT_DIMENSIONS = Map.ofEntries(
+        Map.entry("titre", new int[]{400, 40}),
+        Map.entry("texte", new int[]{400, 40}),
+        Map.entry("tableau", new int[]{750, 150}),
+        Map.entry("ligne", new int[]{780, 10}),
+        Map.entry("image", new int[]{150, 150}),
+        Map.entry("rectangle", new int[]{150, 100}),
+        Map.entry("cercle", new int[]{100, 100}),
+        Map.entry("qrcode", new int[]{100, 100}),
+        Map.entry("codebarre", new int[]{160, 60}),
+        Map.entry("signature", new int[]{180, 70}),
+        Map.entry("graphique", new int[]{300, 180})
+    );
+
+    private String renderPage(JsonNode blocs, Map<String, Object> data) {
+        StringBuilder page = new StringBuilder(
+            "<div class='page' style='position:relative;width:794px;height:1123px;background:white;overflow:hidden;'>"
+        );
+        for (JsonNode bloc : blocs) {
+            int x = bloc.path("x").asInt(0);
+            int y = bloc.path("y").asInt(0);
+            String type = bloc.path("type").asText();
+
+            int[] fallback = DEFAULT_DIMENSIONS.getOrDefault(type, new int[]{200, 50});
+            int width = bloc.path("largeurBox").asInt(fallback[0]);
+
+            int rotation = bloc.path("rotation").asInt(0);
+            double opacite = bloc.path("opacite").asDouble(100);
+            StringBuilder transformParts = new StringBuilder();
+            if (rotation != 0) {
+                transformParts.append("transform:rotate(").append(rotation).append("deg);transform-origin:center center;");
+            }
+            if (opacite != 100) {
+                transformParts.append("opacity:").append(opacite / 100).append(";");
+            }
+
+            page.append("<div style='position:absolute;left:").append(x)
+                .append("px;top:").append(y)
+                .append("px;width:").append(width).append("px;")
+                .append(transformParts).append("'>");
+            page.append(renderBloc(bloc, data));
+            page.append("</div>");
+        }
+        return page.append("</div>").toString();
     }
 
     private String renderBloc(JsonNode bloc, Map<String, Object> data) {
@@ -178,18 +225,7 @@ public class TemplateHtmlBuilder {
                 + escape(label) + "</div>";
     }
 
-    private String renderStaticTable(JsonNode bloc, Map<String, Object> data) {
-        StringBuilder table = new StringBuilder("<table border='1' cellpadding='4'>");
-        for (JsonNode row : bloc.path("lignes")) {
-            table.append("<tr>");
-            for (JsonNode cell : row) {
-                table.append("<td>").append(escape(replaceVars(cell.asText(""), data))).append("</td>");
-            }
-            table.append("</tr>");
-        }
-        return table.append("</table>").toString();
-    }
-
+    
     private String buildStyle(JsonNode bloc) {
         JsonNode style = bloc.path("style");
         StringBuilder sb = new StringBuilder();
@@ -203,21 +239,49 @@ public class TemplateHtmlBuilder {
         return sb.toString();
     }
 
+
+    private String renderStaticTable(JsonNode bloc, Map<String, Object> data) {
+        String bordure = bloc.path("style").path("bordureCouleur").asText("#d9d9d9");
+        String texteDefaut = bloc.path("style").path("texteCouleurDefaut").asText("#000000");
+
+        StringBuilder table = new StringBuilder(
+            "<table style='border-collapse:collapse;width:100%;font-family:Arial, sans-serif;font-size:14px;'>"
+        );
+        for (JsonNode row : bloc.path("lignes")) {
+            table.append("<tr>");
+            for (JsonNode cell : row) {
+                String value = cell.path("value").asText("");
+                String bgColor = cell.has("bgColor") ? cell.path("bgColor").asText() : null;
+                String textColor = cell.has("textColor") ? cell.path("textColor").asText() : texteDefaut;
+
+                String style = "border:1px solid " + escape(bordure) + ";padding:3px 5px;min-width:90px;color:" + escape(textColor) + ";";
+                if (bgColor != null) style += "background:" + escape(bgColor) + ";";
+
+                table.append("<td style='").append(style).append("'>")
+                    .append(escape(replaceVars(value, data))).append("</td>");
+            }
+            table.append("</tr>");
+        }
+        return table.append("</table>").toString();
+    }
+
     private String renderTableau(JsonNode bloc, Map<String, Object> data) {
         String source = stripBraces(bloc.path("source").asText(""));
         Object rowsObj = data.get(source);
+        String bordure = bloc.path("style").path("bordureCouleur").asText("#d9d9d9");
+        String texteDefaut = bloc.path("style").path("texteCouleurDefaut").asText("#000000");
 
         StringBuilder table = new StringBuilder(
             "<table style='border-collapse:collapse;width:100%;font-family:Arial, sans-serif;"
-            + "font-size:14px;color:#000;font-weight:400;'>"
+            + "font-size:14px;color:" + escape(texteDefaut) + ";font-weight:400;'>"
         );
-        String cellStyle = "border:1px solid #d9d9d9;padding:3px 5px;min-width:90px;text-align:left;";
+        String cellStyle = "border:1px solid " + escape(bordure) + ";padding:3px 5px;min-width:90px;text-align:left;";
         String headerStyle = cellStyle + "background:#f5f5f5;font-weight:600;";
 
         table.append("<tr>");
         for (JsonNode col : bloc.path("colonnes")) {
             table.append("<th style='").append(headerStyle).append("'>")
-                 .append(escape(col.path("titre").asText(""))).append("</th>");
+                .append(escape(col.path("titre").asText(""))).append("</th>");
         }
         table.append("</tr>");
 
@@ -228,7 +292,7 @@ public class TemplateHtmlBuilder {
                 for (JsonNode col : bloc.path("colonnes")) {
                     Object cellValue = row.get(col.path("variable").asText(""));
                     table.append("<td style='").append(cellStyle).append("'>")
-                         .append(escape(String.valueOf(cellValue))).append("</td>");
+                        .append(escape(String.valueOf(cellValue))).append("</td>");
                 }
                 table.append("</tr>");
             }

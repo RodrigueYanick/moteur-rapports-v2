@@ -9,6 +9,7 @@ public class DocumentResponse {
     private UUID id;
     private UUID templateId;
     private String nom;
+    private String templateNom;
     private Object donnees;
     private String statut;
     private LocalDateTime dateCreation;

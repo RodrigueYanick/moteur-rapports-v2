@@ -21,7 +21,6 @@ import org.springframework.lang.NonNull;
 @RequestMapping("/api/templates")
 public class TemplateController {
 
-    // Les services sont injectés via @Autowired (ou par constructeur, peu importe)
     private final ReportTemplateService templateService;
     private final VariableService variableService;
     private final SchemaService schemaService;
@@ -112,6 +111,15 @@ public class TemplateController {
             .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"rapport.pdf\"")
             .contentType(java.util.Objects.requireNonNull(MediaType.APPLICATION_PDF))
             .body(pdf);
+    }
+
+    @PostMapping("/{id}/preview-html")
+    public ResponseEntity<String> previewHtml(@PathVariable @NonNull UUID id,
+                                            @RequestBody Map<String, Object> data) {
+        String html = generationService.generateHtml(id, data);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.TEXT_HTML_VALUE)
+                .body(html);
     }
 
     // ---------- Génération asynchrone ----------

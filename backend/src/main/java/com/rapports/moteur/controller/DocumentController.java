@@ -46,4 +46,6 @@ public class DocumentController {
         documentService.delete(id);
         return ResponseEntity.noContent().build();
     }
+
+    // La méthode getAll() a été supprimée d'ici
 }

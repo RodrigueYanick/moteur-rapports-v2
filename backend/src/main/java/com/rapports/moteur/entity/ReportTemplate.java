@@ -34,6 +34,9 @@ public class ReportTemplate {
     @ColumnTransformer(write = "?::jsonb")
     private String schema;
 
+    @Column(name = "code_entreprise", nullable = false, length = 50)
+    private String codeEntreprise;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TemplateStatus statut;
