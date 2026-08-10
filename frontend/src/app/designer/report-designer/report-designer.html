@@ -15,6 +15,15 @@
           Enregistrement...
         </span>
       </div>
+      <button class="secondary-btn" *ngIf="isLocked" (click)="requestDuplicate()">
+        <lucide-icon [img]="icons.share" [size]="16"></lucide-icon>
+        Dupliquer
+      </button>
+      <button class="secondary-btn" *ngIf="!isLocked" (click)="toggleFillingMode()">
+        <lucide-icon [img]="fillingMode ? icons.edit : icons.fileText" [size]="16"></lucide-icon>
+        {{ fillingMode ? 'Éditer' : 'Remplir (test)' }}
+      </button>
+      <span class="status-badge" [ngClass]="templateStatus">{{ templateStatus }}</span>
     </div>
 
     <div class="toolbar-center">
@@ -28,13 +37,28 @@
       </div>
 
       <div class="tool-group">
-        <button class="icon-btn" [class.active]="showGrid" (click)="toggleGrid()" title="Afficher la grille">
+        <button
+          class="icon-btn"
+          [class.active]="showGrid"
+          (click)="toggleGrid()"
+          title="Afficher la grille"
+        >
           <lucide-icon [img]="icons.grid" [size]="18"></lucide-icon>
         </button>
-        <button class="icon-btn" [class.active]="snapEnabled" (click)="toggleSnap()" title="Magnétisme">
+        <button
+          class="icon-btn"
+          [class.active]="snapEnabled"
+          (click)="toggleSnap()"
+          title="Magnétisme"
+        >
           <lucide-icon [img]="icons.snap" [size]="18"></lucide-icon>
         </button>
-        <button class="icon-btn" [class.active]="showGuides" (click)="toggleGuides()" title="Repères">
+        <button
+          class="icon-btn"
+          [class.active]="showGuides"
+          (click)="toggleGuides()"
+          title="Repères"
+        >
           <lucide-icon [img]="icons.guides" [size]="18"></lucide-icon>
         </button>
       </div>
@@ -60,6 +84,14 @@
     </div>
 
     <div class="toolbar-right">
+      <button class="secondary-btn" *ngIf="isLocked" (click)="requestDuplicate()">
+        <lucide-icon [img]="icons.share" [size]="16"></lucide-icon>
+        Dupliquer
+      </button>
+      <button class="secondary-btn" *ngIf="!isLocked" (click)="toggleFillingMode()">
+        <lucide-icon [img]="fillingMode ? icons.edit : icons.fileText" [size]="16"></lucide-icon>
+        {{ fillingMode ? 'Éditer' : 'Remplir (test)' }}
+      </button>
       <button class="secondary-btn" (click)="preview()">
         <lucide-icon [img]="icons.preview" [size]="16"></lucide-icon>
         Aperçu
@@ -68,18 +100,44 @@
         <lucide-icon [img]="icons.export" [size]="16"></lucide-icon>
         Exporter
       </button>
+      <button class="secondary-btn" *ngIf="templateStatus === 'PUBLIE'" (click)="exportHtml()">
+        <lucide-icon [img]="icons.preview" [size]="16"></lucide-icon>
+        HTML (test)
+      </button>
       <button class="save-btn" title="Enregistrer" (click)="manualSave()">
         <lucide-icon [img]="icons.save" [size]="16"></lucide-icon>
       </button>
-      <button class="primary-btn" (click)="publish()">
+      <button class="primary-btn" *ngIf="!isLocked" (click)="publish()">
         <lucide-icon [img]="icons.publish" [size]="16"></lucide-icon>
         Publier
       </button>
-      <button class="secondary-btn" (click)="toggleFillingMode()">
-        <lucide-icon [img]="fillingMode ? icons.edit : icons.fileText" [size]="16"></lucide-icon>
-        {{ fillingMode ? 'Éditer' : 'Remplir' }}
-      </button>
     </div>
+  </div>
+
+  <ng-template #fillingPanel>
+    <app-template-filler
+      [templateId]="templateId"
+      [selectedBlock]="selectedBlock"
+      (generatePdfRequest)="onFillerGenerate($event)"
+    >
+    </app-template-filler>
+  </ng-template>
+
+  <div class="page-tabs">
+    <button *ngFor="let page of pages; let i = index"
+            class="page-tab"
+            [class.active]="i === activePageIndex"
+            (click)="switchPage(i)">
+      <span *ngIf="editingPageIndex !== i" (dblclick)="startRenamePage(i, $event)">{{ page.nom }}</span>
+      <input *ngIf="editingPageIndex === i" type="text" [(ngModel)]="page.nom"
+            (blur)="finishRenamePage()" (keyup.enter)="finishRenamePage()"
+            (click)="$event.stopPropagation()" />
+      <lucide-icon [img]="icons.copy" [size]="12" class="page-tab-icon" (click)="duplicatePage(i, $event)" title="Dupliquer"></lucide-icon>
+      <lucide-icon *ngIf="pages.length > 1" [img]="icons.close" [size]="12" class="page-tab-icon" (click)="removePage(i, $event)" title="Supprimer"></lucide-icon>
+    </button>
+    <button class="page-tab-add" (click)="addPage()" title="Ajouter une page">
+      <lucide-icon [img]="icons.zoomIn" [size]="14"></lucide-icon>
+    </button>
   </div>
 
   <div class="main-area">
@@ -89,6 +147,8 @@
         [templateId]="templateId"
         (explicitVariablesChange)="onExplicitVariablesChanged($event)"
         [selectedBlock]="selectedBlock"
+        [locked]="isLocked"
+        (lockedInteraction)="showLockedMessage()"
         (blockSelected)="selectBlock($event)"
         (toggleVisibility)="onToggleVisibility($event)"
         (toggleLock)="onToggleLock($event)"
@@ -105,6 +165,8 @@
         [showGrid]="showGrid"
         [snapEnabled]="snapEnabled"
         [showGuides]="showGuides"
+        [locked]="isLocked"
+        (lockedInteraction)="showLockedMessage()"
         (blocksChange)="onCanvasBlocksChange($event)"
         (blockSelected)="selectBlock($event)">
       </app-design-canvas>
@@ -115,17 +177,17 @@
         <app-block-editor
           *ngIf="selectedBlock"
           [block]="selectedBlock"
-          [allBlocks]="blocks"
+          [allBlocks]="allBlocksFlat"
           [explicitVariables]="explicitVariables"
           (updated)="updateBlock($event)"
           (closed)="selectedBlock = null">
         </app-block-editor>
-        <app-block-preview [blocks]="blocks"></app-block-preview>
+        <app-block-preview [pages]="pages"></app-block-preview>
       </ng-container>
       <ng-template #fillingPanel>
         <app-template-filler [templateId]="templateId"></app-template-filler>
       </ng-template>
-    </div>        
+    </div>
   </div>
 
   <div class="status-bar">
@@ -140,10 +202,22 @@
     <span class="status-sep">|</span>
     <span class="status-item">Zoom {{ zoomPercent }}%</span>
     <span class="status-spacer"></span>
-    <span class="status-item save-indicator" [class.saving]="savingStatus === 'saving'" [class.saved]="savingStatus === 'saved'">
-      <lucide-icon [img]="savingStatus === 'saving' ? icons.loader : icons.check" [size]="12" [class.spin]="savingStatus === 'saving'"></lucide-icon>
+    <span
+      class="status-item save-indicator"
+      [class.saving]="savingStatus === 'saving'"
+      [class.saved]="savingStatus === 'saved'"
+    >
+      <lucide-icon
+        [img]="savingStatus === 'saving' ? icons.loader : icons.check"
+        [size]="12"
+        [class.spin]="savingStatus === 'saving'"
+      ></lucide-icon>
       {{ savingStatus === 'saving' ? 'Enregistrement...' : 'Enregistré' }}
     </span>
   </div>
-  
+</div>
+<div class="locked-toast" *ngIf="lockedMessage">
+  <lucide-icon [img]="icons.lock" [size]="16"></lucide-icon>
+  {{ lockedMessage }}
+  <button (click)="requestDuplicate()">Dupliquer</button>
 </div>

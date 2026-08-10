@@ -16,12 +16,20 @@ $text-secondary: #6b7280;
   border: 1px dashed transparent;
   border-radius: 4px;
   padding: 8px;
-  box-sizing: border-box;   // ← important : le padding ne doit pas agrandir la boîte au-delà de largeurBox/hauteurBox
+  box-sizing: border-box; // ← important : le padding ne doit pas agrandir la boîte au-delà de largeurBox/hauteurBox
   transition: border-color 0.1s;
 
-  &:hover { border-color: rgba(109, 94, 252, 0.3); }
-  &.selected { border-color: $accent; border-style: solid; }
-  &.locked { cursor: not-allowed; opacity: 0.65; }
+  &:hover {
+    border-color: rgba(109, 94, 252, 0.3);
+  }
+  &.selected {
+    border-color: $accent;
+    border-style: solid;
+  }
+  &.locked {
+    cursor: not-allowed;
+    opacity: 0.65;
+  }
 }
 
 .block-content {
@@ -90,19 +98,25 @@ $text-secondary: #6b7280;
   background: #e0e0e0;
 }
 
-
 .grid-overlay {
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background-image: linear-gradient(rgba(0,0,0,0.05) 1px, transparent 1px),
-                    linear-gradient(90deg, rgba(0,0,0,0.05) 1px, transparent 1px);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
   background-size: 20px 20px;
   pointer-events: none;
 }
 
 .guides-overlay {
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   border: 2px dashed rgba(255, 0, 0, 0.3);
   pointer-events: none;
 }
@@ -136,4 +150,8 @@ $text-secondary: #6b7280;
   color: #999;
   font-size: 12px;
   font-style: italic;
+}
+
+.block-content {
+  transform-origin: center center;
 }

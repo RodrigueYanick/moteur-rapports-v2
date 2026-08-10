@@ -1,46 +1,139 @@
-<h1></h1>
 <div class="library-container">
-  <div class="library-header">
-    <h1>Bibliothèque de modèles</h1>
-    <button routerLink="/templates/new" class="btn btn-primary">+ Créer un modèle</button>
-  </div>
 
-  <!-- Filtres -->
-  <div class="filters">
-    <select [(ngModel)]="filterCategorie" (change)="applyFilters()">
-      <option value="">Toutes les catégories</option>
+  <!-- ===== Barre de filtres ===== -->
+  <div class="toolbar">
+    <div class="search-box">
+      <lucide-icon [img]="icons.search" [size]="15"></lucide-icon>
+      <input type="text" [(ngModel)]="searchTerm" (ngModelChange)="applyFilters()"
+             placeholder="Rechercher un modèle..." />
+    </div>
+
+    <select [(ngModel)]="filterCategorie" (change)="applyFilters()" class="filter-select">
+      <option value="">Toutes catégories</option>
       <option *ngFor="let cat of categories" [value]="cat">{{ cat }}</option>
-    </select> 
-    <select [(ngModel)]="filterStatut" (change)="applyFilters()">
-      <option value="">Tous les statuts</option>
+    </select>
+
+    <select [(ngModel)]="filterStatut" (change)="applyFilters()" class="filter-select">
+      <option value="">Tous statuts</option>
       <option *ngFor="let s of statuts" [value]="s">{{ s }}</option>
     </select>
+
+    <span class="template-count" *ngIf="!loading">{{ filteredTemplates.length }} modèle{{ filteredTemplates.length > 1 ? 's' : '' }}</span>
+
+    <div class="view-toggle">
+      <button [class.active]="viewMode === 'grid'" (click)="setViewMode('grid')" title="Vue grille">
+        <lucide-icon [img]="icons.grid" [size]="15"></lucide-icon>
+      </button>
+      <button [class.active]="viewMode === 'list'" (click)="setViewMode('list')" title="Vue liste">
+        <lucide-icon [img]="icons.list" [size]="15"></lucide-icon>
+      </button>
+    </div>
+
+    <button routerLink="/templates/new" class="btn-primary">
+      <lucide-icon [img]="icons.plus" [size]="15"></lucide-icon>
+      Nouveau modèle
+    </button>
   </div>
 
-  <!-- Message de chargement / erreur -->
-  <div *ngIf="loading" class="message">Chargement...</div>
-  <div *ngIf="error" class="message error">{{ error }}</div>
+  <!-- ===== États ===== -->
+  <div *ngIf="loading" class="state-msg">
+    <lucide-icon [img]="icons.loader" [size]="16" class="spin"></lucide-icon>
+    Chargement des modèles...
+  </div>
+  <div *ngIf="error" class="state-msg error">{{ error }}</div>
 
-  <!-- Grille de cartes -->
-  <div class="cards-grid" *ngIf="!loading && !error">
-    <div class="card" *ngFor="let template of filteredTemplates">
-      <div class="card-header">
-        <h3>{{ template.nom }}</h3>
-        <span class="badge" [ngClass]="template.statut">{{ template.statut }}</span>
+  <!-- ===== Vue grille ===== -->
+  <div class="cards-grid" *ngIf="!loading && !error && viewMode === 'grid'">
+    <div class="new-card" routerLink="/templates/new">
+      <div class="new-card-icon">
+        <lucide-icon [img]="icons.plus" [size]="20"></lucide-icon>
       </div>
+      <span class="new-card-title">Nouveau modèle</span>
+      <span class="new-card-sub">Partir d'une feuille vierge</span>
+    </div>
+
+    <div class="card" *ngFor="let template of filteredTemplates" [routerLink]="['/templates', template.id]">
+      <div class="card-cover" [style.background]="cardBackground(template)">
+        <button class="star-btn" (click)="$event.stopPropagation()" title="Favori">
+          <lucide-icon [img]="icons.star" [size]="14"></lucide-icon>
+        </button>
+
+        <div class="cover-icon">
+          <lucide-icon [img]="icons.file" [size]="30"></lucide-icon>
+        </div>
+
+        <div class="hover-actions">
+          <button class="hover-btn" [routerLink]="['/templates', template.id]" (click)="$event.stopPropagation()">
+            <lucide-icon [img]="icons.edit" [size]="13"></lucide-icon>
+            Éditer
+          </button>
+          <button class="hover-btn ghost" (click)="duplicateTemplate(template.id, $event)">
+            <lucide-icon [img]="icons.copy" [size]="13"></lucide-icon>
+            Dupliquer
+          </button>
+        </div>
+      </div>
+
       <div class="card-body">
-        <p><strong>Catégorie :</strong> {{ template.categorie || 'AUTRES' }}</p>
-        <p><strong>Format :</strong> {{ template.formatPapier || 'A4' }}</p>
-        <p><strong>Version :</strong> {{ template.version }}</p>
-        <p><strong>Modifié le :</strong> {{ template.dateModification | date:'dd/MM/yyyy HH:mm' }}</p>
-      </div>
-      <div class="card-actions">
-        <button [routerLink]="['/templates', template.id]" class="btn btn-secondary">Détail</button>
-        <button (click)="duplicateTemplate(template.id)" class="btn btn-secondary">Dupliquer</button>
-        <button (click)="deleteTemplate(template.id)" class="btn btn-danger">Supprimer</button>
+        <div class="card-title-row">
+          <h3>{{ template.nom }}</h3>
+          <span class="badge" [ngClass]="getStatusClass(template.statut)">{{ template.statut }}</span>
+        </div>
+        <p class="card-meta">{{ template.categorie || 'AUTRES' }} · {{ template.dateModification | date:'d MMM y' }}</p>
+
+        <div class="card-footer">
+          <span class="version-tag">v{{ template.version }}</span>
+          <span class="format-tag">{{ template.formatPapier || 'A4' }}</span>
+          <button class="delete-btn" (click)="deleteTemplate(template.id, $event)" title="Supprimer">
+            <lucide-icon [img]="icons.trash" [size]="13"></lucide-icon>
+          </button>
+        </div>
       </div>
     </div>
   </div>
 
-  <p *ngIf="!loading && !error && filteredTemplates.length === 0" class="message info">Aucun modèle trouvé.</p>
+  <!-- ===== Vue liste ===== -->
+  <div class="table-wrapper" *ngIf="!loading && !error && viewMode === 'list'">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Nom</th>
+          <th>Catégorie</th>
+          <th>Statut</th>
+          <th>Version</th>
+          <th>Modifié le</th>
+          <th class="actions-col">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let template of filteredTemplates" [routerLink]="['/templates', template.id]">
+          <td class="name-cell">
+            <span class="row-avatar" [style.background]="cardBackground(template)">{{ initials(template.nom) }}</span>
+            <span class="row-name">{{ template.nom }}</span>
+          </td>
+          <td>{{ template.categorie || 'AUTRES' }}</td>
+          <td>
+            <span class="badge" [ngClass]="getStatusClass(template.statut)">{{ template.statut }}</span>
+          </td>
+          <td>v{{ template.version }}</td>
+          <td class="date-cell">{{ template.dateModification | date:'dd/MM/yyyy HH:mm' }}</td>
+          <td class="actions-cell" (click)="$event.stopPropagation()">
+            <button class="icon-action" [routerLink]="['/templates', template.id]" title="Éditer">
+              <lucide-icon [img]="icons.edit" [size]="14"></lucide-icon>
+            </button>
+            <button class="icon-action" (click)="duplicateTemplate(template.id, $event)" title="Dupliquer">
+              <lucide-icon [img]="icons.copy" [size]="14"></lucide-icon>
+            </button>
+            <button class="icon-action danger" (click)="deleteTemplate(template.id, $event)" title="Supprimer">
+              <lucide-icon [img]="icons.trash" [size]="14"></lucide-icon>
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p *ngIf="!loading && !error && filteredTemplates.length === 0" class="empty-msg">
+    Aucun modèle trouvé.
+  </p>
 </div>

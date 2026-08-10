@@ -1,47 +1,133 @@
 <div class="filler-panel">
-  <h3>📋 Remplir le modèle</h3>
+  <div class="filler-header">
+    <lucide-icon [img]="icons.clipboard" [size]="16"></lucide-icon>
+    <h3>Remplir le modèle </h3>
+  </div>
 
-  <button class="btn btn-primary" (click)="saveDocument()">💾 Sauvegarder le document</button>
+  <div class="filter-row" *ngIf="selectedBlock">
+    <span class="filter-label">
+      Bloc sélectionné : <strong>{{ selectedBlock.nom || selectedBlock.type }}</strong>
+    </span>
+    <label class="toggle-all">
+      <input type="checkbox" [(ngModel)]="showAllVariables" />
+      <span class="toggle-slider"></span>
+      Toutes les variables
+    </label>
+  </div>
 
-  
-  <div *ngIf="loading">Chargement...</div>
-  <div *ngIf="error" class="error">{{ error }}</div>
+  <div *ngIf="loading" class="state-msg">Chargement...</div>
+  <div *ngIf="error" class="state-msg error">{{ error }}</div>
 
   <div *ngIf="!loading && !error" class="variables-list">
-    <div class="variable-item" *ngFor="let v of variables">
+    <div class="variable-item" *ngFor="let v of filteredVariables">
       <div class="variable-header">
         <span class="var-name">{{ v.nomVariable }}</span>
-        <span class="var-type">({{ v.type }})</span>
+        <span class="var-type">{{ v.type }}</span>
       </div>
       <div class="variable-desc" *ngIf="v.description">{{ v.description }}</div>
+
       <div class="variable-input">
-        <!-- Texte -->
-        <input *ngIf="v.type === 'STRING' || v.type === 'FLOAT' || v.type === 'DATE'"
-               [type]="v.type === 'FLOAT' ? 'number' : 'text'"
-               [value]="values[v.nomVariable] || ''"
-               (input)="onValueChange(v.nomVariable, $event)" />
-        <!-- Booléen -->
-        <label *ngIf="v.type === 'BOOLEAN'">
-          <input type="checkbox"
-                 [checked]="values[v.nomVariable] === true"
-                 (change)="onValueChange(v.nomVariable, $event.target.checked)" />
+        <input
+          *ngIf="v.type === 'STRING' || v.type === 'FLOAT' || v.type === 'DATE'"
+          [type]="v.type === 'FLOAT' ? 'number' : 'text'"
+          [value]="values[v.nomVariable] || ''"
+          (input)="onValueChange(v.nomVariable, $event)"
+          [placeholder]="'Saisir ' + v.nomVariable"
+        />
+
+        <label class="bool-toggle" *ngIf="v.type === 'BOOLEAN'">
+          <input
+            type="checkbox"
+            [checked]="values[v.nomVariable] === true"
+            (change)="onValueChange(v.nomVariable, $any($event.target).checked)"
+          />
+          <span class="toggle-slider"></span>
           {{ values[v.nomVariable] ? 'Oui' : 'Non' }}
-        </label>  
-        <!-- Image (URL) -->
-        <input *ngIf="v.type === 'IMAGE'" type="text"
-               [value]="values[v.nomVariable] || ''"
-               (input)="onValueChange(v.nomVariable, $event)" />
-        <!-- Tableau -->
+        </label>
+
+        <input
+          *ngIf="v.type === 'IMAGE'"
+          type="text"
+          [value]="values[v.nomVariable] || ''"
+          (input)="onValueChange(v.nomVariable, $event)"
+          placeholder="URL de l'image"
+        />
+
         <div *ngIf="v.type === 'ARRAY'" class="table-editor">
-          <button type="button" (click)="addRow(v.nomVariable)">+ Ajouter une ligne</button>
+          <button type="button" class="add-row-btn" (click)="addRow(v.nomVariable)">
+            <lucide-icon [img]="icons.plus" [size]="13"></lucide-icon>
+            Ajouter une ligne
+          </button>
           <table *ngIf="values[v.nomVariable]?.length > 0">
             <tr *ngFor="let row of values[v.nomVariable]; let i = index">
               <td *ngFor="let col of row | keyvalue">
-                <input type="text" [(ngModel)]="row[col.key]" (ngModelChange)="onValueChange(v.nomVariable, values[v.nomVariable])" />
+                <input
+                  type="text"
+                  [(ngModel)]="row[col.key]"
+                  (ngModelChange)="onValueChange(v.nomVariable, values[v.nomVariable])"
+                />
               </td>
             </tr>
           </table>
         </div>
+      </div>
+    </div>
+
+    <div class="empty" *ngIf="filteredVariables.length === 0">
+      Aucune variable à remplir pour ce bloc.
+    </div>
+  </div>
+
+  <!-- ================== SAUVEGARDE ================== -->
+  <div class="save-section">
+    <input
+      type="text"
+      [(ngModel)]="docNameInput"
+      placeholder="Nom du document"
+      class="doc-name-input"
+    />
+    <div class="save-actions">
+      <button class="btn-primary" (click)="saveDocument()" [disabled]="savingDocument">
+        <lucide-icon [img]="savingDocument ? icons.loader : icons.save" [size]="14" [class.spin]="savingDocument"></lucide-icon>
+        {{ savingDocument ? 'Sauvegarde...' : (activeDocumentId ? 'Mettre à jour' : 'Sauvegarder') }}
+      </button>
+      <button class="btn-secondary" *ngIf="activeDocumentId" (click)="newDocument()">
+        <lucide-icon [img]="icons.plus" [size]="14"></lucide-icon>
+        Nouveau
+      </button>
+    </div>
+  </div>
+
+  <!-- ================== DOCUMENTS SAUVEGARDÉS ================== -->
+  <div class="documents-section">
+    <h4>
+      <lucide-icon [img]="icons.folder" [size]="14"></lucide-icon>
+      Documents enregistrés
+    </h4>
+    <div *ngIf="loadingDocuments" class="state-msg">Chargement...</div>
+    <div *ngIf="!loadingDocuments && documents.length === 0" class="empty">
+      Aucun document sauvegardé pour ce modèle.
+    </div>
+
+    <div
+      class="document-item"
+      *ngFor="let doc of documents"
+      [class.active]="doc.id === activeDocumentId"
+    >
+      <div class="doc-info">
+        <span class="doc-name">{{ doc.nom }}</span>
+        <span class="doc-date">{{ doc.dateModification | date: 'dd/MM/yyyy HH:mm' }}</span>
+      </div>
+      <div class="doc-actions">
+        <button (click)="loadDocument(doc)" title="Charger dans le formulaire">
+          <lucide-icon [img]="icons.folder" [size]="14"></lucide-icon>
+        </button>
+        <button (click)="generateFromDocument(doc)" title="Générer le PDF">
+          <lucide-icon [img]="icons.printer" [size]="14"></lucide-icon>
+        </button>
+        <button (click)="deleteDocument(doc)" title="Supprimer" class="danger">
+          <lucide-icon [img]="icons.trash" [size]="14"></lucide-icon>
+        </button>
       </div>
     </div>
   </div>

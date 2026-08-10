@@ -1,0 +1,15 @@
+<div class="modal-overlay">
+  <div class="modal-content">
+    <h2>Accès à l'application</h2>
+    <p>Veuillez entrer le code de votre entreprise pour continuer.</p>
+    <input
+      type="text"
+      [(ngModel)]="code"
+      placeholder="Ex: DEFAULT, ACME, ..."
+      class="code-input"
+      (keyup.enter)="onSubmit()"
+    />
+    <div class="error" *ngIf="error">{{ error }}</div>
+    <button class="btn-primary" (click)="onSubmit()">Accéder</button>
+  </div>
+</div>

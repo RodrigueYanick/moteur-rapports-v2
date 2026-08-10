@@ -20,7 +20,7 @@ $success: #27ae60;
 .card {
   background: white;
   border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   padding: 1.5rem;
   margin-bottom: 1.5rem;
 }
@@ -47,7 +47,8 @@ $success: #27ae60;
   border-collapse: collapse;
   margin-bottom: 1.5rem;
 
-  th, td {
+  th,
+  td {
     padding: 0.75rem 1rem;
     text-align: left;
     border-bottom: 1px solid #eee;
@@ -74,9 +75,15 @@ $success: #27ae60;
   color: white;
   background-color: #7f8c8d;
 
-  &.BROUILLON { background-color: #f39c12; }
-  &.PUBLIE { background-color: $success; }
-  &.ARCHIVE { background-color: #95a5a6; }
+  &.BROUILLON {
+    background-color: #f39c12;
+  }
+  &.PUBLIE {
+    background-color: $success;
+  }
+  &.ARCHIVE {
+    background-color: #95a5a6;
+  }
 
   &.small {
     font-size: 0.75rem;
@@ -100,19 +107,28 @@ $success: #27ae60;
   border-radius: 4px;
   font-size: 0.95rem;
   cursor: pointer;
-  transition: background-color 0.2s, opacity 0.2s;
+  transition:
+    background-color 0.2s,
+    opacity 0.2s;
 
   &-primary {
     background-color: $accent;
     color: white;
-    &:hover:not(:disabled) { background-color: darken($accent, 10%); }
-    &:disabled { background-color: #bdc3c7; cursor: not-allowed; }
+    &:hover:not(:disabled) {
+      background-color: darken($accent, 10%);
+    }
+    &:disabled {
+      background-color: #bdc3c7;
+      cursor: not-allowed;
+    }
   }
 
   &-danger {
     background-color: $danger;
     color: white;
-    &:hover { background-color: darken($danger, 10%); }
+    &:hover {
+      background-color: darken($danger, 10%);
+    }
   }
 }
 

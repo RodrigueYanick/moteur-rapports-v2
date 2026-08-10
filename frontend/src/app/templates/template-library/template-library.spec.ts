@@ -8,9 +8,8 @@ describe('TemplateLibrary', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [TemplateLibrary]
-    })
-    .compileComponents();
+      imports: [TemplateLibrary],
+    }).compileComponents();
 
     fixture = TestBed.createComponent(TemplateLibrary);
     component = fixture.componentInstance;

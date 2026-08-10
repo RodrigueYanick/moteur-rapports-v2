@@ -1,50 +1,426 @@
+$bg-panel: #1a1d29;
+$bg-card: #20232f;
+$bg-input: #14161f;
+$bg-hover: #262a38;
+$border: #2a2e3d;
+$accent: #6d5efc;
+$accent-hover: #5b4de8;
+$text-primary: #e8e9ee;
+$text-secondary: #9498a8;
+$text-muted: #676c7f;
+$danger: #ef4444;
+$success: #34d399;
+
 .filler-panel {
-  padding: 1rem;
-  background: #fff;
-  border-radius: 8px;
+  padding: 16px;
+  background: $bg-panel;
   height: 100%;
   overflow-y: auto;
+  color: $text-primary;
+  font-size: 13px;
 }
 
+.filler-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: $accent;
+  margin-bottom: 14px;
+
+  h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: $text-primary;
+    margin: 0;
+  }
+}
+
+.state-msg {
+  color: $text-secondary;
+  font-size: 13px;
+  padding: 8px 0;
+
+  &.error { color: $danger; }
+}
+
+/* ---------- Filtre par bloc ---------- */
+.filter-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: rgba(109, 94, 252, 0.08);
+  border: 1px solid rgba(109, 94, 252, 0.25);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 14px;
+  font-size: 12px;
+}
+
+.filter-label {
+  color: $text-secondary;
+
+  strong { color: $accent; }
+}
+
+.toggle-all {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: $text-secondary;
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+
+  input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+}
+
+.toggle-slider {
+  position: relative;
+  display: inline-block;
+  width: 30px;
+  height: 16px;
+  background: $border;
+  border-radius: 999px;
+  transition: background 0.2s ease;
+  flex-shrink: 0;
+
+  &::before {
+    content: "";
+    position: absolute;
+    left: 2px;
+    top: 2px;
+    width: 12px;
+    height: 12px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.2s ease;
+  }
+}
+
+.toggle-all input:checked + .toggle-slider,
+.bool-toggle input:checked + .toggle-slider {
+  background: $accent;
+
+  &::before { transform: translateX(14px); }
+}
+
+/* ---------- Liste de variables ---------- */
 .variables-list {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 10px;
 }
 
 .variable-item {
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  padding: 0.75rem;
-  background: #f9fafb;
+  border: 1px solid $border;
+  border-radius: 10px;
+  padding: 12px;
+  background: $bg-card;
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    border-color: rgba(109, 94, 252, 0.4);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+  }
 }
 
 .variable-header {
   display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
-  margin-bottom: 0.3rem;
-  .var-name { font-weight: 600; }
-  .var-type { font-size: 0.8rem; color: #6b7280; }
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.var-name {
+  font-weight: 600;
+  color: $text-primary;
+  font-size: 13px;
+}
+
+.var-type {
+  font-size: 10px;
+  color: $accent;
+  background: rgba(109, 94, 252, 0.12);
+  border-radius: 20px;
+  padding: 1px 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .variable-desc {
-  font-size: 0.85rem;
-  color: #6b7280;
-  margin-bottom: 0.5rem;
+  font-size: 11px;
+  color: $text-secondary;
+  margin-bottom: 8px;
 }
 
 .variable-input {
-  input[type="text"], input[type="number"] {
+  input[type="text"],
+  input[type="number"] {
     width: 100%;
-    padding: 0.4rem;
-    border: 1px solid #d1d5db;
-    border-radius: 4px;
+    padding: 7px 9px;
+    background: $bg-input;
+    border: 1px solid $border;
+    border-radius: 6px;
+    color: $text-primary;
+    font-size: 13px;
+    box-sizing: border-box;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+    &:focus {
+      outline: none;
+      border-color: $accent;
+      box-shadow: 0 0 0 3px rgba(109, 94, 252, 0.15);
+    }
+
+    &::placeholder { color: $text-muted; }
   }
-  .table-editor {
-    button { margin-bottom: 0.5rem; }
-    table { width: 100%; border-collapse: collapse; }
-    td { padding: 0.25rem; }
-    input { width: 100%; padding: 0.25rem; border: 1px solid #d1d5db; border-radius: 4px; }
+}
+
+.bool-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: $text-primary;
+  cursor: pointer;
+
+  input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+}
+
+.table-editor {
+  .add-row-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: transparent;
+    border: 1px dashed $border;
+    color: $text-secondary;
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 11px;
+    cursor: pointer;
+    margin-bottom: 8px;
+    transition: border-color 0.15s ease, color 0.15s ease;
+
+    &:hover {
+      border-color: $accent;
+      color: $accent;
+    }
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  td {
+    padding: 3px;
+  }
+
+  input {
+    width: 100%;
+    padding: 5px 7px;
+    background: $bg-input;
+    border: 1px solid $border;
+    border-radius: 4px;
+    color: $text-primary;
+    font-size: 12px;
+
+    &:focus {
+      outline: none;
+      border-color: $accent;
+    }
+  }
+}
+
+.empty {
+  font-style: italic;
+  color: $text-muted;
+  font-size: 12px;
+  text-align: center;
+  padding: 16px 0;
+}
+
+/* ---------- Sauvegarde ---------- */
+.save-section {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid $border;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.doc-name-input {
+  padding: 7px 9px;
+  background: $bg-input;
+  border: 1px solid $border;
+  border-radius: 6px;
+  color: $text-primary;
+  font-size: 13px;
+  transition: border-color 0.15s ease;
+
+  &:focus {
+    outline: none;
+    border-color: $accent;
+  }
+}
+
+.save-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-primary,
+.btn-secondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+
+  &:active { transform: scale(0.97); }
+}
+
+.btn-primary {
+  flex: 1;
+  background: $accent;
+  color: white;
+
+  &:hover:not(:disabled) {
+    background: $accent-hover;
+    box-shadow: 0 4px 14px rgba(109, 94, 252, 0.35);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid $border;
+  color: $text-secondary;
+
+  &:hover {
+    border-color: #3a3f52;
+    color: $text-primary;
+    background: $bg-hover;
+  }
+}
+
+.spin {
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ---------- Documents enregistrés ---------- */
+.documents-section {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid $border;
+
+  h4 {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: $text-secondary;
+    margin: 0 0 8px;
+  }
+}
+
+.document-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 8px;
+  margin-bottom: 4px;
+  background: $bg-card;
+  border: 1px solid transparent;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+
+  &:hover {
+    background: $bg-hover;
+    transform: translateX(2px);
+  }
+
+  &.active {
+    background: rgba(109, 94, 252, 0.1);
+    border-color: $accent;
+  }
+
+  .doc-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .doc-name {
+    font-weight: 600;
+    font-size: 12px;
+    color: $text-primary;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .doc-date {
+    font-size: 10px;
+    color: $text-muted;
+  }
+
+  .doc-actions {
+    display: flex;
+    gap: 2px;
+    flex-shrink: 0;
+
+    button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: none;
+      border: none;
+      color: $text-secondary;
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 6px;
+      transition: background 0.15s ease, color 0.15s ease;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.06);
+        color: $accent;
+      }
+
+      &.danger:hover {
+        color: $danger;
+        background: rgba(239, 68, 68, 0.1);
+      }
+    }
   }
 }

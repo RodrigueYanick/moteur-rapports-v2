@@ -27,7 +27,10 @@
     <div class="form-row">
       <label>Nom</label>
       <input type="text" formControlName="nomVariable" placeholder="ex: prix_total" />
-      <div class="error" *ngIf="form.get('nomVariable')?.invalid && form.get('nomVariable')?.touched">
+      <div
+        class="error"
+        *ngIf="form.get('nomVariable')?.invalid && form.get('nomVariable')?.touched"
+      >
         Nom invalide (lettres, chiffres, _)
       </div>
     </div>
@@ -47,9 +50,7 @@
       <input type="text" formControlName="description" placeholder="Description" />
     </div>
     <div class="form-row checkbox">
-      <label>
-        <input type="checkbox" formControlName="obligatoire" /> Obligatoire
-      </label>
+      <label> <input type="checkbox" formControlName="obligatoire" /> Obligatoire </label>
     </div>
     <div class="form-actions">
       <button type="submit" [disabled]="form.invalid">

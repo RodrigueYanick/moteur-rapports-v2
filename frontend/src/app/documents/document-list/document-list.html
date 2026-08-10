@@ -1,0 +1,108 @@
+<div class="document-list-container">
+
+  <!-- ===== Barre d'outils (même style que la bibliothèque) ===== -->
+  <div class="toolbar">
+    <div class="header-title">
+      <lucide-icon [img]="icons.file" [size]="20"></lucide-icon>
+      <h1>Mes documents</h1>
+    </div>
+
+    <div class="search-box" *ngIf="documents.length > 0">
+      <lucide-icon [img]="icons.search" [size]="14"></lucide-icon>
+      <input type="text" [(ngModel)]="searchTerm" placeholder="Rechercher un document ou un modèle..." />
+    </div>
+
+    <span class="doc-count" *ngIf="!loading && documents.length > 0">
+      {{ filteredDocuments.length }} document{{ filteredDocuments.length > 1 ? 's' : '' }}
+    </span>
+
+    <div class="view-toggle" *ngIf="documents.length > 0">
+      <button [class.active]="viewMode === 'grid'" (click)="setViewMode('grid')" title="Vue grille">
+        <lucide-icon [img]="icons.grid" [size]="15"></lucide-icon>
+      </button>
+      <button [class.active]="viewMode === 'list'" (click)="setViewMode('list')" title="Vue liste">
+        <lucide-icon [img]="icons.list" [size]="15"></lucide-icon>
+      </button>
+    </div>
+  </div>
+
+  <!-- ===== États ===== -->
+  <div *ngIf="loading" class="state-msg">
+    <lucide-icon [img]="icons.loader" [size]="16" class="spin"></lucide-icon>
+    Chargement...
+  </div>
+  <div *ngIf="error" class="state-msg error">{{ error }}</div>
+
+  <!-- ===== Vue grille ===== -->
+  <div class="cards-grid" *ngIf="!loading && !error && documents.length > 0 && viewMode === 'grid'">
+    <div class="card" *ngFor="let doc of filteredDocuments">
+      <div class="card-cover" [style.background]="cardBackground(doc)">
+        <div class="cover-icon">
+          <lucide-icon [img]="icons.file" [size]="28"></lucide-icon>
+        </div>
+        <div class="hover-actions">
+          <button class="hover-btn" [disabled]="downloadingId === doc.id" (click)="downloadDocument(doc, $event)">
+            <lucide-icon [img]="downloadingId === doc.id ? icons.loader : icons.download" [size]="13" [class.spin]="downloadingId === doc.id"></lucide-icon>
+            Télécharger
+          </button>
+          <button class="hover-btn ghost" [disabled]="deletingId === doc.id" (click)="deleteDocument(doc, $event)">
+            <lucide-icon [img]="deletingId === doc.id ? icons.loader : icons.trash" [size]="13" [class.spin]="deletingId === doc.id"></lucide-icon>
+          </button>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <h3>{{ doc.nom }}</h3>
+        <span class="template-badge">{{ doc.templateNom || 'Modèle inconnu' }}</span>
+        <div class="card-footer">
+          <lucide-icon [img]="icons.calendar" [size]="11"></lucide-icon>
+          <span>{{ doc.dateModification | date:'d MMM y, HH:mm' }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Vue liste ===== -->
+  <div class="table-wrapper" *ngIf="!loading && !error && documents.length > 0 && viewMode === 'list'">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Nom</th>
+          <th>Modèle associé</th>
+          <th>Dernière modification</th>
+          <th class="actions-col">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let doc of filteredDocuments">
+          <td class="name-cell">
+            <span class="row-avatar" [style.background]="cardBackground(doc)">{{ initials(doc.nom) }}</span>
+            <span class="doc-name-cell">{{ doc.nom }}</span>
+          </td>
+          <td>
+            <span class="template-badge">{{ doc.templateNom || 'Inconnu' }}</span>
+          </td>
+          <td class="doc-date-cell">{{ doc.dateModification | date:'dd/MM/yyyy HH:mm' }}</td>
+          <td class="actions-cell">
+            <button (click)="downloadDocument(doc)" class="icon-action" [disabled]="downloadingId === doc.id" title="Télécharger le PDF">
+              <lucide-icon [img]="downloadingId === doc.id ? icons.loader : icons.download" [size]="15" [class.spin]="downloadingId === doc.id"></lucide-icon>
+            </button>
+            <button (click)="deleteDocument(doc)" class="icon-action danger" [disabled]="deletingId === doc.id" title="Supprimer">
+              <lucide-icon [img]="deletingId === doc.id ? icons.loader : icons.trash" [size]="15" [class.spin]="deletingId === doc.id"></lucide-icon>
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="no-results" *ngIf="!loading && !error && documents.length > 0 && filteredDocuments.length === 0">
+    Aucun document ne correspond à « {{ searchTerm }} ».
+  </p>
+
+  <div class="empty-state" *ngIf="!loading && !error && documents.length === 0">
+    <lucide-icon [img]="icons.inbox" [size]="36"></lucide-icon>
+    <p>Aucun document sauvegardé pour le moment.</p>
+    <span class="empty-hint">Remplis un modèle publié pour créer ton premier document.</span>
+  </div>
+</div>

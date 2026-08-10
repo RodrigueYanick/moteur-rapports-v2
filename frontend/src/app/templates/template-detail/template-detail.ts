@@ -1,70 +1,55 @@
 import { Component, OnInit, ChangeDetectorRef, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormGroup, FormBuilder, Validators, FormsModule } from '@angular/forms';
 import { Template } from '../../models/template.model';
-import { Variable } from '../../models/variable.model';
 import { TemplateApiService } from '../../services/template-api';
 import { ActivatedRoute, Router } from '@angular/router';
-import { TemplateSchema } from '../../models/template-schema.model';
 import { ReportDesigner } from '../../designer/report-designer/report-designer';
-import { DesignBlock } from '../../designer/models/design-block.model';
+import { DesignPage } from '../../designer/models/design-block.model';
 import { DesignSerializer } from '../../designer/services/design-serializer.service';
-import { BlockEditor } from '../../designer/block-editor/block-editor';
 import { Subject, debounceTime } from 'rxjs';
 import { MockDataService } from '../../designer/services/mock-data.service';
+import { VariableValidationForm } from '../../designer/variable-validation-form/variable-validation-form';
 
 @Component({
   selector: 'app-template-detail',
   standalone: true,
-  imports: [ CommonModule, ReactiveFormsModule, FormsModule, ReportDesigner],
+  imports: [CommonModule, ReportDesigner, VariableValidationForm],
   templateUrl: './template-detail.html',
   styleUrls: ['./template-detail.scss'],
 })
 export class TemplateDetail implements OnInit {
-
   template: Template | null = null;
-  variables: Variable[] = [];
-  variableForm: FormGroup;
-  jsonData: string = '';
-  generationError: string = ''
+  generationError: string = '';
   loading = false;
   error = '';
-  schema: TemplateSchema | null = null;
   publishing = false;
-  blocks: DesignBlock[] = [];
+  pages: DesignPage[] = [];
   savingStatus: 'idle' | 'saving' | 'saved' = 'idle';
   private saveSubject = new Subject<void>();
-  templateId: string|null = null;
-  
+  templateId: string | null = null;
 
-  constructor (
-    private fb: FormBuilder,
-    private api : TemplateApiService,
+  constructor(
+    private api: TemplateApiService,
     private route: ActivatedRoute,
+    private router: Router,
     private cdr: ChangeDetectorRef,
     private serializer: DesignSerializer,
-    private mockDataService: MockDataService
-  ){
-    this.variableForm = this.fb.group({
-      nomVariable: ['', Validators.required],
-      type: ['STRING', Validators.required],
-      obligatoire: [false]
-    });
-  }
+    private mockDataService: MockDataService,
+  ) {}
 
   ngOnInit(): void {
     this.loadTemplate();
-
-    // Auto‑save avec debounce de 2 secondes
-    this.saveSubject.pipe(debounceTime(2000)).subscribe(() => {
-      this.doSave();
-    });
+    this.saveSubject.pipe(debounceTime(2000)).subscribe(() => this.doSave());
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-      if (changes['templateId']) {
-          console.log('Sidebar templateId reçu :', this.templateId);
-      }
+    if (changes['templateId']) {
+      console.log('templateId reçu :', this.templateId);
+    }
+  }
+
+  private get allBlocksFlat() {
+    return this.pages.flatMap(p => p.blocks);
   }
 
   generateWithMockData(dataOverride?: any): void {
@@ -75,23 +60,30 @@ export class TemplateDetail implements OnInit {
       return;
     }
 
-    // Récupère d'abord les variables explicites du template
     this.api.getVariables(this.template.id).subscribe({
       next: (variables) => {
-        // Prépare un objet avec des valeurs par défaut pour toutes les variables
         const defaultData: Record<string, any> = {};
         for (const v of variables) {
           switch (v.type) {
-            case 'ARRAY': defaultData[v.nomVariable] = []; break;
-            case 'FLOAT': defaultData[v.nomVariable] = 0; break;
-            case 'BOOLEAN': defaultData[v.nomVariable] = false; break;
-            case 'IMAGE': defaultData[v.nomVariable] = false; break;
-            default: defaultData[v.nomVariable] = '';
+            case 'ARRAY':
+              defaultData[v.nomVariable] = [];
+              break;
+            case 'FLOAT':
+              defaultData[v.nomVariable] = 0;
+              break;
+            case 'BOOLEAN':
+              defaultData[v.nomVariable] = false;
+              break;
+            case 'IMAGE':
+              defaultData[v.nomVariable] = '';
+              break;
+            default:
+              defaultData[v.nomVariable] = '';
           }
         }
 
-        // Fusionne avec les données passées (priorité aux valeurs réelles)
-        const data = { ...defaultData, ...(dataOverride || this.mockDataService.generate(this.blocks)) };
+        const mockData = this.mockDataService.generate(this.allBlocksFlat);
+        const data = { ...defaultData, ...(dataOverride || mockData) };
 
         this.generationError = '';
         this.api.generateDocument(this.template!.id, data).subscribe({
@@ -103,13 +95,24 @@ export class TemplateDetail implements OnInit {
             a.click();
             window.URL.revokeObjectURL(url);
           },
-          error: (err) => this.handleGenerationError(err)
+          error: (err) => this.handleGenerationError(err),
         });
       },
       error: (err) => {
         this.generationError = 'Impossible de charger les variables du template.';
         console.error(err);
-      }
+      },
+    });
+  }
+
+  duplicateAndNavigate(): void {
+    if (!this.template) return;
+    this.api.duplicateTemplate(this.template.id).subscribe({
+      next: (copy) => this.router.navigate(['/templates', copy.id]),
+      error: (err) => {
+        alert('Échec de la duplication.');
+        console.error(err);
+      },
     });
   }
 
@@ -132,41 +135,19 @@ export class TemplateDetail implements OnInit {
       };
       reader.readAsText(err.error);
     } else {
-      this.generationError = 'Erreur lors de la génération. Vérifiez les données et que le template est publié.';
+      this.generationError =
+        'Erreur lors de la génération. Vérifiez les données et que le template est publié.';
     }
     console.error(err);
   }
 
   onExportRequest(data?: any): void {
-    if (data) {
-      this.generateWithMockData(data);   // données réelles
-    } else {
-      this.generateWithMockData();       // mock
-    }
+    this.generateWithMockData(data);
   }
 
   openPreview(): void {
-    // Fait défiler jusqu'à l'aperçu ou ouvre une modale
     const previewElement = document.querySelector('app-block-preview');
-    if (previewElement) {
-      previewElement.scrollIntoView({ behavior: 'smooth' });
-    }
-  }
-
-
-  loadSchema(): void{
-    if(!this.template) return;
-    this.api.getSchema(this.template.id).subscribe({
-      next: (schema) =>{
-        this.schema = schema;
-      this.cdr.detectChanges();
-      }, 
-      error: (err) => {
-        console.error("Erreur lor du chargement", err);
-        this.schema = null;
-        
-      }
-    });
+    if (previewElement) previewElement.scrollIntoView({ behavior: 'smooth' });
   }
 
   loadTemplate(id?: string): void {
@@ -177,19 +158,13 @@ export class TemplateDetail implements OnInit {
     this.loading = true;
     this.error = '';
     this.template = null;
-    this.blocks = [];           // réinitialise la liste des blocs
+    this.pages = [];
 
     this.api.getTemplate(templateId).subscribe({
       next: (template) => {
         this.template = template;
         this.loading = false;
-
-        // Charge le design dans le designer
         this.loadDesign();
-
-        if (template.statut === 'PUBLIE') {
-          this.loadSchema();
-        }
         this.cdr.detectChanges();
       },
       error: (err) => {
@@ -197,129 +172,56 @@ export class TemplateDetail implements OnInit {
         this.loading = false;
         console.error(err);
         this.cdr.detectChanges();
-      }
+      },
     });
-  }
-
-  loadVariables(templateId: string): void {
-    this.api.getVariables(templateId).subscribe({
-      next: (variables) => {
-        this.variables = variables;
-        this.cdr.detectChanges();
-      }, 
-      error: (err) => {
-        console.error(err);
-        this.cdr.detectChanges();
-      }
-    })
   }
 
   publish(): void {
     if (!this.template || this.publishing) return;
-    // Sauvegarde immédiate avant de publier
-    const contenuDesign = this.serializer.serialize(this.blocks);
-    this.api.updateTemplate(this.template.id, {
-      nom: this.template.nom,
-      description: this.template.description,
-      contenuDesign: contenuDesign,
-      categorie: (this.template as any).categorie || 'AUTRES',
-      formatPapier: (this.template as any).formatPapier || 'A4'
-    }).subscribe({
-      next: () => {
-        // Maintenant on peut publier
-        this.publishing = true;
-        this.api.publishTemplate(this.template!.id).subscribe({
-          next: (updated) => {
-            this.template = updated;
-            this.loadSchema();
-            this.publishing = false;
-            this.cdr.detectChanges();
-          },
-          error: (err) => {
-            console.error('Échec publication', err);
-            this.publishing = false;
-          }
-        });
-      },
-      error: (err) => {
-        alert('Impossible de sauvegarder le design avant publication.');
-        console.error(err);
-      }
-    });
+    const contenuDesign = this.serializer.serialize(this.pages);
+    this.api
+      .updateTemplate(this.template.id, {
+        nom: this.template.nom,
+        description: this.template.description,
+        contenuDesign: contenuDesign,
+        categorie: (this.template as any).categorie || 'AUTRES',
+        formatPapier: (this.template as any).formatPapier || 'A4',
+      })
+      .subscribe({
+        next: () => {
+          this.publishing = true;
+          this.api.publishTemplate(this.template!.id).subscribe({
+            next: (updated) => {
+              this.template = updated;
+              this.publishing = false;
+              this.cdr.detectChanges();
+            },
+            error: (err) => {
+              console.error('Échec publication', err);
+              this.publishing = false;
+            },
+          });
+        },
+        error: (err) => {
+          alert('Impossible de sauvegarder le design avant publication.');
+          console.error(err);
+        },
+      });
   }
 
-  addVariable(): void {
-    if (!this.template || this.variableForm.invalid) return;
-    const formVal = this.variableForm.value;
-    const newVar = {
-      nomVariable: formVal.nomVariable,
-      type: formVal.type,
-      obligatoire: formVal.obligatoire
-    };
-    this.api.addVariable(this.template.id, newVar).subscribe({
-      next: () => {
-        this.loadVariables(this.template!.id);
-        this.variableForm.reset({ type: 'STRING', obligatoire: false });
-      },
-      error: (err) => {
-        alert('Erreur lors de l\'ajout de la variable (peut-être un doublon ou template publié).');
-        console.error(err);
-      }
-    });
-  }
-
-  deleteVariable(variableId: string): void {
-    if (!this.template) return;
-    this.api.deleteVariable(this.template.id, variableId).subscribe({
-      next: () => this.loadVariables(this.template!.id),
-      error: (err) => console.error(err)
-    });
-  }
-
-  generate(): void {
-    if (!this.template) return;
-    this.generationError = '';
-    let data: any;
-    try {
-      data = JSON.parse(this.jsonData);
-    } catch (e) {
-      this.generationError = 'JSON invalide.';
-      return;
-    }
-
-    this.api.generateDocument(this.template.id, data).subscribe({
-      next: (blob: Blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${this.template!.nom || 'document'}.pdf`;
-        a.click();
-        window.URL.revokeObjectURL(url);
-      },
-      error: (err) => {
-        this.handleGenerationError(err);
-      }
-    });
-  }
-
-  // Renomme private doSave() en méthode publique, ou ajoute :
   saveNow(): void {
     this.doSave();
   }
 
-
   loadDesign(): void {
-    if (this.template?.contenuDesign) {
-      this.blocks = this.serializer.deserialize(this.template.contenuDesign);
-    } else {
-      this.blocks = [];
-    }
+    this.pages = this.template?.contenuDesign
+      ? this.serializer.deserialize(this.template.contenuDesign)
+      : [this.serializer.createEmptyPage('Page 1')];
     this.cdr.detectChanges();
   }
 
   triggerSave(): void {
     if (!this.template || this.template.statut !== 'BROUILLON') return;
-    console.log('triggerSave called, current status:', this.savingStatus);
     if (this.savingStatus === 'idle' || this.savingStatus === 'saved') {
       this.savingStatus = 'saving';
       this.cdr.detectChanges();
@@ -328,19 +230,17 @@ export class TemplateDetail implements OnInit {
   }
 
   private doSave(): void {
-    console.log('doSave exécuté');
     if (!this.template) {
       this.savingStatus = 'idle';
       return;
     }
-    const contenuDesign = this.serializer.serialize(this.blocks);
-    // On récupère les champs étendus depuis le template actuel
+    const contenuDesign = this.serializer.serialize(this.pages);
     const updateData: any = {
       nom: this.template.nom,
       description: this.template.description,
       contenuDesign: contenuDesign,
       categorie: (this.template as any).categorie || 'AUTRES',
-      formatPapier: (this.template as any).formatPapier || 'A4'
+      formatPapier: (this.template as any).formatPapier || 'A4',
     };
     this.api.updateTemplate(this.template.id, updateData).subscribe({
       next: (updated) => {
@@ -350,19 +250,14 @@ export class TemplateDetail implements OnInit {
       },
       error: (err) => {
         console.error('Erreur sauvegarde design', err);
-        // Affiche le corps de l'erreur serveur
-        if (err.error) {
-          console.log('Détail erreur serveur :', err.error);
-        }
         this.savingStatus = 'idle';
         this.cdr.detectChanges();
-      }
+      },
     });
   }
 
-  onBlocksChange(newBlocks: DesignBlock[]): void {
-    this.blocks = newBlocks;
+  onPagesChange(newPages: DesignPage[]): void {
+    this.pages = newPages;
     this.triggerSave();
   }
-
 }

@@ -44,9 +44,21 @@ $text-muted: #676c7f;
     border-radius: 6px;
     display: flex;
 
-    &:hover { background: $bg-hover; color: $text-primary; }
+    &:hover {
+      background: $bg-hover;
+      color: $text-primary;
+    }
   }
 }
+
+.debug-panel {
+  padding: 8px 16px;
+  border-bottom: 1px dashed $border;
+  color: #ffdede;
+  background: rgba(255, 255, 255, 0.02);
+  font-size: 12px;
+}
+.debug-row { margin-bottom: 6px; }
 
 /* ---------- Sections ---------- */
 .section {
@@ -68,14 +80,23 @@ $text-muted: #676c7f;
   padding: 12px 16px;
   cursor: pointer;
 
-  span { flex: 1; text-align: left; }
-  .chevron-end { margin-left: auto; }
+  span {
+    flex: 1;
+    text-align: left;
+  }
+  .chevron-end {
+    margin-left: auto;
+  }
 
-  &:hover { color: $text-primary; }
+  &:hover {
+    color: $text-primary;
+  }
 
   &.static {
     cursor: default;
-    &:hover { color: $text-secondary; }
+    &:hover {
+      color: $text-secondary;
+    }
   }
 }
 
@@ -91,7 +112,9 @@ $text-muted: #676c7f;
   flex-direction: column;
   gap: 4px;
 
-  &.small { max-width: 90px; }
+  &.small {
+    max-width: 90px;
+  }
 
   label {
     font-size: 11px;
@@ -103,7 +126,9 @@ $text-muted: #676c7f;
   display: flex;
   gap: 10px;
 
-  .field { flex: 1; }
+  .field {
+    flex: 1;
+  }
 }
 
 .subtle-label {
@@ -112,7 +137,10 @@ $text-muted: #676c7f;
   margin-top: -4px;
 }
 
-input[type="text"], input[type="number"], select, textarea {
+input[type='text'],
+input[type='number'],
+select,
+textarea {
   width: 100%;
   background: $bg-input;
   border: 1px solid $border;
@@ -123,16 +151,20 @@ input[type="text"], input[type="number"], select, textarea {
   box-sizing: border-box;
   font-family: inherit;
 
-  &:focus { outline: none; border-color: $accent; }
+  &:focus {
+    outline: none;
+    border-color: $accent;
+  }
 
-  &.readonly, &:disabled {
+  &.readonly,
+  &:disabled {
     color: $text-muted;
     cursor: not-allowed;
     opacity: 0.7;
   }
 }
 
-input[type="color"] {
+input[type='color'] {
   width: 36px;
   height: 30px;
   padding: 2px;
@@ -142,7 +174,7 @@ input[type="color"] {
   cursor: pointer;
 }
 
-input[type="range"] {
+input[type='range'] {
   width: 100%;
   accent-color: $accent;
 }
@@ -192,7 +224,7 @@ input[type="range"] {
     transition: 0.2s;
 
     &:before {
-      content: "";
+      content: '';
       position: absolute;
       height: 16px;
       width: 16px;
@@ -222,9 +254,15 @@ input[type="range"] {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
 
-  &:hover { background: $bg-hover; color: $text-primary; }
+  &:hover {
+    background: $bg-hover;
+    color: $text-primary;
+  }
 
   &.active {
     background: rgba(109, 94, 252, 0.15);
@@ -252,7 +290,9 @@ input[type="range"] {
   align-items: center;
   justify-content: center;
 
-  &:hover { color: $text-primary; }
+  &:hover {
+    color: $text-primary;
+  }
 
   &.active {
     background: rgba(109, 94, 252, 0.15);
@@ -278,7 +318,9 @@ input[type="range"] {
   padding: 3px 10px;
   cursor: pointer;
 
-  &:hover { background: rgba(109, 94, 252, 0.22); }
+  &:hover {
+    background: rgba(109, 94, 252, 0.22);
+  }
 }
 
 /* ---------- Colonnes tableau ---------- */
@@ -288,7 +330,9 @@ input[type="range"] {
     gap: 6px;
     margin-bottom: 6px;
     align-items: center;
-    input { flex: 1; }
+    input {
+      flex: 1;
+    }
   }
 
   .icon-remove {
@@ -301,7 +345,10 @@ input[type="range"] {
     display: flex;
     flex-shrink: 0;
 
-    &:hover { color: #ef4444; border-color: #ef4444; }
+    &:hover {
+      color: #ef4444;
+      border-color: #ef4444;
+    }
   }
 
   .add-colonne-btn {
@@ -317,7 +364,10 @@ input[type="range"] {
     cursor: pointer;
     margin-top: 4px;
 
-    &:hover { border-color: $accent; color: $accent; }
+    &:hover {
+      border-color: $accent;
+      color: $accent;
+    }
   }
 }
 
@@ -336,7 +386,10 @@ input[type="range"] {
       padding: 6px;
       font-size: 12px;
 
-      &:focus { outline: none; background: rgba(109, 94, 252, 0.08); }
+      &:focus {
+        outline: none;
+        background: rgba(109, 94, 252, 0.08);
+      }
     }
   }
 }
@@ -357,8 +410,13 @@ input[type="range"] {
   font-weight: 600;
   cursor: pointer;
 
-  &:hover:not(:disabled) { background: #5b4de8; }
-  &:disabled { opacity: 0.5; cursor: not-allowed; }
+  &:hover:not(:disabled) {
+    background: #5b4de8;
+  }
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 }
 
 .cancel-btn {
@@ -369,5 +427,85 @@ input[type="range"] {
   padding: 9px 14px;
   cursor: pointer;
 
-  &:hover { color: $text-primary; border-color: #3a3f52; }
+  &:hover {
+    color: $text-primary;
+    border-color: #3a3f52;
+  }
+}
+
+.cell-selected {
+  outline: 2px solid $accent !important;
+  outline-offset: -2px;
+}
+
+.validation-errors {
+  margin: 0 16px 12px;
+  padding: 10px 12px;
+  background: rgba(244, 63, 94, 0.12);
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  border-radius: 8px;
+  color: #f43f5e;
+  font-size: 12px;
+}
+
+.validation-title {
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.validation-errors ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.validation-errors li {
+  line-height: 1.4;
+}
+
+.cell-editor {
+  margin-top: 10px;
+  padding: 10px;
+  background: $bg-input;
+  border: 1px solid $border;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cell-editor-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: $accent;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.column-headers {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 4px;
+}
+
+.col-header-btn {
+  flex: 1;
+  background: $bg-input;
+  border: 1px solid $border;
+  color: $text-secondary;
+  border-radius: 4px;
+  padding: 4px;
+  font-size: 10px;
+  cursor: pointer;
+
+  &:hover {
+    color: $text-primary;
+  }
+  &.active {
+    border-color: $accent;
+    color: $accent;
+    background: rgba(109, 94, 252, 0.1);
+  }
 }

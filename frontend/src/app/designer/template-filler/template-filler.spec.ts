@@ -8,9 +8,8 @@ describe('TemplateFiller', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [TemplateFiller]
-    })
-    .compileComponents();
+      imports: [TemplateFiller],
+    }).compileComponents();
 
     fixture = TestBed.createComponent(TemplateFiller);
     component = fixture.componentInstance;

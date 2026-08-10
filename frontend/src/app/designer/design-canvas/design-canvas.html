@@ -1,52 +1,86 @@
-<div class="canvas" 
-  [style.width.px]="canvasWidth" 
-  [style.height.px]="canvasHeight" 
-  [style.transform]="'scale(' + (zoom / 100) + ')'" 
-  [style.transform-origin]="'top left'">
+<div
+  class="canvas"
+  [style.width.px]="canvasWidth"
+  [style.height.px]="canvasHeight"
+  [style.transform]="'scale(' + zoom / 100 + ')'"
+  [style.transform-origin]="'top left'"
+>
   <!-- Grille visuelle -->
   <div class="grid-overlay" *ngIf="showGrid"></div>
   <!-- Repères (simulés) -->
   <div class="guides-overlay" *ngIf="showGuides"></div>
-  
+
   <ng-container *ngFor="let block of blocks">
-    <div class="canvas-block"
-         *ngIf="block.visible !== false"
-         cdkDrag
-         [cdkDragBoundary]="'.canvas'"
-         [cdkDragDisabled]="block.locked"
-         (cdkDragEnded)="onDragEnded(block, $event)"
-         (click)="selectBlock(block); $event.stopPropagation()"
-         [class.selected]="block.id === selectedBlockId"
-         [class.locked]="block.locked"
-         [style.left.px]="block.x || 0"
-         [style.top.px]="block.y || 0"
-         [ngStyle]="getBoxStyle(block)">
-      <div class="block-content">
-        <h1 *ngIf="block.type === 'titre'" [style]="getStyle(block)">{{ displayContent(block) }}</h1>
+    <div
+      class="canvas-block"
+      *ngIf="block.visible !== false"
+      cdkDrag
+      [cdkDragBoundary]="'.canvas'"
+      [cdkDragDisabled]="block.locked"
+      (cdkDragEnded)="onDragEnded(block, $event)"
+      (click)="selectBlock(block); $event.stopPropagation()"
+      [class.selected]="block.id === selectedBlockId"
+      [class.locked]="block.locked"
+      [style.left.px]="block.x || 0"
+      [style.top.px]="block.y || 0"
+      [ngStyle]="getBoxStyle(block)"
+    >
+    <div class="block-content" [style]="getRotationStyle(block)">
+        <h1 *ngIf="block.type === 'titre'" [style]="getStyle(block)">
+          {{ displayContent(block) }}
+        </h1>
         <p *ngIf="block.type === 'texte'" [style]="getStyle(block)">{{ displayContent(block) }}</p>
 
-        <div *ngIf="block.type === 'tableau'" class="canvas-table" [style]="getTableStyle(block)">
-          <table *ngIf="block.lignes; else dynamicPlaceholder">
+        <div *ngIf="block.type === 'tableau'" class="canvas-table">
+          <table
+            *ngIf="block.lignes; else dynamicPlaceholder"
+            [style.borderColor]="block.style?.bordureCouleur || '#d9d9d9'"
+          >
             <tr *ngFor="let row of block.lignes">
-              <td *ngFor="let cell of row">{{ cell || '\u00A0' }}</td>
+              <td
+                *ngFor="let cell of row"
+                [style.background]="cell.bgColor || 'transparent'"
+                [style.color]="cell.textColor || block.style?.texteCouleurDefaut || '#000'"
+                [style.borderColor]="block.style?.bordureCouleur || '#d9d9d9'"
+              >
+                {{ displayContent2(cell.value) || '\u00A0' }}
+              </td>
             </tr>
           </table>
           <ng-template #dynamicPlaceholder>
             <div class="table-placeholder">Tableau dynamique ({{ block.source }})</div>
           </ng-template>
         </div>
+
         <hr *ngIf="block.type === 'ligne'" [style]="getLigneStyle(block)" />
         <div *ngIf="block.type === 'image'" class="canvas-image">
-          <img *ngIf="isImageResolved(block)" [src]="displayImageUrl(block)" [style]="getImageStyle(block)" alt="" />
-          <div *ngIf="!isImageResolved(block)" class="image-placeholder" [style]="getImageStyle(block)">
+          <img
+            *ngIf="isImageResolved(block)"
+            [src]="displayImageUrl(block)"
+            [style]="getImageStyle(block)"
+            alt=""
+          />
+          <div
+            *ngIf="!isImageResolved(block)"
+            class="image-placeholder"
+            [style]="getImageStyle(block)"
+          >
             <lucide-icon [img]="icons.imagePlaceholder" [size]="18"></lucide-icon>
             {{ block.url || 'Image' }}
           </div>
         </div>
 
-        <div *ngIf="block.type === 'rectangle'" class="canvas-shape rectangle" [ngStyle]="getShapeStyle(block)"></div>
+        <div
+          *ngIf="block.type === 'rectangle'"
+          class="canvas-shape rectangle"
+          [ngStyle]="getShapeStyle(block)"
+        ></div>
 
-        <div *ngIf="block.type === 'cercle'" class="canvas-shape circle" [ngStyle]="getShapeStyle(block, true)"></div>
+        <div
+          *ngIf="block.type === 'cercle'"
+          class="canvas-shape circle"
+          [ngStyle]="getShapeStyle(block, true)"
+        ></div>
 
         <div *ngIf="block.type === 'qrcode'" class="code-placeholder">
           <lucide-icon [img]="icons.qrcode" [size]="28"></lucide-icon>
@@ -66,8 +100,7 @@
         <div *ngIf="block.type === 'graphique'" class="table-placeholder">
           Graphique dynamique ({{ block.source }})
         </div>
-        
-      </div>
+    </div>
     </div>
   </ng-container>
 </div>

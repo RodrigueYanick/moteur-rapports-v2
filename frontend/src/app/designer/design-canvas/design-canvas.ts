@@ -1,17 +1,25 @@
-import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import {
+  Component,
+  Input,
+  Output,
+  EventEmitter,
+  OnInit,
+  OnDestroy,
+  ChangeDetectorRef,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CdkDragDrop, CdkDragEnd, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
-import { DesignBlock } from '../models/design-block.model';
 import { FillerDataService } from '../services/filler-data';
 import { Subscription } from 'rxjs';
 import { LucideAngularModule, ImageOff, Square, QrCode, Barcode, PenTool } from 'lucide-angular';
+import { DesignBlock, BLOCK_DEFAULT_DIMENSIONS } from '../models/design-block.model';
 
 @Component({
   selector: 'app-design-canvas',
   standalone: true,
   imports: [CommonModule, DragDropModule, LucideAngularModule],
   templateUrl: './design-canvas.html',
-  styleUrls: ['./design-canvas.scss']
+  styleUrls: ['./design-canvas.scss'],
 })
 export class DesignCanvas implements OnInit, OnDestroy {
   @Input() blocks: DesignBlock[] = [];
@@ -21,33 +29,37 @@ export class DesignCanvas implements OnInit, OnDestroy {
   @Input() showGrid = false;
   @Input() snapEnabled = false;
   @Input() showGuides = false;
+  @Input() locked = false;
 
+  @Output() lockedInteraction = new EventEmitter<void>();
   @Output() blocksChange = new EventEmitter<DesignBlock[]>();
   @Output() blockSelected = new EventEmitter<DesignBlock>();
-  
+
   private valuesSubscription?: Subscription;
   selectedBlockId: string | null = null;
 
-  readonly icons = { 
+  readonly icons = {
     imagePlaceholder: ImageOff,
-      qrcode: QrCode,
-      barcode: Barcode,
-      penTool: PenTool
+    qrcode: QrCode,
+    barcode: Barcode,
+    penTool: PenTool,
   };
 
-  constructor(private fillerData: FillerDataService, private cdr: ChangeDetectorRef) {}
-  
+  constructor(
+    private fillerData: FillerDataService,
+    private cdr: ChangeDetectorRef,
+  ) {}
+
   ngOnInit(): void {
     this.valuesSubscription = this.fillerData.values$.subscribe(() => {
       this.cdr.detectChanges();
     });
   }
-  
+
   ngOnDestroy(): void {
     this.valuesSubscription?.unsubscribe();
   }
-  
-  
+
   replaceVariables(text: string): string {
     if (!text) return '';
     const values = this.fillerData?.getValues() || {};
@@ -56,17 +68,21 @@ export class DesignCanvas implements OnInit, OnDestroy {
       return values[trimmed] !== undefined ? String(values[trimmed]) : match;
     });
   }
-  
-  getVaraibleValue(varName: string): string{
+
+  getVaraibleValue(varName: string): string {
     const values = this.fillerData.getValues();
-    return values[varName] !== undefined ? String(values[varName]) : `{{${varName}}}` ;
+    return values[varName] !== undefined ? String(values[varName]) : `{{${varName}}}`;
   }
-  
+
   selectBlock(block: DesignBlock): void {
+    if (this.locked) {
+      this.lockedInteraction.emit();
+      return;
+    }
     this.selectedBlockId = block.id;
     this.blockSelected.emit(block);
   }
-  
+
   onDrop(event: CdkDragDrop<DesignBlock[]>): void {
     if (event.previousIndex === event.currentIndex) return;
     moveItemInArray(this.blocks, event.previousIndex, event.currentIndex);
@@ -79,8 +95,10 @@ export class DesignCanvas implements OnInit, OnDestroy {
     if (s.fontSize) css += `font-size:${s.fontSize}px;`;
     if (s.bold) css += 'font-weight:bold;';
     if (s.italic) css += 'font-style:italic;';
+    if (s.underline) css += 'text-decoration:underline;';
     if (s.align) css += `text-align:${s.align};`;
     if (s.color) css += `color:${s.color};`;
+    if (s.fontFamily) css += `font-family:${s.fontFamily};`;
     return css;
   }
 
@@ -92,14 +110,6 @@ export class DesignCanvas implements OnInit, OnDestroy {
     return `border-top:${epaisseur}px solid ${couleur};width:${largeur}%;`;
   }
 
-  getTableStyle(block: DesignBlock): string {
-    const s = block.style || {};
-    const background_color = s.background_color || '#000000';
-    const border = s.border || '1px solid #000000';
-    const largeur = s.largeur || 100;
-    return `background-color:${background_color}px border ${border};width:${largeur}%;`;
-  }
-  
   getImageStyle(block: DesignBlock): string {
     const s = block.style || {};
     const largeur = s.largeur || 100;
@@ -113,26 +123,10 @@ export class DesignCanvas implements OnInit, OnDestroy {
   // Calcule la taille du conteneur du bloc à partir de largeurBox/hauteurBox,
   // avec un fallback cohérent selon le type si l'utilisateur n'a rien défini.
   getBoxStyle(block: DesignBlock): { [key: string]: string } {
-    const defaults: Record<DesignBlock['type'], { w: number; h: number }> = {
-      titre: { w: 100, h: 40 },
-      texte: { w: 100, h: 40 },
-      tableau: { w: 750, h: 150 },
-      ligne: { w: 780, h: 10 },
-      image: { w: 150, h: 150 },
-      rectangle: { w: 150, h: 100 },
-      cercle: { w: 100, h: 100 },
-      qrcode: { w: 100, h: 100 },
-      codebarre: { w: 160, h: 60 },
-      signature: { w: 180, h: 70 },
-      graphique: { w: 300, h: 180 }
-    };
-    const fallback = defaults[block.type];
+    const fallback = BLOCK_DEFAULT_DIMENSIONS[block.type];
     const w = block.largeurBox || fallback.w;
     const h = block.hauteurBox || fallback.h;
-    return {
-      width: `${w}px`,
-      height: `${h}px`
-    };
+    return { width: `${w}px`, height: `${h}px` };
   }
 
   getShapeStyle(block: DesignBlock, isCircle = false): { [key: string]: string } {
@@ -148,13 +142,16 @@ export class DesignCanvas implements OnInit, OnDestroy {
       background: fill,
       border: `${epaisseur}px solid ${couleur}`,
       'border-radius': radius,
-      'box-sizing': 'border-box'
+      'box-sizing': 'border-box',
     };
   }
 
-
   displayContent(block: DesignBlock): string {
     return this.replaceVariables(block.contenu || '');
+  }
+
+  displayContent2(text: string): string {
+    return this.replaceVariables(text || '');
   }
 
   displayImageUrl(block: DesignBlock): string {
@@ -171,12 +168,30 @@ export class DesignCanvas implements OnInit, OnDestroy {
     const transform = element.style.transform;
     const match = transform.match(/translate3d\((.+)px, (.+)px, 0px\)/);
     if (match) {
-      const deltaX = parseFloat(match[1]);
-      const deltaY = parseFloat(match[2]);
-      block.x = (block.x || 0) + deltaX;
-      block.y = (block.y || 0) + deltaY;
+      const scaleFactor = this.zoom / 100;
+      const deltaX = parseFloat(match[1]) / scaleFactor;
+      const deltaY = parseFloat(match[2]) / scaleFactor;
+
+      let newX = (block.x || 0) + deltaX;
+      let newY = (block.y || 0) + deltaY;
+
+      // Empêche toute position négative (bloc éjecté hors de la page)
+      newX = Math.max(0, newX);
+      newY = Math.max(0, newY);
+
+      block.x = newX;
+      block.y = newY;
       element.style.transform = '';
       this.blocksChange.emit([...this.blocks]);
     }
+  }
+
+  getRotationStyle(block: DesignBlock): string {
+    const parts: string[] = [];
+    if (block.rotation) parts.push(`transform: rotate(${block.rotation}deg);`);
+    if (block.opacite !== undefined && block.opacite !== 100) {
+      parts.push(`opacity: ${block.opacite / 100};`);
+    }
+    return parts.join(' ');
   }
 }

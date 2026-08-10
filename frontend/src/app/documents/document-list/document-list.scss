@@ -1,0 +1,388 @@
+$bg-dark: #14161f;
+$bg-panel: #1a1d29;
+$bg-card: #20232f;
+$bg-hover: #262a38;
+$border: #2a2e3d;
+$accent: #6d5efc;
+$accent-hover: #5b4de8;
+$text-primary: #e8e9ee;
+$text-secondary: #9498a8;
+$text-muted: #676c7f;
+$danger: #ef4444;
+
+.document-list-container {
+  max-width: 95%;
+  // margin: 0 auto;
+  // padding: 20px;
+  color: $text-primary;
+  font-family: 'Inter', -apple-system, sans-serif;
+}
+
+/* ---------- Barre d'outils ---------- */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 50px;
+  flex-wrap: wrap;
+  margin-bottom: 42px;
+}
+
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  color: $accent;
+
+  h1 {
+    font-size: 35px;
+    font-weight: 700;
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-style: italic;
+    color: $text-primary;
+    margin: 0;
+  }
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  background: $bg-card;
+  border: 1px solid $border;
+  border-radius: 9px;
+  padding: 9px 12px;
+  min-width: 300px;
+  height: 36px;
+  color: $text-secondary;
+  transition: border-color 0.15s ease;
+
+  &:focus-within { border-color: $accent; }
+
+  input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: $text-primary;
+    font-size: 18px;
+    font-weight: 600;
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-style: italic;
+
+    &::placeholder { color: $text-muted; }
+  }
+}
+
+.doc-count {
+  font-size: 20px;
+  font-weight: 600;
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-style: italic;
+  color: $text-muted;
+  white-space: nowrap;
+  margin-right: auto;
+}
+
+.view-toggle {
+  display: flex;
+  background: $bg-card;
+  border: 1px solid $border;
+  border-radius: 9px;
+  padding: 3px;
+
+  button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    color: $text-secondary;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+
+    &:hover { color: $text-primary; }
+    &.active { background: $accent; color: white; }
+  }
+}
+
+/* ---------- États ---------- */
+.state-msg {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  padding: 3rem;
+  color: $text-secondary;
+  font-size: 14px;
+
+  &.error { color: $danger; }
+}
+
+.spin { animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.no-results {
+  text-align: center;
+  padding: 24px;
+  color: $text-muted;
+  font-size: 13px;
+  font-style: italic;
+}
+
+/* ---------- Grille de cartes ---------- */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 28px;
+}
+
+.card {
+  background: $bg-panel;
+  border: 1px solid $border;
+  border-radius: 14px;
+  height: 280px;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  display: flex;
+  flex-direction: column;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.4);
+    border-color: rgba(109, 94, 252, 0.4);
+  }
+}
+
+.card-cover {
+  position: relative;
+  height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.cover-icon {
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.12);
+  width: 46px;
+  height: 58px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.card:hover .cover-icon {
+  opacity: 0;
+  transform: scale(0.9);
+}
+
+.hover-actions {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.card:hover .hover-actions {
+  opacity: 1;
+}
+
+.hover-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: white;
+  color: #14161f;
+  border: none;
+  border-radius: 7px;
+  padding: 7px 11px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.1s ease, background 0.15s ease;
+
+  &:hover:not(:disabled) { transform: translateY(-1px); }
+  &:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  &.ghost {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    backdrop-filter: blur(4px);
+    padding: 7px 9px;
+
+    &:hover:not(:disabled) { background: rgba(239, 68, 68, 0.5); }
+  }
+}
+
+.card-body {
+  padding: 12px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+
+  h3 {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: $text-primary;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.template-badge {
+  display: inline-block;
+  width: fit-content;
+  background: rgba(109, 94, 252, 0.12);
+  color: $accent;
+  font-size: 15px;
+  padding: 2px 9px;
+  border-radius: 20px;
+}
+
+.card-footer {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  color: $text-muted;
+  margin-top: 2px;
+}
+
+/* ---------- Vue liste ---------- */
+.table-wrapper {
+  background: $bg-panel;
+  border: 1px solid $border;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th, td {
+    padding: 12px 16px;
+    text-align: left;
+  }
+
+  th {
+    background: $bg-card;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: $text-secondary;
+    font-weight: 700;
+    border-bottom: 1px solid $border;
+  }
+
+  .actions-col { text-align: right; }
+
+  tbody tr {
+    border-bottom: 1px solid $border;
+    transition: background 0.15s ease;
+
+    &:last-child { border-bottom: none; }
+    &:hover { background: $bg-hover; }
+  }
+}
+
+.name-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.row-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.doc-name-cell {
+  font-weight: 600;
+  font-size: 13px;
+  color: $text-primary;
+}
+
+.doc-date-cell {
+  font-size: 12px;
+  color: $text-muted;
+}
+
+.actions-cell {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.icon-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  background: transparent;
+  border: 1px solid $border;
+  border-radius: 7px;
+  color: $text-secondary;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
+
+  &:hover:not(:disabled) {
+    background: rgba(109, 94, 252, 0.12);
+    border-color: $accent;
+    color: $accent;
+    transform: translateY(-1px);
+  }
+
+  &:active:not(:disabled) { transform: scale(0.94); }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  &.danger:hover:not(:disabled) {
+    background: rgba(239, 68, 68, 0.12);
+    border-color: $danger;
+    color: $danger;
+  }
+}
+
+/* ---------- État vide ---------- */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 64px 20px;
+  color: $text-muted;
+  text-align: center;
+
+  p {
+    font-size: 14px;
+    color: $text-secondary;
+    margin: 4px 0 0;
+  }
+
+  .empty-hint {
+    font-size: 12px;
+    color: $text-muted;
+  }
+}

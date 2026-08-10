@@ -7,5 +7,4 @@ export interface Generation {
   urlFichierGenere?: string;
   dateCreation: string;
   dateModification: string;
-  
 }

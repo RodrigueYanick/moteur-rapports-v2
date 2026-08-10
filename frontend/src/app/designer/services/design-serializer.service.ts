@@ -1,25 +1,47 @@
 import { Injectable } from '@angular/core';
-import { DesignBlock } from '../models/design-block.model';
+import { DesignBlock, DesignPage, TableCell } from '../models/design-block.model';
 
 @Injectable({ providedIn: 'root' })
 export class DesignSerializer {
-
   /** DesignBlock[] → JSON string (contenuDesign) */
-  serialize(blocks: DesignBlock[]): string {
-    const blocs = blocks.map(b => this.serializeBlock(b));
-    return JSON.stringify({ blocs });
+  serialize(pages: DesignPage[]): string {
+    const outPages = pages.map(p => ({
+      nom: p.nom,
+      blocs: p.blocks.map(b => this.serializeBlock(b))
+    }));
+    return JSON.stringify({ pages: outPages });
   }
 
-  /** JSON string (contenuDesign) → DesignBlock[] */
-  deserialize(json: string): DesignBlock[] {
-    if (!json) return [];
+  deserialize(json: string): DesignPage[] {
+    if (!json) return [this.createEmptyPage('Page 1')];
     try {
       const root = JSON.parse(json);
-      if (!root.blocs || !Array.isArray(root.blocs)) return [];
-      return root.blocs.map((b: any) => this.deserializeBlock(b));
+
+      if (Array.isArray(root.pages)) {
+        return root.pages.map((p: any, idx: number) => ({
+          id: crypto.randomUUID(),
+          nom: p.nom || `Page ${idx + 1}`,
+          blocks: Array.isArray(p.blocs) ? p.blocs.map((b: any) => this.deserializeBlock(b)) : []
+        }));
+      }
+
+      // Rétrocompatibilité : ancien format à plat { blocs: [...] }
+      if (Array.isArray(root.blocs)) {
+        return [{
+          id: crypto.randomUUID(),
+          nom: 'Page 1',
+          blocks: root.blocs.map((b: any) => this.deserializeBlock(b))
+        }];
+      }
+
+      return [this.createEmptyPage('Page 1')];
     } catch {
-      return [];
+      return [this.createEmptyPage('Page 1')];
     }
+  }
+
+  createEmptyPage(nom: string): DesignPage {
+    return { id: crypto.randomUUID(), nom, blocks: [] };
   }
 
   // ============================================================
@@ -28,6 +50,7 @@ export class DesignSerializer {
 
   private serializeBlock(block: DesignBlock): any {
     const b: any = { type: block.type };
+    if (block.rotation !== undefined) b.rotation = block.rotation;
 
     // --- Champs communs à tous les types ---
     b.x = block.x ?? 0;
@@ -41,7 +64,7 @@ export class DesignSerializer {
     if (block.dataBinding !== undefined) {
       b.dataBinding = {
         format: block.dataBinding.format ?? '',
-        valeurDefaut: block.dataBinding.valeurDefaut ?? ''
+        valeurDefaut: block.dataBinding.valeurDefaut ?? '',
       };
     }
 
@@ -58,7 +81,7 @@ export class DesignSerializer {
           align: block.style?.align ?? 'left',
           verticalAlign: block.style?.verticalAlign ?? 'top',
           color: block.style?.color ?? '#000000',
-          fontFamily: block.style?.fontFamily ?? 'Inter'
+          fontFamily: block.style?.fontFamily ?? 'Inter',
         };
         break;
 
@@ -75,15 +98,30 @@ export class DesignSerializer {
         b.style = {
           epaisseur: block.style?.epaisseur ?? 1,
           couleur: block.style?.couleur ?? '#000000',
-          largeur: block.style?.largeur ?? 100
+          largeur: block.style?.largeur ?? 100,
         };
+        break;
+
+      case 'tableau':
+        if (block.lignes) {
+          b.lignes = block.lignes; // déjà au format TableCell[][]
+        } else {
+          b.source = block.source || '';
+          b.colonnes = block.colonnes || [];
+        }
+        if (block.style?.bordureCouleur || block.style?.texteCouleurDefaut) {
+          b.style = {
+            bordureCouleur: block.style?.bordureCouleur ?? '#d9d9d9',
+            texteCouleurDefaut: block.style?.texteCouleurDefaut ?? '#000000',
+          };
+        }
         break;
 
       case 'image':
         b.url = block.url || '';
         b.style = {
           largeur: block.style?.largeur ?? 100,
-          alignement: block.style?.align ?? 'left'
+          alignement: block.style?.align ?? 'left',
         };
         break;
 
@@ -93,7 +131,7 @@ export class DesignSerializer {
           fill: block.style?.fill ?? '#e5e7eb',
           couleur: block.style?.couleur ?? '#94a3b8',
           epaisseur: block.style?.epaisseur ?? 1,
-          borderRadius: block.style?.borderRadius ?? 0
+          borderRadius: block.style?.borderRadius ?? 0,
         };
         break;
 
@@ -122,7 +160,8 @@ export class DesignSerializer {
     const block: DesignBlock = {
       id: crypto.randomUUID(),
       type: b.type,
-      style: {}
+      rotation: b.rotation ?? 0,
+      style: {},
     };
 
     // --- Champs communs à tous les types ---
@@ -137,7 +176,7 @@ export class DesignSerializer {
     if (b.dataBinding !== undefined) {
       block.dataBinding = {
         format: b.dataBinding.format ?? '',
-        valeurDefaut: b.dataBinding.valeurDefaut ?? ''
+        valeurDefaut: b.dataBinding.valeurDefaut ?? '',
       };
     }
 
@@ -154,24 +193,28 @@ export class DesignSerializer {
           align: b.style?.align ?? 'left',
           verticalAlign: b.style?.verticalAlign ?? 'top',
           color: b.style?.color ?? '#000000',
-          fontFamily: b.style?.fontFamily ?? 'Inter'
+          fontFamily: b.style?.fontFamily ?? 'Inter',
         };
         break;
 
       case 'tableau':
         if (b.lignes) {
-          block.lignes = b.lignes;
+          block.lignes = this.migrateLignes(b.lignes);
         } else {
           block.source = b.source || '';
           block.colonnes = b.colonnes || [];
         }
+        block.style = {
+          bordureCouleur: b.style?.bordureCouleur ?? '#d9d9d9',
+          texteCouleurDefaut: b.style?.texteCouleurDefaut ?? '#000000',
+        };
         break;
 
       case 'ligne':
         block.style = {
           epaisseur: b.style?.epaisseur ?? 1,
           couleur: b.style?.couleur ?? '#000000',
-          largeur: b.style?.largeur ?? 100
+          largeur: b.style?.largeur ?? 100,
         };
         break;
 
@@ -179,7 +222,7 @@ export class DesignSerializer {
         block.url = b.url || '';
         block.style = {
           largeur: b.style?.largeur ?? 100,
-          align: b.style?.alignement ?? 'left'
+          align: b.style?.alignement ?? 'left',
         };
         break;
 
@@ -189,7 +232,7 @@ export class DesignSerializer {
           fill: b.style?.fill ?? '#e5e7eb',
           couleur: b.style?.couleur ?? '#94a3b8',
           epaisseur: b.style?.epaisseur ?? 1,
-          borderRadius: b.style?.borderRadius ?? 0
+          borderRadius: b.style?.borderRadius ?? 0,
         };
         break;
 
@@ -213,5 +256,22 @@ export class DesignSerializer {
     }
 
     return block;
+  }
+
+  // --- Nouvelle méthode privée, ajoutée à la classe ---
+  /** Convertit un ancien tableau string[][] en TableCell[][], ou laisse tel quel si déjà migré. */
+  private migrateLignes(rawLignes: any[][]): TableCell[][] {
+    return rawLignes.map((row) =>
+      row.map((cell) => {
+        if (typeof cell === 'string') {
+          return { value: cell };
+        }
+        return {
+          value: cell?.value ?? '',
+          bgColor: cell?.bgColor,
+          textColor: cell?.textColor,
+        };
+      }),
+    );
   }
 }

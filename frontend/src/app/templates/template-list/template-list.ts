@@ -1,5 +1,5 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
-import { RouterLink } from "@angular/router";
+import { RouterLink } from '@angular/router';
 import { Template } from '../../models/template.model';
 import { TemplateApiService } from '../../services/template-api';
 import { CommonModule } from '@angular/common';
@@ -17,9 +17,12 @@ export class TemplateList implements OnInit {
   templates: Template[] = [];
   rawResponse: string | null = null;
 
-  constructor( private api: TemplateApiService, private cdr: ChangeDetectorRef ) {}
+  constructor(
+    private api: TemplateApiService,
+    private cdr: ChangeDetectorRef,
+  ) {}
 
-  ngOnInit(): void{
+  ngOnInit(): void {
     this.loadTemplates();
   }
 
@@ -38,8 +41,7 @@ export class TemplateList implements OnInit {
         this.loading = false;
         console.error(err);
         this.cdr.detectChanges();
-      }
+      },
     });
   }
-
 }

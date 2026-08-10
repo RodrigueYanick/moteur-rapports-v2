@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { DesignBlock } from '../models/design-block.model';
+import { DesignBlock, TableCell } from '../models/design-block.model';
 
 @Injectable({ providedIn: 'root' })
 export class MockDataService {
@@ -17,7 +17,7 @@ export class MockDataService {
             { label: 'Jan', value: 40 },
             { label: 'Fév', value: 65 },
             { label: 'Mar', value: 30 },
-            { label: 'Avr', value: 80 }
+            { label: 'Avr', value: 80 },
           ];
         }
         continue;
@@ -37,7 +37,10 @@ export class MockDataService {
           if (Array.isArray(row)) {
             for (const cell of row) {
               if (cell) {
-                this.extractVariables(cell, data);
+                const cellValue = typeof cell === 'string' ? cell : (cell as TableCell).value;
+                if (cellValue) {
+                  this.extractVariables(cellValue, data);
+                }
               }
             }
           }
@@ -82,12 +85,11 @@ export class MockDataService {
       } else if (varName.startsWith('tableau')) {
         data[varName] = [
           { col1: 'Donnée 1', col2: 'Donnée 2' },
-          { col1: 'Donnée 3', col2: 'Donnée 4' }
+          { col1: 'Donnée 3', col2: 'Donnée 4' },
         ];
       } else {
         data[varName] = varName; // fallback : le nom lui-même comme valeur
       }
     }
   }
-
 }

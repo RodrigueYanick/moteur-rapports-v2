@@ -8,9 +8,8 @@ describe('VariableManager', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [VariableManager]
-    })
-    .compileComponents();
+      imports: [VariableManager],
+    }).compileComponents();
 
     fixture = TestBed.createComponent(VariableManager);
     component = fixture.componentInstance;

@@ -1,7 +1,9 @@
-export interface Document{
-    id: string;
-    nom: string
-    donnee: string;
-    statut: 'BROUILLON' | 'FINALISE';
-
+export interface GeneratedDocument {
+  id: string;
+  nom: string;
+  templateId: string;
+  templateNom?: string;
+  donnees: any;
+  dateCreation: string;
+  dateModification: string;
 }

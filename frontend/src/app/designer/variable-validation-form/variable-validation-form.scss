@@ -1,0 +1,365 @@
+$bg-panel: #1a1d29;
+$bg-card: #20232f;
+$bg-input: #14161f;
+$border: #2a2e3d;
+$accent: #6d5efc;
+$text-primary: #e8e9ee;
+$text-secondary: #9498a8;
+$danger: #ef4444;
+$success: #34d399;
+
+.validation-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 11, 16, 0.6);
+  backdrop-filter: blur(2px);
+  z-index: 999;
+}
+
+.validation-form {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 50vw;
+  max-width: 720px;
+  max-height: 85vh;
+  overflow-y: auto;
+  z-index: 1000;
+  background: $bg-panel;
+  border: 1px solid $border;
+  border-radius: 14px;
+  padding: 22px 24px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+}
+
+.validation-wrapper {
+  margin-bottom: 16px;
+}
+
+.validation-form {
+  background: $bg-panel;
+  border: 1px solid $border;
+  border-radius: 12px;
+  padding: 18px 20px;
+}
+
+.form-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: $accent;
+  margin-bottom: 14px;
+
+  h3 {
+    color: $text-primary;
+    font-size: 14px;
+    margin: 0;
+  }
+}
+
+.state-msg {
+  color: $text-secondary;
+  font-size: 13px;
+  padding: 8px 0;
+
+  &.error {
+    color: $danger;
+  }
+}
+
+.variables-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.variable-card {
+  background: $bg-card;
+  border: 1px solid $border;
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.var-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.var-name {
+  font-weight: 600;
+  color: $text-primary;
+  font-size: 13px;
+}
+
+.var-badge {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  background: rgba(148, 163, 184, 0.15);
+  color: $text-secondary;
+
+  &.required {
+    background: rgba(239, 68, 68, 0.15);
+    color: $danger;
+  }
+}
+
+.var-type {
+  font-size: 10px;
+  color: $text-secondary;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+}
+
+.var-desc {
+  font-size: 11px;
+  color: $text-secondary;
+  margin: 0 0 8px;
+}
+
+.var-input input[type='text'],
+.var-input input[type='number'],
+.var-input input[type='date'] {
+  width: 100%;
+  background: $bg-input;
+  border: 1px solid $border;
+  border-radius: 6px;
+  padding: 7px 9px;
+  color: $text-primary;
+  font-size: 13px;
+  box-sizing: border-box;
+
+  &:focus {
+    outline: none;
+    border-color: $accent;
+  }
+}
+
+.bool-input {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: $text-primary;
+}
+
+.array-input {
+  .add-row-btn {
+    background: transparent;
+    border: 1px dashed $border;
+    color: $text-secondary;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 11px;
+    cursor: pointer;
+    margin-bottom: 6px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  td {
+    padding: 2px;
+  }
+  input {
+    width: 100%;
+    background: $bg-input;
+    border: 1px solid $border;
+    border-radius: 4px;
+    padding: 4px;
+    color: $text-primary;
+    font-size: 12px;
+  }
+}
+
+.missing-warning {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #f0b429;
+  font-size: 12px;
+  margin-top: 12px;
+}
+
+.documents-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.doc-name-input {
+  flex: 1;
+  background: $bg-input;
+  border: 1px solid $border;
+  border-radius: 6px;
+  padding: 7px 9px;
+  color: $text-primary;
+  font-size: 13px;
+}
+
+.btn-outline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid $border;
+  color: $text-primary;
+  border-radius: 6px;
+  padding: 7px 12px;
+  font-size: 12px;
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.documents-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.doc-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: $bg-input;
+  border: 1px solid $border;
+  border-radius: 20px;
+  padding: 3px 6px 3px 10px;
+  font-size: 11px;
+  color: $text-secondary;
+
+  &.active {
+    border-color: $accent;
+    color: $accent;
+  }
+
+  span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+  }
+
+  button {
+    background: none;
+    border: none;
+    color: $text-secondary;
+    cursor: pointer;
+    display: flex;
+    padding: 2px;
+
+    &:hover {
+      color: $danger;
+    }
+  }
+}
+
+.validate-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 16px;
+  background: $accent;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 11px 0;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: #5b4de8;
+  }
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.validation-compact {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(52, 211, 153, 0.1);
+  border: 1px solid rgba(52, 211, 153, 0.3);
+  border-radius: 10px;
+  padding: 10px 16px;
+  color: $success;
+  font-size: 13px;
+
+  .compact-loader {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: $text-secondary;
+    font-size: 12px;
+
+    select {
+      background: $bg-input;
+      border: 1px solid $border;
+      color: $text-primary;
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 12px;
+    }
+  }
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+
+  .btn {
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+
+    &.btn-primary {
+      background: $accent;
+      color: white;
+
+      &:hover:not(:disabled) {
+        background: #5b4de8;
+      }
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+
+    &.btn-secondary {
+      background-color: $bg-input;
+      color: $text-primary;
+
+      &:hover:not(:disabled) {
+        background-color: rgba(255, 255, 255, 0.05);
+      }
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+  }
+}

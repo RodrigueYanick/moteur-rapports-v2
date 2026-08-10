@@ -1,39 +1,159 @@
-$bg-panel: #1a1d29;
-$border: #2a2e3d;
+$bg-panel: #2b2f3d;      // gris Android Studio
+$bg-header: #1e222d;     // un peu plus foncé
+$border: #3a3f4f;
 $accent: #6d5efc;
 $text-primary: #e8e9ee;
 $text-secondary: #9498a8;
+$shadow: 0 12px 40px rgba(0,0,0,0.35), 0 0 2px rgba(0,0,0,0.2);
 
 .preview-container {
   background: $bg-panel;
   border-top: 1px solid $border;
   color: $text-primary;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
 }
 
 .preview-header {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 10px 14px;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: $accent;
-  font-weight: 600;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: $bg-header;
+  border-bottom: 1px solid $border;
+  flex-shrink: 0;
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: $accent;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .zoom-controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    button {
+      background: transparent;
+      border: 1px solid $border;
+      border-radius: 4px;
+      color: $text-secondary;
+      padding: 4px 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: 0.15s;
+
+      &:hover:not(:disabled) {
+        background: rgba(255,255,255,0.05);
+        color: $text-primary;
+        border-color: $text-secondary;
+      }
+      &:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+      }
+    }
+
+    .zoom-value {
+      font-size: 12px;
+      font-weight: 500;
+      min-width: 42px;
+      text-align: center;
+      color: $text-secondary;
+    }
+  }
 }
 
 .preview-content {
-  padding: 12px;
-  max-height: 320px;
+  flex: 1;
   overflow: auto;
+  padding: 30px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 40px;
+  background: $bg-panel;
+
+  // Scrollbar stylisée (optionnel)
+  &::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  &::-webkit-scrollbar-track {
+    background: $bg-panel;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: $border;
+    border-radius: 4px;
+  }
+}
+
+.preview-page-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.preview-page-label {
+  font-size: 11px;
+  color: $text-secondary;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 500;
+}
+
+.preview-sheet-wrapper {
   display: flex;
   justify-content: center;
+  width: 100%;
 }
 
 .preview-sheet {
-  transform: scale(0.28);
+  width: 794px;           // A4 à 96 dpi
+  height: 1123px;
+  background: white;
+  border-radius: 4px;
+  box-shadow: $shadow;
+  border: 1px solid #ddd;
   transform-origin: top center;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-  border-radius: 2px;
-  overflow: hidden;
+  transition: transform 0.15s ease;
+  position: relative;
+  flex-shrink: 0;
+
+  // Pour que le contenu interne s'adapte
+  > div {
+    width: 100%;
+    height: 100%;
+  }
+
+  // Numéro de page en bas à droite
+  .page-number {
+    position: absolute;
+    bottom: 16px;
+    right: 20px;
+    font-size: 11px;
+    color: #999;
+    font-family: Arial, sans-serif;
+    font-weight: 400;
+    // background: rgba(255,255,255,0.8);
+    padding: 2px 10px;
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  }
 }
+
+// Affichage des marges (optionnel) : on peut ajouter un padding à l'intérieur de la feuille
+// Pour afficher les marges en pointillés, on peut ajouter un pseudo-élément ou un div interne.
+// Pour l'instant, on garde simple.

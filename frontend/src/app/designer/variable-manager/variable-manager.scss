@@ -13,7 +13,9 @@
   align-items: center;
   padding: 0.3rem 0;
   border-bottom: 1px solid #eee;
-  &.editing { background-color: #f0f0f0; }
+  &.editing {
+    background-color: #f0f0f0;
+  }
 }
 
 .var-info {
@@ -22,8 +24,13 @@
   align-items: baseline;
 }
 
-.var-name { font-weight: bold; }
-.var-type { color: #888; font-size: 0.8rem; }
+.var-name {
+  font-weight: bold;
+}
+.var-type {
+  color: #888;
+  font-size: 0.8rem;
+}
 
 .var-actions button {
   background: none;
@@ -41,8 +48,18 @@
 
 .form-row {
   margin-bottom: 0.5rem;
-  label { display: block; font-weight: 600; margin-bottom: 0.1rem; }
-  input, select { width: 100%; padding: 0.3rem; border: 1px solid #ccc; border-radius: 4px; }
+  label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.1rem;
+  }
+  input,
+  select {
+    width: 100%;
+    padding: 0.3rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
 }
 
 .checkbox label {
@@ -63,9 +80,17 @@
     cursor: pointer;
     background: #3498db;
     color: white;
-    &:disabled { background: #ccc; }
+    &:disabled {
+      background: #ccc;
+    }
   }
 }
 
-.error { color: #e74c3c; font-size: 0.8rem; }
-.no-vars { font-style: italic; color: #888; }
+.error {
+  color: #e74c3c;
+  font-size: 0.8rem;
+}
+.no-vars {
+  font-style: italic;
+  color: #888;
+}

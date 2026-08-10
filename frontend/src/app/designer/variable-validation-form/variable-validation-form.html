@@ -1,0 +1,81 @@
+<div class="validation-wrapper" *ngIf="active">
+  <h1></h1>
+  <div class="validation-backdrop" *ngIf="formVisible"></div>
+
+  <!-- ===== Formulaire complet ===== -->
+  <div class="validation-form" *ngIf="formVisible">
+    <div class="form-header">
+      <lucide-icon [img]="icons.fileCheck" [size]="16"></lucide-icon>
+      <h3>Renseigner les variables du document</h3>
+    </div>
+
+    <div *ngIf="loading" class="state-msg">Chargement des variables...</div>
+    <div *ngIf="error" class="state-msg error">{{ error }}</div>
+
+    <div class="variables-grid" *ngIf="!loading && !error">
+      <div class="variable-card" *ngFor="let v of variables">
+        <div class="var-top">
+          <span class="var-name">{{ v.nomVariable }}</span>
+          <span class="var-badge" [class.required]="v.obligatoire">
+            {{ v.obligatoire ? 'Obligatoire' : 'Optionnelle' }}
+          </span>
+        </div>
+        <div class="var-type">{{ v.type }}</div>
+        <p class="var-desc" *ngIf="v.description">{{ v.description }}</p>
+
+        <div class="var-input">
+          <input
+            *ngIf="v.type === 'STRING' || v.type === 'FLOAT' || v.type === 'DATE'"
+            [type]="v.type === 'FLOAT' ? 'number' : v.type === 'DATE' ? 'date' : 'text'"
+            [value]="values[v.nomVariable] ?? ''"
+            (input)="onValueChange(v.nomVariable, $event)"
+            [placeholder]="'Saisir ' + v.nomVariable"
+          />
+
+          <label class="bool-input" *ngIf="v.type === 'BOOLEAN'">
+            <input
+              type="checkbox"
+              [checked]="values[v.nomVariable] === true"
+              (change)="onValueChange(v.nomVariable, $any($event.target).checked)"
+            />
+            {{ values[v.nomVariable] ? 'Oui' : 'Non' }}
+          </label>
+
+          <input
+            *ngIf="v.type === 'IMAGE'"
+            type="text"
+            [value]="values[v.nomVariable] ?? ''"
+            (input)="onValueChange(v.nomVariable, $event)"
+            placeholder="URL de l'image"
+          />
+
+          <div *ngIf="v.type === 'ARRAY'" class="array-input">
+            <button type="button" class="add-row-btn" (click)="addRow(v.nomVariable)">
+              + Ligne
+            </button>
+            <table *ngIf="values[v.nomVariable]?.length > 0">
+              <tr *ngFor="let row of values[v.nomVariable]">
+                <td *ngFor="let col of row | keyvalue">
+                  <input type="text" [(ngModel)]="row[col.key]" />
+                </td>
+              </tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Message d'avertissement si champs obligatoires vides -->
+    <div class="missing-warning" *ngIf="missingRequired.length > 0">
+      Veuillez remplir tous les champs obligatoires avant de valider.
+    </div>
+
+    <!-- Bouton Valider toujours visible quand le formulaire est affiché -->
+    <div class="form-actions" *ngIf="formVisible">
+      <button class="btn btn-primary" (click)="validate()" [disabled]="missingRequired.length > 0">
+        ✅ Valider les valeurs
+      </button>
+      <button class="btn btn-secondary" (click)="cancel()">❌ Annuler</button>
+    </div>
+  </div>
+</div>

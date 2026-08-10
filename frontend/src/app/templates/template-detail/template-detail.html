@@ -1,104 +1,52 @@
-<!-- Designer visible seulement pour les brouillons -->
-<ng-container *ngIf="template?.statut === 'BROUILLON' || template?.statut === 'PUBLIE'">
-  <app-report-designer
-    [blocks]="blocks"
-    [templateId]="templateId"
-    [templateName]="template?.nom || ''"
-    [savingStatus]="savingStatus"
-    (exportRequest)="onExportRequest($event)"
-    (blocksChange)="onBlocksChange($event)"
-    (publishRequest)="publish()"
-    (previewRequest)="openPreview()"
-    (manualSaveRequest)="saveNow()">
-  </app-report-designer>
-  <div class="save-status" style="background: #f0f0f0; padding: 4px 8px;">
-    <span *ngIf="savingStatus === 'saving'">⏳ Enregistrement...</span>
-    <span *ngIf="savingStatus === 'saved'">✅ Enregistré</span>
-  </div>
-</ng-container>
-
 <div *ngIf="loading" class="message">Chargement en cours...</div>
 <div *ngIf="error" class="message error">{{ error }}</div>
 
 <ng-container *ngIf="!loading && !error && template">
-  <!-- En-tête du modèle -->
   <header class="detail-header">
     <h1>{{ template.nom }}</h1>
     <span class="badge" [ngClass]="template.statut">{{ template.statut }}</span>
   </header>
 
-  <!-- Infos générales -->
   <section class="card">
     <h2>Informations générales</h2>
     <dl class="info-list">
       <dt>Description</dt>
       <dd>{{ template.description || 'Aucune description' }}</dd>
-
       <dt>Version</dt>
       <dd>{{ template.version }}</dd>
-
       <dt>Dernière modification</dt>
-      <dd>{{ template.dateModification | date:'dd/MM/yyyy HH:mm' }}</dd>
-
+      <dd>{{ template.dateModification | date: 'dd/MM/yyyy HH:mm' }}</dd>
       <dt>Catégorie</dt>
       <dd>{{ template.categorie || 'AUTRES' }}</dd>
-
       <dt>Format</dt>
       <dd>{{ template.formatPapier || 'A4' }}</dd>
     </dl>
-
-    <button *ngIf="template.statut === 'BROUILLON'" class="btn btn-primary" 
-            (click)="publish()" [disabled]="publishing">
+    <button
+      *ngIf="template.statut === 'BROUILLON'"
+      class="btn btn-primary"
+      (click)="publish()"
+      [disabled]="publishing"
+    >
       {{ publishing ? 'Publication...' : 'Publier' }}
     </button>
   </section>
 
-  <!-- Section Variables (schéma extrait automatiquement) -->
-  <section class="card" *ngIf="template.statut === 'PUBLIE'">
-    <h2>Variables (schéma extrait)</h2>
-    <table *ngIf="schema && schema.variables && schema.variables.length > 0; else noSchemaVars" class="table">
-      <thead>
-        <tr>
-          <th>Nom</th>
-          <th>Type</th>
-          <th>Obligatoire</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let variable of schema.variables">
-          <td>{{ variable.nomVariable }}</td>
-          <td><span class="badge small badge-type">{{ variable.type }}</span></td>
-          <td>{{ variable.obligatoire ? '✅' : '❌' }}</td>
-        </tr>
-      </tbody>
-    </table>
-    <ng-template #noSchemaVars>
-      <p class="message info">Aucune variable extraite.</p>
-    </ng-template>
-  </section>
+  <app-variable-validation-form [templateId]="templateId" [active]="template.statut === 'PUBLIE'">
+  </app-variable-validation-form>
 
-  <!-- Message pour template non publié (brouillon ou archivé) -->
-  <section class="card" *ngIf="template.statut !== 'PUBLIE'">
-    <h2>Variables</h2>
-    <p class="message info">
-      Publiez le template pour extraire automatiquement les variables nécessaires.
-    </p>
-  </section>
+  <app-report-designer
+    [pages]="pages"
+    [templateId]="templateId"
+    [templateName]="template.nom"
+    [templateStatus]="template.statut"
+    [savingStatus]="savingStatus"
+    (exportRequest)="onExportRequest($event)"
+    (pagesChange)="onPagesChange($event)"
+    (publishRequest)="publish()"
+    (duplicateRequest)="duplicateAndNavigate()"
+    (manualSaveRequest)="saveNow()"
+    (previewRequest)="openPreview()">
+  </app-report-designer>
 
-  <!-- Génération PDF (test) -->
-  <section class="card">
-    <h2>Générer un document (test)</h2>
-    <div class="form-group">
-      <label for="jsonData">Données JSON :</label>
-      <textarea id="jsonData" [(ngModel)]="jsonData" rows="5" class="form-control"></textarea>
-    </div>
-    <div class="form-group">
-      <button class="btn btn-primary" (click)="generateWithMockData()">Générer PDF (données factices)</button>
-      <small style="display: block; margin-top: 0.25rem;">
-        ⚠️ Utilise toujours des données simulées, même si tu es en mode "Remplir". Pour générer avec tes vraies valeurs, utilise le bouton "Exporter" dans la barre d'outils du designer, en mode "Remplir".
-      </small>
-    </div>
-    <button class="btn btn-primary" (click)="generate()">Générer PDF</button>
-    <div *ngIf="generationError" class="error message">{{ generationError }}</div>
-  </section>
+  <div class="generation-error" *ngIf="generationError">{{ generationError }}</div>
 </ng-container>

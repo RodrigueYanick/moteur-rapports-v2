@@ -22,7 +22,7 @@ import {
   Unlock,
   ChevronDown,
   ChevronRight,
-  Code
+  Code,
 } from 'lucide-angular';
 import { VariableManager } from '../variable-manager/variable-manager';
 import { Template } from '../../models/template.model';
@@ -46,12 +46,15 @@ interface ComponentCategory {
   standalone: true,
   imports: [CommonModule, LucideAngularModule, VariableManager],
   templateUrl: './sidebar.html',
-  styleUrls: ['./sidebar.scss']
+  styleUrls: ['./sidebar.scss'],
 })
 export class Sidebar {
   @Input() blocks: DesignBlock[] = [];
   @Input() selectedBlock: DesignBlock | null = null;
   @Input() templateId: string | null = null;
+  @Input() locked = false;
+
+  @Output() lockedInteraction = new EventEmitter<void>();
   @Output() blockSelected = new EventEmitter<DesignBlock>();
   @Output() toggleVisibility = new EventEmitter<DesignBlock>();
   @Output() toggleLock = new EventEmitter<DesignBlock>();
@@ -69,7 +72,7 @@ export class Sidebar {
     unlock: Unlock,
     chevronDown: ChevronDown,
     chevronRight: ChevronRight,
-    code: Code
+    code: Code,
   };
 
   // Icônes par type de bloc, utilisées aussi dans l'onglet Calques
@@ -84,7 +87,7 @@ export class Sidebar {
     qrcode: QrCode,
     codebarre: Barcode,
     signature: PenTool,
-    graphique: BarChart3
+    graphique: BarChart3,
   };
 
   // Bibliothèque organisée en catégories repliables
@@ -96,7 +99,7 @@ export class Sidebar {
       items: [
         { type: 'titre', label: 'Titre', icon: this.typeIcons['titre'] },
         { type: 'texte', label: 'Texte', icon: this.typeIcons['texte'] },
-      ]
+      ],
     },
     {
       id: 'medias',
@@ -105,7 +108,7 @@ export class Sidebar {
       items: [
         { type: 'image', label: 'Image', icon: this.typeIcons['image'] },
         { type: 'signature', label: 'Signature', icon: this.typeIcons['signature'] },
-      ]
+      ],
     },
     {
       id: 'formes',
@@ -115,7 +118,7 @@ export class Sidebar {
         { type: 'ligne', label: 'Ligne', icon: this.typeIcons['ligne'] },
         { type: 'rectangle', label: 'Rectangle', icon: this.typeIcons['rectangle'] },
         { type: 'cercle', label: 'Cercle', icon: this.typeIcons['cercle'] },
-      ]
+      ],
     },
     {
       id: 'donnees',
@@ -124,7 +127,7 @@ export class Sidebar {
       items: [
         { type: 'tableau', label: 'Tableau', icon: this.typeIcons['tableau'] },
         { type: 'graphique', label: 'Graphique', icon: this.typeIcons['graphique'] },
-      ]
+      ],
     },
     {
       id: 'codes',
@@ -133,8 +136,8 @@ export class Sidebar {
       items: [
         { type: 'qrcode', label: 'QR Code', icon: this.typeIcons['qrcode'] },
         { type: 'codebarre', label: 'Code-barres', icon: this.typeIcons['codebarre'] },
-      ]
-    }
+      ],
+    },
   ];
 
   // Type mis en avant brièvement après un clic (retour visuel "sélection")
@@ -145,10 +148,15 @@ export class Sidebar {
   }
 
   toggleCategory(cat: ComponentCategory): void {
-    cat.open = !cat.open;
+    // Toggle after current change-detection cycle to avoid ExpressionChangedAfterItHasBeenCheckedError
+    setTimeout(() => (cat.open = !cat.open));
   }
 
   onAddBlock(type: DesignBlock['type']): void {
+    if (this.locked) {
+      this.lockedInteraction.emit();
+      return;
+    }
     this.addBlock.emit(type);
     this.recentlyAddedType = type;
     setTimeout(() => {

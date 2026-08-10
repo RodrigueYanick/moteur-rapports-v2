@@ -3,35 +3,34 @@ $primary: #2c3e50;
 $accent: #3498db;
 $light: #ecf0f1;
 
-.navbar{
-    display: flex;
-    gap: 1rem;
-    background-color: $primary;
-    padding: 1rem 2rem;
-    align-items: center;
+.navbar {
+  display: flex;
+  gap: 1rem;
+  background-color: $primary;
+  padding: 1rem 2rem;
+  align-items: center;
 
-    a {
-        color: white;
-        text-decoration: none;
-        padding: 0.5rem 1rem;
-        border-radius: 4px;
-        transition: background-color 0.2s;
+  a {
+    color: white;
+    text-decoration: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    transition: background-color 0.2s;
 
-        &:hover {
-            background-color: rgba(255, 255, 255, 0.15);
-        }
-        
-        &.active {
-            background-color: $accent;
-            font-weight: bold;
-        }
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.15);
     }
+
+    &.active {
+      background-color: $accent;
+      font-weight: bold;
+    }
+  }
 }
 
 main {
-    padding: 2rem;
-    // max-width: 1200px;
-    margin: 0 auto;
-    width: 100%;
+  padding: 2rem;
+  // max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
 }
-

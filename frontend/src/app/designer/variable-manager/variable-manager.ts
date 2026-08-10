@@ -1,6 +1,20 @@
-import { Component, Input, OnInit, OnDestroy, Output, EventEmitter, SimpleChanges } from '@angular/core';
+import {
+  Component,
+  Input,
+  OnInit,
+  OnDestroy,
+  Output,
+  EventEmitter,
+  SimpleChanges,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormsModule } from '@angular/forms';
+import {
+  ReactiveFormsModule,
+  FormBuilder,
+  FormGroup,
+  Validators,
+  FormsModule,
+} from '@angular/forms';
 import { TemplateApiService } from '../../services/template-api';
 import { Variable } from '../../models/variable.model';
 import { Subject } from 'rxjs';
@@ -10,7 +24,7 @@ import { Subject } from 'rxjs';
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, FormsModule],
   templateUrl: './variable-manager.html',
-  styleUrls: ['./variable-manager.scss']
+  styleUrls: ['./variable-manager.scss'],
 })
 export class VariableManager implements OnInit, OnDestroy {
   @Input() templateId: string | null = null;
@@ -25,12 +39,15 @@ export class VariableManager implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
 
-  constructor(private fb: FormBuilder, private api: TemplateApiService) {
+  constructor(
+    private fb: FormBuilder,
+    private api: TemplateApiService,
+  ) {
     this.form = this.fb.group({
       nomVariable: ['', [Validators.required, Validators.pattern(/^[a-zA-Z0-9_]+$/)]],
       type: ['STRING', Validators.required],
       description: [''],
-      obligatoire: [false]
+      obligatoire: [false],
     });
   }
 
@@ -69,7 +86,7 @@ export class VariableManager implements OnInit, OnDestroy {
         this.error = 'Erreur lors du chargement des variables';
         this.loading = false;
         console.error(err);
-      }
+      },
     });
   }
 
@@ -80,17 +97,19 @@ export class VariableManager implements OnInit, OnDestroy {
       return;
     }
     const val = this.form.value;
+    // Backend enum does not support 'IMAGE' — map it to 'STRING' for transport
+    const mappedType = val.type === 'IMAGE' ? 'STRING' : val.type;
     const dto = {
       nomVariable: val.nomVariable,
-      type: val.type,
+      type: mappedType,
       obligatoire: val.obligatoire,
-      description: val.description
+      description: val.description,
     };
 
     if (this.editingVariableId) {
       this.api.updateVariable(this.templateId, this.editingVariableId, dto).subscribe({
         next: (updated) => {
-          const idx = this.variables.findIndex(v => v.id === updated.id);
+          const idx = this.variables.findIndex((v) => v.id === updated.id);
           if (idx !== -1) this.variables[idx] = updated;
           else this.variables.push(updated);
           this.variablesLoaded.emit(this.variables);
@@ -99,7 +118,7 @@ export class VariableManager implements OnInit, OnDestroy {
         error: (err) => {
           this.error = err.error?.message || 'Erreur lors de la mise à jour';
           console.error(err);
-        }
+        },
       });
     } else {
       this.api.addVariable(this.templateId, dto).subscribe({
@@ -111,7 +130,7 @@ export class VariableManager implements OnInit, OnDestroy {
         error: (err) => {
           this.error = err.error?.message || 'Erreur lors de la création';
           console.error(err);
-        }
+        },
       });
     }
   }
@@ -122,7 +141,7 @@ export class VariableManager implements OnInit, OnDestroy {
       nomVariable: variable.nomVariable,
       type: variable.type,
       description: variable.description || '',
-      obligatoire: variable.obligatoire
+      obligatoire: variable.obligatoire,
     });
   }
 
@@ -130,14 +149,14 @@ export class VariableManager implements OnInit, OnDestroy {
     if (!this.templateId || !confirm(`Supprimer la variable "${variable.nomVariable}" ?`)) return;
     this.api.deleteVariable(this.templateId, variable.id).subscribe({
       next: () => {
-        this.variables = this.variables.filter(v => v.id !== variable.id);
+        this.variables = this.variables.filter((v) => v.id !== variable.id);
         if (this.editingVariableId === variable.id) this.resetForm();
         this.variablesLoaded.emit(this.variables);
       },
       error: (err) => {
         this.error = err.error?.message || 'Erreur lors de la suppression';
         console.error(err);
-      }
+      },
     });
   }
 

@@ -8,9 +8,8 @@ describe('BlockPreview', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [BlockPreview]
-    })
-    .compileComponents();
+      imports: [BlockPreview],
+    }).compileComponents();
 
     fixture = TestBed.createComponent(BlockPreview);
     component = fixture.componentInstance;

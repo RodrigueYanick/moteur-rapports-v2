@@ -16,18 +16,22 @@ export class TemplateCreate {
   submitting = false;
   form: FormGroup;
 
-  constructor(private fb: FormBuilder, private api: TemplateApiService, private router: Router){
+  constructor(
+    private fb: FormBuilder,
+    private api: TemplateApiService,
+    private router: Router,
+  ) {
     this.form = this.fb.group({
       nom: ['', Validators.required],
       description: [''],
       contenuDesign: [''],
       categorie: ['AUTRES'],
-      formatPapier: ['A4']
+      formatPapier: ['A4'],
     });
   }
 
   onSubmit(): void {
-    if(this.form.invalid) return;
+    if (this.form.invalid) return;
 
     // Validation du contenuDesign s’il est fourni
     const design = this.form.get('contenuDesign')?.value;
@@ -35,24 +39,23 @@ export class TemplateCreate {
       try {
         JSON.parse(design);
       } catch (e) {
-        this.error = "Le design JSON est invalide. Corrigez-le.";
+        this.error = 'Le design JSON est invalide. Corrigez-le.';
         return;
       }
     }
 
     this.submitting = true;
     this.error = '';
-    const formData = this.form.value
+    const formData = this.form.value;
     this.api.createTemplate(formData).subscribe({
       next: (template) => {
         this.router.navigate(['/templates', template.id]);
       },
       error: (err) => {
-        this.error = "Erreur lors de la creation";
+        this.error = 'Erreur lors de la creation';
         this.submitting = false;
         console.error(err);
-      }
-    })
+      },
+    });
   }
-
 }

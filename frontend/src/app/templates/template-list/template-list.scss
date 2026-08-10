@@ -2,9 +2,10 @@
   width: 100%;
   border-collapse: collapse;
   background: white;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 
-  th, td {
+  th,
+  td {
     padding: 0.75rem 1rem;
     text-align: left;
     border-bottom: 1px solid #ddd;
@@ -24,9 +25,15 @@
   color: white;
   background-color: #7f8c8d; // par défaut
 
-  &.BROUILLON { background-color: #f39c12; }
-  &.PUBLIE { background-color: #27ae60; }
-  &.ARCHIVE { background-color: #95a5a6; }
+  &.BROUILLON {
+    background-color: #f39c12;
+  }
+  &.PUBLIE {
+    background-color: #27ae60;
+  }
+  &.ARCHIVE {
+    background-color: #95a5a6;
+  }
 }
 
 .message {
@@ -52,6 +59,8 @@
   &-primary {
     background-color: #3498db;
     color: white;
-    &:hover { background-color: #2980b9; }
+    &:hover {
+      background-color: #2980b9;
+    }
   }
 }

@@ -8,9 +8,8 @@ describe('BlockEditor', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [BlockEditor]
-    })
-    .compileComponents();
+      imports: [BlockEditor],
+    }).compileComponents();
 
     fixture = TestBed.createComponent(BlockEditor);
     component = fixture.componentInstance;

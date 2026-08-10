@@ -4,13 +4,9 @@
 <div *ngIf="loading">Chargement en cours...</div>
 
 <!-- Message d'erreur -->
-<div *ngIf="error" style="color: red;">
-  Erreur lors du chargement : {{ error }}
-</div>
+<div *ngIf="error" style="color: red">Erreur lors du chargement : {{ error }}</div>
 
 <!-- <pre *ngIf="rawResponse" class="debug-response">{{ rawResponse }}</pre> -->
-
-
 
 <!-- Tableau des templates -->
 <table *ngIf="!loading && !error && templates.length > 0" class="table">
@@ -27,8 +23,10 @@
     <tr *ngFor="let template of templates">
       <td>{{ template.nom }}</td>
       <td>{{ template.description }}</td>
-      <td><span class="badge" [ngClass]="template.statut">{{ template.statut }}</span></td>
-      <td>{{ template.dateModification | date:'dd/MM/yyyy HH:mm' }}</td>
+      <td>
+        <span class="badge" [ngClass]="template.statut">{{ template.statut }}</span>
+      </td>
+      <td>{{ template.dateModification | date: 'dd/MM/yyyy HH:mm' }}</td>
       <td>
         <button [routerLink]="['/templates', template.id]" class="btn btn-primary">Détail</button>
       </td>

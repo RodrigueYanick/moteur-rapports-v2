@@ -6,16 +6,15 @@ import { TemplateSchema } from '../models/template-schema.model';
 import { Generation } from '../models/generation.model';
 import { TemplateForm } from '../models/template-form.model';
 import { Variable } from '../models/variable.model';
-import { Document } from '../models/Document.model';
+import { GeneratedDocument } from '../models/Document.model';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class TemplateApiService {
+  private baseUrl = '/api/templates'; // le proxy redirige vers http://localhost:8081/api/templates
 
-  private baseUrl = '/api/templates';   // le proxy redirige vers http://localhost:8081/api/templates
-
-  constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient) {}
 
   // Liste tous les templates
   getTemplates(): Observable<Template[]> {
@@ -60,20 +59,29 @@ export class TemplateApiService {
     return this.http.delete<void>(`${this.baseUrl}/${templateId}/variables/${variableId}`);
   }
 
-
-
   // Génération de document (renvoie un Blob PDF)
   generateDocument(id: string, data: any): Observable<Blob> {
     return this.http.post(`${this.baseUrl}/${id}/generate`, data, { responseType: 'blob' });
   }
 
-  updateVariable(templateId: string, variableId: string, variable: Partial<Variable>): Observable<Variable> {
-    return this.http.put<Variable>(`${this.baseUrl}/${templateId}/variables/${variableId}`, variable);
+  updateVariable(
+    templateId: string,
+    variableId: string,
+    variable: Partial<Variable>,
+  ): Observable<Variable> {
+    return this.http.put<Variable>(
+      `${this.baseUrl}/${templateId}/variables/${variableId}`,
+      variable,
+    );
   }
 
   // Historique des générations
   getGenerations(templateId: string): Observable<Generation[]> {
     return this.http.get<Generation[]>(`${this.baseUrl}/${templateId}/generations`);
+  }
+
+  exportHtml(id: string, data: any): Observable<Blob> {
+    return this.http.post(`${this.baseUrl}/${id}/preview-html`, data, { responseType: 'blob' });
   }
 
   duplicateTemplate(id: string): Observable<Template> {
@@ -84,20 +92,33 @@ export class TemplateApiService {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }
 
-  createDocument(templateId: string, document: { nom: string; donnees: any }): Observable<Document> {
-    return this.http.post<Document>(`${this.baseUrl}/${templateId}/documents`, document);
+  createDocument(
+    templateId: string,
+    document: { nom: string; donnees: any },
+  ): Observable<GeneratedDocument> {
+    return this.http.post<GeneratedDocument>(`${this.baseUrl}/${templateId}/documents`, document);
   }
 
-  updateDocument(templateId: string, documentId: string, document: { nom: string; donnees: any }): Observable<Document> {
-    return this.http.put<Document>(`${this.baseUrl}/${templateId}/documents/${documentId}`, document);
+  updateDocument(
+    templateId: string,
+    documentId: string,
+    document: { nom: string; donnees: any },
+  ): Observable<GeneratedDocument> {
+    return this.http.put<GeneratedDocument>(
+      `${this.baseUrl}/${templateId}/documents/${documentId}`,
+      document,
+    );
   }
 
-  getDocuments(templateId: string): Observable<Document[]> {
-    return this.http.get<Document[]>(`${this.baseUrl}/${templateId}/documents`);
+  getDocuments(templateId: string): Observable<GeneratedDocument[]> {
+    return this.http.get<GeneratedDocument[]>(`${this.baseUrl}/${templateId}/documents`);
   }
 
   deleteDocument(templateId: string, documentId: string): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${templateId}/documents/${documentId}`);
   }
 
+  getAllDocuments(): Observable<GeneratedDocument[]> {
+    return this.http.get<GeneratedDocument[]>('/api/documents');
+  }
 }

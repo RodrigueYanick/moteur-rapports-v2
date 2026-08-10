@@ -8,9 +8,8 @@ describe('TemplateList', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [TemplateList]
-    })
-    .compileComponents();
+      imports: [TemplateList],
+    }).compileComponents();
 
     fixture = TestBed.createComponent(TemplateList);
     component = fixture.componentInstance;
