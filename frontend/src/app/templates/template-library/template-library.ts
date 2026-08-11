@@ -1,12 +1,12 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';  // <-- ajout Router
 import { FormsModule } from '@angular/forms';
 import { TemplateApiService } from '../../services/template-api';
 import { Template } from '../../models/template.model';
 import {
   LucideAngularModule, Search, Plus, LayoutGrid, List as ListIcon,
-  Star, Eye, Edit3, Copy, Trash2, FileText, Loader2
+  Star, Eye, Edit3, Copy, Trash2, FileText, Loader2, Archive, RefreshCw, RotateCcw
 } from 'lucide-angular';
 
 @Component({
@@ -36,10 +36,9 @@ export class TemplateLibrary implements OnInit {
   readonly icons = {
     search: Search, plus: Plus, grid: LayoutGrid, list: ListIcon,
     star: Star, eye: Eye, edit: Edit3, copy: Copy, trash: Trash2,
-    file: FileText, loader: Loader2
+    file: FileText, loader: Loader2, archive: Archive, newVersion: RefreshCw, restore: RotateCcw
   };
 
-  // Palette cyclique attribuée par catégorie, pour un rendu coloré cohérent
   private categoryColors: Record<string, string> = {
     VENTES: 'linear-gradient(135deg, #4338ca, #6d5efc)',
     ACHATS: 'linear-gradient(135deg, #ea580c, #f97316)',
@@ -54,7 +53,8 @@ export class TemplateLibrary implements OnInit {
 
   constructor(
     private api: TemplateApiService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private router: Router    // <-- injection ajoutée
   ) {}
 
   ngOnInit(): void {
@@ -129,6 +129,41 @@ export class TemplateLibrary implements OnInit {
         },
       });
     }
+  }
+
+  // ---------- NOUVELLES MÉTHODES ----------
+
+  archiveTemplate(id: string, event?: Event): void {
+    event?.stopPropagation();
+    if (!confirm('Archiver ce modèle ?')) return;
+    this.api.archiveTemplate(id).subscribe({
+      next: () => this.loadTemplates(),
+      error: (err) => {
+        console.error('Erreur archivage', err);
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  newVersion(id: string, event?: Event): void {
+    event?.stopPropagation();
+    if (!confirm('Créer une nouvelle version ? L\'ancienne sera archivée.')) return;
+    this.api.newVersion(id).subscribe({
+      next: (newTemplate) => this.router.navigate(['/templates', newTemplate.id]),
+      error: (err) => console.error('Erreur nouvelle version', err)
+    });
+  }
+
+  restoreTemplate(id: string, event?: Event): void {
+    event?.stopPropagation();
+    if (!confirm('Restaurer ce modèle ? Il repassera en brouillon.')) return;
+    this.api.restoreTemplate(id).subscribe({
+      next: () => this.loadTemplates(),
+      error: (err) => {
+        console.error('Erreur restauration', err);
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   getStatusClass(statut: string): string {

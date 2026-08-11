@@ -29,6 +29,24 @@
     >
       {{ publishing ? 'Publication...' : 'Publier' }}
     </button>
+
+    <!-- Nouveaux boutons d'action -->
+    <div class="actions-bar" *ngIf="template">
+      <button *ngIf="template.statut === 'PUBLIE'" (click)="archive()" class="btn btn-warning">
+        <lucide-icon [img]="icons.archive" [size]="16"></lucide-icon> Archiver
+      </button>
+      <button *ngIf="template.statut === 'PUBLIE'" (click)="newVersion()" class="btn btn-primary">
+        <lucide-icon [img]="icons.newVersion" [size]="16"></lucide-icon> Nouvelle version
+      </button>
+      <button *ngIf="template.statut === 'ARCHIVE'" (click)="restore()" class="btn btn-success">
+        <lucide-icon [img]="icons.restore" [size]="16"></lucide-icon> Restaurer
+      </button>
+    </div>
+
+    <!-- Lien vers la version précédente -->
+    <div *ngIf="template.parentTemplateId" class="parent-link">
+      <a [routerLink]="['/templates', template.parentTemplateId]">← Voir la version précédente</a>
+    </div>
   </section>
 
   <app-variable-validation-form [templateId]="templateId" [active]="template.statut === 'PUBLIE'">

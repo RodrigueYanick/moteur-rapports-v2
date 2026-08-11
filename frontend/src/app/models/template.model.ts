@@ -9,4 +9,5 @@ export interface Template {
   dateModification: string;
   categorie?: string;
   formatPapier?: string;
+  parentTemplateId?: string | null;
 }

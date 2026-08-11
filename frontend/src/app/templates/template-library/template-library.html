@@ -84,6 +84,18 @@
         <div class="card-footer">
           <span class="version-tag">v{{ template.version }}</span>
           <span class="format-tag">{{ template.formatPapier || 'A4' }}</span>
+
+          <!-- Nouveaux boutons d'action -->
+          <button *ngIf="template.statut === 'PUBLIE'" (click)="archiveTemplate(template.id, $event)" class="btn btn-sm btn-warning" title="Archiver">
+            <lucide-icon [img]="icons.archive" [size]="14"></lucide-icon>
+          </button>
+          <button *ngIf="template.statut === 'PUBLIE'" (click)="newVersion(template.id, $event)" class="btn btn-sm btn-primary" title="Nouvelle version">
+            <lucide-icon [img]="icons.newVersion" [size]="14"></lucide-icon>
+          </button>
+          <button *ngIf="template.statut === 'ARCHIVE'" (click)="restoreTemplate(template.id, $event)" class="btn btn-sm btn-success" title="Restaurer">
+            <lucide-icon [img]="icons.restore" [size]="14"></lucide-icon>
+          </button>
+
           <button class="delete-btn" (click)="deleteTemplate(template.id, $event)" title="Supprimer">
             <lucide-icon [img]="icons.trash" [size]="13"></lucide-icon>
           </button>
@@ -124,6 +136,18 @@
             <button class="icon-action" (click)="duplicateTemplate(template.id, $event)" title="Dupliquer">
               <lucide-icon [img]="icons.copy" [size]="14"></lucide-icon>
             </button>
+
+            <!-- Nouveaux boutons pour la vue liste -->
+            <button *ngIf="template.statut === 'PUBLIE'" class="icon-action" (click)="archiveTemplate(template.id, $event)" title="Archiver">
+              <lucide-icon [img]="icons.archive" [size]="14"></lucide-icon>
+            </button>
+            <button *ngIf="template.statut === 'PUBLIE'" class="icon-action" (click)="newVersion(template.id, $event)" title="Nouvelle version">
+              <lucide-icon [img]="icons.newVersion" [size]="14"></lucide-icon>
+            </button>
+            <button *ngIf="template.statut === 'ARCHIVE'" class="icon-action" (click)="restoreTemplate(template.id, $event)" title="Restaurer">
+              <lucide-icon [img]="icons.restore" [size]="14"></lucide-icon>
+            </button>
+
             <button class="icon-action danger" (click)="deleteTemplate(template.id, $event)" title="Supprimer">
               <lucide-icon [img]="icons.trash" [size]="14"></lucide-icon>
             </button>

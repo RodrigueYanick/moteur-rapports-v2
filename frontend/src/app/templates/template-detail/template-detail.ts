@@ -2,18 +2,19 @@ import { Component, OnInit, ChangeDetectorRef, SimpleChanges } from '@angular/co
 import { CommonModule } from '@angular/common';
 import { Template } from '../../models/template.model';
 import { TemplateApiService } from '../../services/template-api';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { ReportDesigner } from '../../designer/report-designer/report-designer';
 import { DesignPage } from '../../designer/models/design-block.model';
 import { DesignSerializer } from '../../designer/services/design-serializer.service';
 import { Subject, debounceTime } from 'rxjs';
 import { MockDataService } from '../../designer/services/mock-data.service';
 import { VariableValidationForm } from '../../designer/variable-validation-form/variable-validation-form';
+import { LucideAngularModule, Archive, RefreshCw, RotateCcw } from 'lucide-angular';
 
 @Component({
   selector: 'app-template-detail',
   standalone: true,
-  imports: [CommonModule, ReportDesigner, VariableValidationForm],
+  imports: [CommonModule, RouterModule, ReportDesigner, VariableValidationForm, LucideAngularModule],
   templateUrl: './template-detail.html',
   styleUrls: ['./template-detail.scss'],
 })
@@ -27,6 +28,12 @@ export class TemplateDetail implements OnInit {
   savingStatus: 'idle' | 'saving' | 'saved' = 'idle';
   private saveSubject = new Subject<void>();
   templateId: string | null = null;
+
+  readonly icons = {
+    archive: Archive,
+    newVersion: RefreshCw,
+    restore: RotateCcw
+  };
 
   constructor(
     private api: TemplateApiService,
@@ -261,5 +268,38 @@ export class TemplateDetail implements OnInit {
   onPagesChange(newPages: DesignPage[]): void {
     this.pages = newPages;
     this.triggerSave();
+  }
+
+  archive(): void {
+    if (!this.template) return;
+    if (!confirm('Archiver ce modèle ?')) return;
+    this.api.archiveTemplate(this.template.id).subscribe({
+      next: (updated) => {
+        this.template = updated;
+        this.cdr.detectChanges();
+      },
+      error: (err) => console.error('Erreur archivage', err)
+    });
+  }
+
+  newVersion(): void {
+    if (!this.template) return;
+    if (!confirm('Créer une nouvelle version ? L\'ancienne sera archivée.')) return;
+    this.api.newVersion(this.template.id).subscribe({
+      next: (newTemplate) => this.router.navigate(['/templates', newTemplate.id]),
+      error: (err) => console.error('Erreur nouvelle version', err)
+    });
+  }
+
+  restore(): void {
+    if (!this.template) return;
+    if (!confirm('Restaurer ce modèle ? Il repassera en brouillon.')) return;
+    this.api.restoreTemplate(this.template.id).subscribe({
+      next: (updated) => {
+        this.template = updated;
+        this.cdr.detectChanges();
+      },
+      error: (err) => console.error('Erreur restauration', err)
+    });
   }
 }

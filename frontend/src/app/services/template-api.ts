@@ -121,4 +121,16 @@ export class TemplateApiService {
   getAllDocuments(): Observable<GeneratedDocument[]> {
     return this.http.get<GeneratedDocument[]>('/api/documents');
   }
+
+  archiveTemplate(id: string): Observable<Template> {
+    return this.http.post<Template>(`${this.baseUrl}/${id}/archive`, {});
+  }
+
+  newVersion(id: string): Observable<Template> {
+    return this.http.post<Template>(`${this.baseUrl}/${id}/new-version`, {});
+  }
+
+  restoreTemplate(id: string): Observable<Template> {
+    return this.http.post<Template>(`${this.baseUrl}/${id}/restore`, {});
+  }
 }
