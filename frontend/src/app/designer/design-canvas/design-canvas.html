@@ -17,6 +17,7 @@
       cdkDrag
       [cdkDragBoundary]="'.canvas'"
       [cdkDragDisabled]="block.locked"
+      (cdkDragMoved)="onDragMoved(block, $event)"
       (cdkDragEnded)="onDragEnded(block, $event)"
       (click)="selectBlock(block); $event.stopPropagation()"
       [class.selected]="block.id === selectedBlockId"
@@ -25,7 +26,7 @@
       [style.top.px]="block.y || 0"
       [ngStyle]="getBoxStyle(block)"
     >
-    <div class="block-content" [style]="getRotationStyle(block)">
+      <div class="block-content" [style]="getRotationStyle(block)">
         <h1 *ngIf="block.type === 'titre'" [style]="getStyle(block)">
           {{ displayContent(block) }}
         </h1>
@@ -100,7 +101,7 @@
         <div *ngIf="block.type === 'graphique'" class="table-placeholder">
           Graphique dynamique ({{ block.source }})
         </div>
-    </div>
+      </div>
     </div>
   </ng-container>
 </div>

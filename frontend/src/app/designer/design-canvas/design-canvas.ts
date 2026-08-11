@@ -8,10 +8,16 @@ import {
   ChangeDetectorRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { CdkDragDrop, CdkDragEnd, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
+import {
+  CdkDragDrop,
+  CdkDragEnd,
+  CdkDragMove,
+  DragDropModule,
+  moveItemInArray,
+} from '@angular/cdk/drag-drop';
 import { FillerDataService } from '../services/filler-data';
 import { Subscription } from 'rxjs';
-import { LucideAngularModule, ImageOff, Square, QrCode, Barcode, PenTool } from 'lucide-angular';
+import { LucideAngularModule, ImageOff, QrCode, Barcode, PenTool } from 'lucide-angular';
 import { DesignBlock, BLOCK_DEFAULT_DIMENSIONS } from '../models/design-block.model';
 
 @Component({
@@ -37,6 +43,9 @@ export class DesignCanvas implements OnInit, OnDestroy {
 
   private valuesSubscription?: Subscription;
   selectedBlockId: string | null = null;
+
+  // Stockage temporaire de la position initiale pendant un drag
+  private dragStartPositions = new Map<string, { x: number; y: number }>();
 
   readonly icons = {
     imagePlaceholder: ImageOff,
@@ -89,6 +98,45 @@ export class DesignCanvas implements OnInit, OnDestroy {
     this.blocksChange.emit([...this.blocks]);
   }
 
+  // ---------- Améliorations de la fluidité ----------
+
+  /**
+   * Appelé en continu pendant le drag.
+   * Met à jour la position du bloc en temps réel en utilisant event.distance.
+   */
+  onDragMoved(block: DesignBlock, event: CdkDragMove): void {
+    // Stocker la position initiale au premier mouvement
+    if (!this.dragStartPositions.has(block.id)) {
+      this.dragStartPositions.set(block.id, {
+        x: block.x || 0,
+        y: block.y || 0,
+      });
+    }
+    const startPos = this.dragStartPositions.get(block.id)!;
+
+    // event.distance.x / y donne le déplacement total depuis le début du drag (en pixels)
+    // Le CDK tient déjà compte du facteur de zoom si le boundary est correctement défini.
+    block.x = startPos.x + event.distance.x;
+    block.y = startPos.y + event.distance.y;
+
+    // Force un rafraîchissement immédiat pour un déplacement fluide
+    this.cdr.detectChanges();
+  }
+
+  /**
+   * Appelé à la fin du drag.
+   * Nettoie les données temporaires et émet le changement pour la sauvegarde et l'historique.
+   */
+  onDragEnded(block: DesignBlock, event: CdkDragEnd): void {
+    // Nettoyage de la position initiale stockée
+    this.dragStartPositions.delete(block.id);
+
+    // Émet le changement uniquement à la fin pour éviter des appels API trop fréquents
+    this.blocksChange.emit([...this.blocks]);
+  }
+
+  // ---------- Styles et affichage ----------
+
   getStyle(block: DesignBlock): string {
     const s = block.style || {};
     let css = '';
@@ -120,8 +168,6 @@ export class DesignCanvas implements OnInit, OnDestroy {
     return css;
   }
 
-  // Calcule la taille du conteneur du bloc à partir de largeurBox/hauteurBox,
-  // avec un fallback cohérent selon le type si l'utilisateur n'a rien défini.
   getBoxStyle(block: DesignBlock): { [key: string]: string } {
     const fallback = BLOCK_DEFAULT_DIMENSIONS[block.type];
     const w = block.largeurBox || fallback.w;
@@ -161,29 +207,6 @@ export class DesignCanvas implements OnInit, OnDestroy {
   isImageResolved(block: DesignBlock): boolean {
     const url = this.displayImageUrl(block);
     return !!url && !url.startsWith('{{');
-  }
-
-  onDragEnded(block: DesignBlock, event: CdkDragEnd): void {
-    const element = event.source.element.nativeElement;
-    const transform = element.style.transform;
-    const match = transform.match(/translate3d\((.+)px, (.+)px, 0px\)/);
-    if (match) {
-      const scaleFactor = this.zoom / 100;
-      const deltaX = parseFloat(match[1]) / scaleFactor;
-      const deltaY = parseFloat(match[2]) / scaleFactor;
-
-      let newX = (block.x || 0) + deltaX;
-      let newY = (block.y || 0) + deltaY;
-
-      // Empêche toute position négative (bloc éjecté hors de la page)
-      newX = Math.max(0, newX);
-      newY = Math.max(0, newY);
-
-      block.x = newX;
-      block.y = newY;
-      element.style.transform = '';
-      this.blocksChange.emit([...this.blocks]);
-    }
   }
 
   getRotationStyle(block: DesignBlock): string {

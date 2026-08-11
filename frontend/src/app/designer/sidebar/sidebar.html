@@ -48,35 +48,63 @@
 
     <!-- ======================== CALQUES ======================== -->
     <div *ngIf="activeTab === 'layers'" class="layers-tab">
-      <div
-        class="layer-item"
-        *ngFor="let block of blocks"
-        [class.selected]="block === selectedBlock"
-      >
-        <div class="layer-info" (click)="onSelectBlock(block)">
-          <lucide-icon [img]="blockIcon(block.type)" [size]="14" class="layer-icon"></lucide-icon>
-          <div class="layer-text">
-            <span class="layer-type">{{ block.type }}</span>
-            <span class="layer-name">{{
-              block.nom || block.contenu || block.url || '(vide)'
-            }}</span>
+      <div class="layers-hint" *ngIf="blocks.length > 1">
+        <span>Glisse pour réorganiser · le haut = premier plan</span>
+      </div>
+
+      <div cdkDropList class="layers-list" (cdkDropListDropped)="onLayerDrop($event)">
+        <div
+          class="layer-item"
+          *ngFor="let block of layersDisplayOrder; trackBy: trackByBlockId"
+          [class.selected]="block === selectedBlock"
+          cdkDrag
+          [cdkDragDisabled]="locked"
+        >
+          <div class="layer-drag-handle" cdkDragHandle>
+            <lucide-icon [img]="icons.grip" [size]="13"></lucide-icon>
+          </div>
+
+          <div class="layer-info" (click)="onSelectBlock(block)">
+            <lucide-icon [img]="blockIcon(block.type)" [size]="14" class="layer-icon"></lucide-icon>
+            <div class="layer-text">
+              <span class="layer-type">{{ block.type }}</span>
+              <span class="layer-name">{{
+                block.nom || block.contenu || block.url || '(vide)'
+              }}</span>
+            </div>
+          </div>
+
+          <div class="layer-actions">
+            <button
+              (click)="moveLayerUp(block, $event)"
+              [disabled]="isFirstInDisplay(block)"
+              title="Monter (premier plan)"
+            >
+              <lucide-icon [img]="icons.chevronUp" [size]="13"></lucide-icon>
+            </button>
+            <button
+              (click)="moveLayerDown(block, $event)"
+              [disabled]="isLastInDisplay(block)"
+              title="Descendre (arrière-plan)"
+            >
+              <lucide-icon [img]="icons.chevronDown" [size]="13"></lucide-icon>
+            </button>
+            <button
+              (click)="onToggleVisibility(block)"
+              [title]="block.visible ? 'Masquer' : 'Afficher'"
+            >
+              <lucide-icon [img]="block.visible ? icons.eye : icons.eyeOff" [size]="14"></lucide-icon>
+            </button>
+            <button
+              (click)="onToggleLock(block)"
+              [title]="block.locked ? 'Déverrouiller' : 'Verrouiller'"
+            >
+              <lucide-icon [img]="block.locked ? icons.lock : icons.unlock" [size]="14"></lucide-icon>
+            </button>
           </div>
         </div>
-        <div class="layer-actions">
-          <button
-            (click)="onToggleVisibility(block)"
-            [title]="block.visible ? 'Masquer' : 'Afficher'"
-          >
-            <lucide-icon [img]="block.visible ? icons.eye : icons.eyeOff" [size]="14"></lucide-icon>
-          </button>
-          <button
-            (click)="onToggleLock(block)"
-            [title]="block.locked ? 'Déverrouiller' : 'Verrouiller'"
-          >
-            <lucide-icon [img]="block.locked ? icons.lock : icons.unlock" [size]="14"></lucide-icon>
-          </button>
-        </div>
       </div>
+
       <div *ngIf="blocks.length === 0" class="empty-message">Aucun bloc pour l'instant</div>
     </div>
 

@@ -219,7 +219,7 @@ export class ReportDesigner implements OnInit {
 
     const newBlock: DesignBlock = {
       id: crypto.randomUUID(), type, contenu: '', style: {},
-      x: 50, y: 50, visible: true, locked: false
+      x: 50, y: 50, visible: true, locked: false, rotation: 0
     };
 
     switch (type) {
@@ -470,6 +470,12 @@ export class ReportDesigner implements OnInit {
         alert('Impossible de charger le schéma du template (est-il publié ?).');
       }
     });
+  }
+
+  onLayersReordered(newBlocks: DesignBlock[]): void {
+    if (this.isLocked) { this.showLockedMessage(); return; }
+    this.blocks = newBlocks;
+    this.afterPagesChanged();
   }
 
   toggleGrid(): void { this.showGrid = !this.showGrid; }

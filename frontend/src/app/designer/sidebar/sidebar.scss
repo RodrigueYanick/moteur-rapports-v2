@@ -271,3 +271,115 @@ $text-muted: #676c7f;
   font-size: 13px;
   padding: 24px 0;
 }
+
+.layers-hint {
+  font-size: 10px;
+  color: $text-muted;
+  padding: 4px 8px 8px;
+  text-align: center;
+}
+
+.layers-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.layer-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 6px;
+  border-radius: 8px;
+  cursor: default;
+  margin-bottom: 2px;
+  background: $bg-panel;
+  transition: background 0.15s ease;
+
+  &.selected { background: rgba(109, 94, 252, 0.12); }
+  &:hover { background: $bg-hover; }
+
+  &.cdk-drag-preview {
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+    border-radius: 8px;
+    background: $bg-card;
+    opacity: 0.95;
+  }
+
+  &.cdk-drag-placeholder {
+    opacity: 0.3;
+    border: 1px dashed $accent;
+    background: transparent;
+  }
+
+  &.cdk-drag-animating {
+    transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+  }
+}
+
+.layer-drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $text-muted;
+  cursor: grab;
+  flex-shrink: 0;
+  padding: 2px;
+
+  &:hover { color: $text-secondary; }
+  &:active { cursor: grabbing; }
+}
+
+.layer-info {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.layer-icon { color: $accent; flex-shrink: 0; }
+
+.layer-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.layer-type {
+  font-size: 10px;
+  color: $text-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.layer-name {
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: $text-primary;
+}
+
+.layer-actions {
+  display: flex;
+  gap: 1px;
+  flex-shrink: 0;
+
+  button {
+    background: none;
+    border: none;
+    color: $text-secondary;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 5px;
+    display: flex;
+
+    &:hover:not(:disabled) { background: $bg-hover; color: $text-primary; }
+    &:disabled { opacity: 0.25; cursor: not-allowed; }
+  }
+}
+
+.cdk-drop-list-dragging .layer-item:not(.cdk-drag-placeholder) {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}

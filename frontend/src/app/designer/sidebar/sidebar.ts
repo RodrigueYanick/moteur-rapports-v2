@@ -1,6 +1,7 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DesignBlock } from '../models/design-block.model';
+import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import {
   LucideAngularModule,
   LibraryBig,
@@ -22,10 +23,13 @@ import {
   Unlock,
   ChevronDown,
   ChevronRight,
+  ChevronUp,
   Code,
+  GripVertical,
+  ChevronsUp,
+  ChevronsDown,
 } from 'lucide-angular';
 import { VariableManager } from '../variable-manager/variable-manager';
-import { Template } from '../../models/template.model';
 import { Variable } from '../../models/variable.model';
 
 interface ComponentDef {
@@ -44,7 +48,7 @@ interface ComponentCategory {
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [CommonModule, LucideAngularModule, VariableManager],
+  imports: [CommonModule, LucideAngularModule, VariableManager, DragDropModule],
   templateUrl: './sidebar.html',
   styleUrls: ['./sidebar.scss'],
 })
@@ -60,6 +64,8 @@ export class Sidebar {
   @Output() toggleLock = new EventEmitter<DesignBlock>();
   @Output() addBlock = new EventEmitter<DesignBlock['type']>();
   @Output() explicitVariablesChange = new EventEmitter<Variable[]>();
+  /** Émet le tableau de blocs réordonné (dans l'ordre réel du canvas, pas l'ordre affiché inversé) */
+  @Output() blocksReordered = new EventEmitter<DesignBlock[]>();
 
   activeTab: 'library' | 'layers' | 'variables' = 'layers';
 
@@ -72,10 +78,13 @@ export class Sidebar {
     unlock: Unlock,
     chevronDown: ChevronDown,
     chevronRight: ChevronRight,
+    chevronUp: ChevronUp,
     code: Code,
+    grip: GripVertical,
+    toFront: ChevronsUp,
+    toBack: ChevronsDown,
   };
 
-  // Icônes par type de bloc, utilisées aussi dans l'onglet Calques
   private typeIcons: Record<DesignBlock['type'], any> = {
     titre: Type,
     texte: AlignLeft,
@@ -90,7 +99,6 @@ export class Sidebar {
     graphique: BarChart3,
   };
 
-  // Bibliothèque organisée en catégories repliables
   categories: ComponentCategory[] = [
     {
       id: 'contenu',
@@ -140,7 +148,6 @@ export class Sidebar {
     },
   ];
 
-  // Type mis en avant brièvement après un clic (retour visuel "sélection")
   recentlyAddedType: DesignBlock['type'] | null = null;
 
   setActiveTab(tab: 'library' | 'layers' | 'variables'): void {
@@ -148,7 +155,6 @@ export class Sidebar {
   }
 
   toggleCategory(cat: ComponentCategory): void {
-    // Toggle after current change-detection cycle to avoid ExpressionChangedAfterItHasBeenCheckedError
     setTimeout(() => (cat.open = !cat.open));
   }
 
@@ -180,5 +186,95 @@ export class Sidebar {
 
   blockIcon(type: DesignBlock['type']): any {
     return this.typeIcons[type] || this.typeIcons['texte'];
+  }
+
+  // ============================================================
+  // CALQUES — gestion de l'ordre d'empilement (comme Figma)
+  // ============================================================
+  //
+  // `blocks` est la source de vérité (ordre réel du canvas) :
+  // le DERNIER élément du tableau = premier plan (rendu en dernier dans le DOM).
+  //
+  // Dans le panneau, on affiche l'INVERSE de `blocks` pour respecter la
+  // convention Figma : le calque du HAUT de la liste = premier plan.
+  //
+  // On ne mute jamais `blocks` directement ici : toute réorganisation
+  // recalcule un nouveau tableau dans l'ordre réel, puis l'émet au parent.
+
+  get layersDisplayOrder(): DesignBlock[] {
+    return [...this.blocks].reverse();
+  }
+
+  trackByBlockId(index: number, block: DesignBlock): string {
+    return block.id;
+  }
+
+  onLayerDrop(event: CdkDragDrop<DesignBlock[]>): void {
+    if (this.locked) {
+      this.lockedInteraction.emit();
+      return;
+    }
+    if (event.previousIndex === event.currentIndex) return;
+
+    // Réordonne une copie de la liste affichée (inversée)
+    const displayOrder = this.layersDisplayOrder;
+    moveItemInArray(displayOrder, event.previousIndex, event.currentIndex);
+
+    // Reconvertit vers l'ordre réel du canvas avant d'émettre
+    const realOrder = [...displayOrder].reverse();
+    this.blocksReordered.emit(realOrder);
+  }
+
+  /** Fait remonter un calque d'un cran (vers le premier plan) */
+  moveLayerUp(block: DesignBlock, event: Event): void {
+    event.stopPropagation();
+    if (this.locked) { this.lockedInteraction.emit(); return; }
+    const idx = this.blocks.findIndex(b => b.id === block.id);
+    if (idx === -1 || idx === this.blocks.length - 1) return;
+    const reordered = [...this.blocks];
+    [reordered[idx], reordered[idx + 1]] = [reordered[idx + 1], reordered[idx]];
+    this.blocksReordered.emit(reordered);
+  }
+
+  /** Fait descendre un calque d'un cran (vers l'arrière-plan) */
+  moveLayerDown(block: DesignBlock, event: Event): void {
+    event.stopPropagation();
+    if (this.locked) { this.lockedInteraction.emit(); return; }
+    const idx = this.blocks.findIndex(b => b.id === block.id);
+    if (idx <= 0) return;
+    const reordered = [...this.blocks];
+    [reordered[idx], reordered[idx - 1]] = [reordered[idx - 1], reordered[idx]];
+    this.blocksReordered.emit(reordered);
+  }
+
+  /** Envoie un calque tout au premier plan */
+  bringToFront(block: DesignBlock, event: Event): void {
+    event.stopPropagation();
+    if (this.locked) { this.lockedInteraction.emit(); return; }
+    const idx = this.blocks.findIndex(b => b.id === block.id);
+    if (idx === -1 || idx === this.blocks.length - 1) return;
+    const reordered = this.blocks.filter(b => b.id !== block.id);
+    reordered.push(block);
+    this.blocksReordered.emit(reordered);
+  }
+
+  /** Envoie un calque tout à l'arrière-plan */
+  sendToBack(block: DesignBlock, event: Event): void {
+    event.stopPropagation();
+    if (this.locked) { this.lockedInteraction.emit(); return; }
+    const idx = this.blocks.findIndex(b => b.id === block.id);
+    if (idx <= 0) return;
+    const reordered = this.blocks.filter(b => b.id !== block.id);
+    reordered.unshift(block);
+    this.blocksReordered.emit(reordered);
+  }
+
+  isFirstInDisplay(block: DesignBlock): boolean {
+    return this.layersDisplayOrder[0]?.id === block.id;
+  }
+
+  isLastInDisplay(block: DesignBlock): boolean {
+    const arr = this.layersDisplayOrder;
+    return arr[arr.length - 1]?.id === block.id;
   }
 }
