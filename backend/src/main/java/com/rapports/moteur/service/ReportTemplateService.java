@@ -204,4 +204,71 @@ public class ReportTemplateService {
         return mapper.toDto(savedCopy);
     }
 
+    @Transactional
+    public TemplateResponse archive(UUID id) {
+        ReportTemplate entity = repository.findById(id)
+                .orElseThrow(() -> new TemplateNotFoundException("Template introuvable : " + id));
+        if (entity.getStatut() == TemplateStatus.ARCHIVE) {
+            throw new ValidationException("Le template est déjà archivé");
+        }
+        entity.setStatut(TemplateStatus.ARCHIVE);
+        repository.save(entity);
+        return mapper.toDto(entity);
+    }
+
+    @Transactional
+    public TemplateResponse newVersion(UUID id) {
+        ReportTemplate original = repository.findById(id)
+                .orElseThrow(() -> new TemplateNotFoundException("Template introuvable : " + id));
+
+        // Si l'original n'est pas déjà archivé, on l'archive
+        if (original.getStatut() != TemplateStatus.ARCHIVE) {
+            original.setStatut(TemplateStatus.ARCHIVE);
+            repository.save(original);
+        }
+
+        // Créer le brouillon de la nouvelle version
+        ReportTemplate newVersion = new ReportTemplate();
+        newVersion.setNom(original.getNom() + " (V" + (original.getVersion() + 1) + ")");
+        newVersion.setDescription(original.getDescription());
+        newVersion.setContenuDesign(original.getContenuDesign());
+        newVersion.setCategorie(original.getCategorie());
+        newVersion.setFormatPapier(original.getFormatPapier());
+        newVersion.setCodeEntreprise(original.getCodeEntreprise());
+        newVersion.setStatut(TemplateStatus.BROUILLON);
+        newVersion.setVersion(original.getVersion() + 1);
+        newVersion.setParentTemplate(original);
+
+        ReportTemplate savedNew = repository.save(newVersion);
+
+        // Copier les variables explicites de l'original vers la nouvelle version
+        List<ReportVariable> originalVariables = variableRepository.findByTemplate_Id(id);
+        List<ReportVariable> newVariables = new ArrayList<>();
+        for (ReportVariable var : originalVariables) {
+            ReportVariable newVar = ReportVariable.builder()
+                    .template(savedNew)
+                    .nomVariable(var.getNomVariable())
+                    .type(var.getType())
+                    .obligatoire(var.getObligatoire())
+                    .description(var.getDescription())
+                    .build();
+            newVariables.add(newVar);
+        }
+        variableRepository.saveAll(newVariables);
+
+        return mapper.toDto(savedNew);
+    }
+
+    @Transactional
+    public TemplateResponse restore(UUID id) {
+        ReportTemplate entity = repository.findById(id)
+                .orElseThrow(() -> new TemplateNotFoundException("Template introuvable : " + id));
+        if (entity.getStatut() != TemplateStatus.ARCHIVE) {
+            throw new ValidationException("Seul un template archivé peut être restauré");
+        }
+        entity.setStatut(TemplateStatus.BROUILLON);
+        repository.save(entity);
+        return mapper.toDto(entity);
+    }
+
 }

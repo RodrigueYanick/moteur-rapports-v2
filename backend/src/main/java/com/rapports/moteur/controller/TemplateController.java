@@ -140,4 +140,21 @@ public class TemplateController {
     public ResponseEntity<TemplateResponse> duplicate(@PathVariable UUID id) {
         return ResponseEntity.status(HttpStatus.CREATED).body(templateService.duplicate(id));
     }
+
+
+    @PostMapping("/{id}/archive")
+    public ResponseEntity<TemplateResponse> archive(@PathVariable UUID id) {
+        return ResponseEntity.ok(templateService.archive(id));
+    }
+
+    @PostMapping("/{id}/new-version")
+    public ResponseEntity<TemplateResponse> newVersion(@PathVariable UUID id) {
+        TemplateResponse newVersion = templateService.newVersion(id);
+        return ResponseEntity.status(HttpStatus.CREATED).body(newVersion);
+    }
+
+    @PostMapping("/{id}/restore")
+    public ResponseEntity<TemplateResponse> restore(@PathVariable UUID id) {
+        return ResponseEntity.ok(templateService.restore(id));
+    }
 }

@@ -59,6 +59,10 @@ public class ReportTemplate {
     @Builder.Default
     private String formatPapier = "A4";
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_template_id")
+    private ReportTemplate parentTemplate;
+
     @PrePersist
     protected void onCreate() {
         dateCreation = LocalDateTime.now();
