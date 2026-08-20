@@ -3,6 +3,7 @@ package com.rapports.moteur.service;
 import com.rapports.moteur.entity.GenerationStatus;
 import com.rapports.moteur.entity.ReportGeneration;
 import com.rapports.moteur.entity.ReportTemplate;
+import com.rapports.moteur.exceptions.TemplateNotFoundException;
 import com.rapports.moteur.repository.ReportGenerationRepository;
 import com.rapports.moteur.repository.ReportTemplateRepository;
 import org.springframework.scheduling.annotation.Async;
@@ -23,15 +24,18 @@ public class AsyncGenerationProcessor {
     private final ReportTemplateRepository templateRepository;
     private final TemplateHtmlBuilder htmlBuilder;
     private final PdfRendererService pdfRenderer;
+    private final EntrepriseService entrepriseService;   // ✅ ajouté
 
     public AsyncGenerationProcessor(ReportGenerationRepository generationRepository,
                                     ReportTemplateRepository templateRepository,
                                     TemplateHtmlBuilder htmlBuilder,
-                                    PdfRendererService pdfRenderer) {
+                                    PdfRendererService pdfRenderer,
+                                    EntrepriseService entrepriseService) {   // ✅ ajouté
         this.generationRepository = generationRepository;
         this.templateRepository = templateRepository;
         this.htmlBuilder = htmlBuilder;
         this.pdfRenderer = pdfRenderer;
+        this.entrepriseService = entrepriseService;
     }
 
     @Async("generationExecutor")
@@ -43,6 +47,13 @@ public class AsyncGenerationProcessor {
                 .orElseThrow(() -> new IllegalStateException("Generation introuvable : " + generationId));
         ReportTemplate template = templateRepository.findById(templateId)
                 .orElseThrow(() -> new IllegalStateException("Template introuvable : " + templateId));
+
+        // ✅ Vérification d’appartenance à l’entreprise courante
+        String currentCode = entrepriseService.getCurrentCodeEntreprise();
+        if (currentCode == null || !currentCode.equals(template.getCodeEntreprise())) {
+            // On ne révèle pas l’existence du template
+            throw new TemplateNotFoundException("Template introuvable : " + templateId);
+        }
 
         try {
             byte[] pdf = pdfRenderer.renderToPdf(htmlBuilder.build(template.getContenuDesign(), data));

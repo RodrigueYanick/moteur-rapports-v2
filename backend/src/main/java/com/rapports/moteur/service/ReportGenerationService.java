@@ -10,6 +10,8 @@ import com.rapports.moteur.exceptions.ValidationException;
 import com.rapports.moteur.mapper.GenerationMapper;
 import com.rapports.moteur.repository.ReportGenerationRepository;
 import com.rapports.moteur.repository.ReportTemplateRepository;
+import com.rapports.moteur.repository.ReportVariableRepository;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,8 +35,9 @@ public class ReportGenerationService {
     private final AppProperties appProperties;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final AsyncGenerationProcessor asyncProcessor;
+    private final ReportVariableRepository variableRepository;
+    private final EntrepriseService entrepriseService;
 
-    // ⚠️ variableRepository a été retiré
     public ReportGenerationService(ReportGenerationRepository generationRepository,
                                     ReportTemplateRepository templateRepository,
                                     DataValidatorService validatorService,
@@ -42,7 +45,9 @@ public class ReportGenerationService {
                                     PdfRendererService pdfRenderer,
                                     GenerationMapper generationMapper,
                                     AppProperties appProperties,
-                                    AsyncGenerationProcessor asyncProcessor) {
+                                    ReportVariableRepository variableRepository,
+                                    AsyncGenerationProcessor asyncProcessor,
+                                    EntrepriseService entrepriseService) {   // ✅ ajouté
         this.generationRepository = generationRepository;
         this.templateRepository = templateRepository;
         this.validatorService = validatorService;
@@ -50,8 +55,35 @@ public class ReportGenerationService {
         this.pdfRenderer = pdfRenderer;
         this.generationMapper = generationMapper;
         this.appProperties = appProperties;
+        this.variableRepository = variableRepository;
         this.asyncProcessor = asyncProcessor;
+        this.entrepriseService = entrepriseService;
     }
+
+    // ============================================================
+    // Contrôle d'appartenance multi‑entreprise
+    // ============================================================
+
+    /**
+     * Charge un template et vérifie qu'il appartient à l'entreprise courante.
+     * Lève une TemplateNotFoundException si le template n'existe pas ou s'il
+     * appartient à une autre entreprise (même comportement que pour un template
+     * inexistant).
+     */
+    private ReportTemplate loadTemplateForCurrentEntreprise(UUID templateId) {
+        ReportTemplate template = templateRepository.findById(templateId)
+                .orElseThrow(() -> new TemplateNotFoundException("Template introuvable : " + templateId));
+
+        String currentCode = entrepriseService.getCurrentCodeEntreprise();
+        if (currentCode == null || !currentCode.equals(template.getCodeEntreprise())) {
+            throw new TemplateNotFoundException("Template introuvable : " + templateId);
+        }
+        return template;
+    }
+
+    // ============================================================
+    // Méthodes métier
+    // ============================================================
 
     // ---------- SYNCHRONE ----------
     @Transactional
@@ -75,6 +107,7 @@ public class ReportGenerationService {
             throw new IllegalStateException("Echec de la generation : " + e.getMessage(), e);
         }
     }
+
     // ---------- ASYNCHRONE ----------
     public GenerationResponse generateAsync(UUID templateId, Object rawData) {
         ReportTemplate template = getPublishedTemplate(templateId);
@@ -95,11 +128,19 @@ public class ReportGenerationService {
 
     // ---------- CONSULTATION ----------
     public GenerationDto getGeneration(UUID generationId) {
-        return generationMapper.toDto(generationRepository.findById(generationId)
-                .orElseThrow(() -> new IllegalStateException("Generation introuvable : " + generationId)));
+        ReportGeneration generation = generationRepository.findById(generationId)
+                .orElseThrow(() -> new IllegalStateException("Generation introuvable : " + generationId));
+
+        // Vérifie que le template de la génération appartient à l'entreprise courante
+        loadTemplateForCurrentEntreprise(generation.getTemplate().getId());
+
+        return generationMapper.toDto(generation);
     }
 
     public List<GenerationDto> getHistory(UUID templateId) {
+        // Vérifie l'accès au template avant de retourner l'historique
+        loadTemplateForCurrentEntreprise(templateId);
+
         return generationRepository.findByTemplate_IdOrderByDateGenerationDesc(templateId)
                 .stream().map(generationMapper::toDto).toList();
     }
@@ -107,6 +148,10 @@ public class ReportGenerationService {
     public byte[] downloadPdf(UUID generationId) {
         ReportGeneration generation = generationRepository.findById(generationId)
                 .orElseThrow(() -> new IllegalStateException("Generation introuvable : " + generationId));
+
+        // Vérifie l'appartenance
+        loadTemplateForCurrentEntreprise(generation.getTemplate().getId());
+
         if (generation.getUrlFichierGenere() == null) {
             throw new IllegalStateException("Aucun fichier disponible pour cette generation");
         }
@@ -117,10 +162,18 @@ public class ReportGenerationService {
         }
     }
 
+    public String generateHtml(UUID templateId, Object rawData) {
+        ReportTemplate template = getPublishedTemplate(templateId);
+        Map<String, Object> data = toDataMap(rawData);
+        validatorService.validate(template.getSchema(), data);
+        return htmlBuilder.build(template.getContenuDesign(), data);
+    }
+
     // ---------- HELPERS ----------
+
     private ReportTemplate getPublishedTemplate(UUID templateId) {
-        ReportTemplate template = templateRepository.findById(templateId)
-                .orElseThrow(() -> new TemplateNotFoundException("Template introuvable : " + templateId));
+        // Utilise la méthode sécurisée au lieu d'un simple findById
+        ReportTemplate template = loadTemplateForCurrentEntreprise(templateId);
         if (template.getStatut() != TemplateStatus.PUBLIE) {
             throw new ValidationException(List.of("Le template doit etre publie avant generation"));
         }
@@ -164,11 +217,17 @@ public class ReportGenerationService {
         }
     }
 
-
-    public String generateHtml(UUID templateId, Object rawData) {
-        ReportTemplate template = getPublishedTemplate(templateId);
-        Map<String, Object> data = toDataMap(rawData);
-        validatorService.validate(template.getSchema(), data);
-        return htmlBuilder.build(template.getContenuDesign(), data);
+    private double toNumber(Object value) {
+        if (value == null) return 0;
+        if (value instanceof Number number) return number.doubleValue();
+        if (value instanceof String text) {
+            try {
+                return Double.parseDouble(text);
+            } catch (NumberFormatException e) {
+                return 0;
+            }
+        }
+        if (value instanceof Boolean bool) return bool ? 1 : 0;
+        return 0;
     }
 }

@@ -63,6 +63,7 @@ public class ReportTemplate {
     @JoinColumn(name = "parent_template_id")
     private ReportTemplate parentTemplate;
 
+
     @PrePersist
     protected void onCreate() {
         dateCreation = LocalDateTime.now();

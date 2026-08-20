@@ -6,6 +6,7 @@ import com.rapports.moteur.dto.dtoTemplate.TemplateSchemaDto;
 import com.rapports.moteur.dto.dtoVariable.VariableResponse;
 import com.rapports.moteur.entity.ReportTemplate;
 import com.rapports.moteur.entity.VariableType;
+import com.rapports.moteur.exceptions.TemplateNotFoundException;
 import com.rapports.moteur.repository.ReportTemplateRepository;
 import org.springframework.stereotype.Service;
 
@@ -18,15 +19,26 @@ public class SchemaService {
 
     private final ReportTemplateRepository templateRepository;
     private final ObjectMapper objectMapper;
+    private final EntrepriseService entrepriseService;
 
-    public SchemaService(ReportTemplateRepository templateRepository, ObjectMapper objectMapper) {
+    public SchemaService(ReportTemplateRepository templateRepository, ObjectMapper objectMapper, EntrepriseService entrepriseService) {
         this.templateRepository = templateRepository;
         this.objectMapper = objectMapper;
+        this.entrepriseService = entrepriseService;
+    }
+
+    private ReportTemplate loadTemplateForCurrentEntreprise(UUID id) {
+        ReportTemplate template = templateRepository.findById(id)
+                .orElseThrow(() -> new TemplateNotFoundException("Template introuvable : " + id));
+        String currentCode = entrepriseService.getCurrentCodeEntreprise();
+        if (currentCode == null || !currentCode.equals(template.getCodeEntreprise())) {
+            throw new TemplateNotFoundException("Template introuvable : " + id);
+        }
+        return template;
     }
 
     public TemplateSchemaDto getSchema(UUID templateId) {
-        ReportTemplate template = templateRepository.findById(templateId)
-                .orElseThrow(() -> new com.rapports.moteur.exceptions.TemplateNotFoundException("Template introuvable : " + templateId));
+        ReportTemplate template = loadTemplateForCurrentEntreprise(templateId);
 
         List<VariableResponse> variables = new ArrayList<>();
         String schemaJson = template.getSchema();   // <-- lecture du nouveau champ

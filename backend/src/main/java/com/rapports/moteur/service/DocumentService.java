@@ -26,10 +26,52 @@ public class DocumentService {
     private final ObjectMapper objectMapper;
     private final EntrepriseService entrepriseService;
 
+    // ============================================================
+    // Méthodes privées de contrôle d'appartenance multi‑entreprise
+    // ============================================================
+
+    /**
+     * Charge un template et vérifie qu'il appartient bien à l'entreprise courante.
+     * Lève une TemplateNotFoundException si le template n'existe pas ou s'il
+     * appartient à une autre entreprise (on ne révèle jamais l'existence d'un
+     * template étranger).
+     */
+    private ReportTemplate loadTemplateForCurrentEntreprise(UUID templateId) {
+        ReportTemplate template = templateRepository.findById(templateId)
+                .orElseThrow(() -> new TemplateNotFoundException("Template introuvable : " + templateId));
+
+        String currentCode = entrepriseService.getCurrentCodeEntreprise();
+        if (currentCode == null || !currentCode.equals(template.getCodeEntreprise())) {
+            throw new TemplateNotFoundException("Template introuvable : " + templateId);
+        }
+        return template;
+    }
+
+    /**
+     * Charge un document et vérifie qu'il appartient à l'entreprise courante
+     * via le code entreprise de son template.
+     * Lève une ValidationException si le document n'existe pas ou n'appartient
+     * pas à l'entreprise courante.
+     */
+    private Document loadDocumentForCurrentEntreprise(UUID documentId) {
+        Document document = documentRepository.findById(documentId)
+                .orElseThrow(() -> new ValidationException("Document introuvable"));
+
+        String currentCode = entrepriseService.getCurrentCodeEntreprise();
+        if (currentCode == null || !currentCode.equals(document.getTemplate().getCodeEntreprise())) {
+            throw new ValidationException("Document introuvable");
+        }
+        return document;
+    }
+
+    // ============================================================
+    // Méthodes métier
+    // ============================================================
+
     @Transactional
     public DocumentResponse create(UUID templateId, DocumentCreate request) {
-        ReportTemplate template = templateRepository.findById(templateId)
-                .orElseThrow(() -> new TemplateNotFoundException("Template introuvable"));
+        // Vérifie que le template appartient à l'entreprise courante
+        ReportTemplate template = loadTemplateForCurrentEntreprise(templateId);
 
         String donneesJson;
         try {
@@ -51,8 +93,8 @@ public class DocumentService {
 
     @Transactional
     public DocumentResponse update(UUID id, DocumentCreate request) {
-        Document document = documentRepository.findById(id)
-                .orElseThrow(() -> new ValidationException("Document introuvable"));
+        // Vérifie que le document appartient à l'entreprise courante
+        Document document = loadDocumentForCurrentEntreprise(id);
 
         document.setNom(request.getNom());
         try {
@@ -65,20 +107,32 @@ public class DocumentService {
     }
 
     public List<DocumentResponse> getByTemplate(UUID templateId) {
+        // Vérifie d'abord que le template est accessible
+        loadTemplateForCurrentEntreprise(templateId);
+
         return documentRepository.findByTemplateId(templateId).stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
     }
 
     public DocumentResponse getById(UUID id) {
-        Document document = documentRepository.findById(id)
-                .orElseThrow(() -> new ValidationException("Document introuvable"));
+        Document document = loadDocumentForCurrentEntreprise(id);
         return mapToDto(document);
     }
 
     @Transactional
     public void delete(UUID id) {
-        documentRepository.deleteById(id);
+        Document document = loadDocumentForCurrentEntreprise(id);
+        documentRepository.delete(document);
+    }
+
+    public List<DocumentResponse> getAll() {
+        String code = entrepriseService.getCurrentCodeEntreprise();
+        List<Document> documents = documentRepository.findByCodeEntreprise(code);
+        return documents.stream()
+                .filter(doc -> doc.getTemplate().getCodeEntreprise().equals(code))
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
     }
 
     private DocumentResponse mapToDto(Document document) {
@@ -98,18 +152,5 @@ public class DocumentService {
                 .dateModification(document.getDateModification())
                 .templateNom(document.getTemplate().getNom())
                 .build();
-    }
-
-
-    // (ajoute le paramètre au constructeur existant)
-
-    public List<DocumentResponse> getAll() {
-        String code = entrepriseService.getCurrentCodeEntreprise();
-        List<Document> documents = documentRepository.findByCodeEntreprise(code);
-        // Filtre les documents dont le template appartient au code entreprise
-        return documents.stream()
-                .filter(doc -> doc.getTemplate().getCodeEntreprise().equals(code))
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
     }
 }

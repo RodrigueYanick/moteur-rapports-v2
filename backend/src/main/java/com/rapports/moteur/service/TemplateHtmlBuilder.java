@@ -23,7 +23,8 @@ public class TemplateHtmlBuilder {
     public String build(String contenuDesignJson, Map<String, Object> data) {
         StringBuilder html = new StringBuilder(
             "<html><head><meta charset='UTF-8'/><style>"
-            + "body{margin:0;} .page{page-break-after:always;} .page:last-child{page-break-after:auto;}"
+            + "@page{size:A4;margin:0;} html,body{margin:0;padding:0;} body{margin:0;}"
+            + " .page{page-break-after:always;} .page:last-child{page-break-after:auto;}"
             + "</style></head><body>"
         );
         try {
@@ -58,7 +59,7 @@ public class TemplateHtmlBuilder {
 
     private String renderPage(JsonNode blocs, Map<String, Object> data) {
         StringBuilder page = new StringBuilder(
-            "<div class='page' style='position:relative;width:794px;height:1123px;background:white;overflow:hidden;'>"
+            "<div class='page' style='position:relative;width:794px;height:1123px;background:white;overflow:hidden;box-sizing:border-box;'>"
         );
         for (JsonNode bloc : blocs) {
             int x = bloc.path("x").asInt(0);
@@ -67,6 +68,7 @@ public class TemplateHtmlBuilder {
 
             int[] fallback = DEFAULT_DIMENSIONS.getOrDefault(type, new int[]{200, 50});
             int width = bloc.path("largeurBox").asInt(fallback[0]);
+            int height = bloc.path("hauteurBox").asInt(fallback[1]);
 
             int rotation = bloc.path("rotation").asInt(0);
             double opacite = bloc.path("opacite").asDouble(100);
@@ -80,7 +82,8 @@ public class TemplateHtmlBuilder {
 
             page.append("<div style='position:absolute;left:").append(x)
                 .append("px;top:").append(y)
-                .append("px;width:").append(width).append("px;")
+                .append("px;width:").append(width).append("px;height:").append(height)
+                .append("px;overflow:hidden;box-sizing:border-box;")
                 .append(transformParts).append("'>");
             page.append(renderBloc(bloc, data));
             page.append("</div>");
@@ -228,7 +231,7 @@ public class TemplateHtmlBuilder {
     
     private String buildStyle(JsonNode bloc) {
         JsonNode style = bloc.path("style");
-        StringBuilder sb = new StringBuilder();
+        StringBuilder sb = new StringBuilder("margin:0;box-sizing:border-box;width:100%;");
         if (style.has("fontSize")) sb.append("font-size:").append(style.get("fontSize").asInt()).append("px;");
         if (style.has("bold") && style.get("bold").asBoolean()) sb.append("font-weight:bold;");
         if (style.has("italic") && style.get("italic").asBoolean()) sb.append("font-style:italic;");
@@ -250,14 +253,20 @@ public class TemplateHtmlBuilder {
         for (JsonNode row : bloc.path("lignes")) {
             table.append("<tr>");
             for (JsonNode cell : row) {
+                if (cell.path("hidden").asBoolean(false)) continue;
                 String value = cell.path("value").asText("");
-                String bgColor = cell.has("bgColor") ? cell.path("bgColor").asText() : null;
-                String textColor = cell.has("textColor") ? cell.path("textColor").asText() : texteDefaut;
+                String bgColor = cell.has("bgColor") && !cell.path("bgColor").isNull() ? cell.path("bgColor").asText() : null;
+                String textColor = cell.has("textColor") && !cell.path("textColor").isNull() ? cell.path("textColor").asText() : texteDefaut;
+                int colSpan = cell.path("colSpan").asInt(1);
+                int rowSpan = cell.path("rowSpan").asInt(1);
 
                 String style = "border:1px solid " + escape(bordure) + ";padding:3px 5px;min-width:90px;color:" + escape(textColor) + ";";
                 if (bgColor != null) style += "background:" + escape(bgColor) + ";";
 
-                table.append("<td style='").append(style).append("'>")
+                table.append("<td");
+                if (colSpan > 1) table.append(" colspan='").append(colSpan).append("'");
+                if (rowSpan > 1) table.append(" rowspan='").append(rowSpan).append("'");
+                table.append(" style='").append(style).append("'>")
                     .append(escape(replaceVars(value, data))).append("</td>");
             }
             table.append("</tr>");
@@ -288,11 +297,15 @@ public class TemplateHtmlBuilder {
         if (rowsObj instanceof List<?> rows) {
             for (Object rowObj : rows) {
                 if (!(rowObj instanceof Map<?, ?> row)) continue;
+                @SuppressWarnings("unchecked")
+                Map<String, Object> rowMap = (Map<String, Object>) row;
                 table.append("<tr>");
                 for (JsonNode col : bloc.path("colonnes")) {
-                    Object cellValue = row.get(col.path("variable").asText(""));
+                    String varName = col.path("variable").asText();
+                    Object cellValue = rowMap.get(varName);
+                    String cellValueStr = cellValue != null ? String.valueOf(cellValue) : "";
                     table.append("<td style='").append(cellStyle).append("'>")
-                        .append(escape(String.valueOf(cellValue))).append("</td>");
+                        .append(escape(cellValueStr)).append("</td>");
                 }
                 table.append("</tr>");
             }
