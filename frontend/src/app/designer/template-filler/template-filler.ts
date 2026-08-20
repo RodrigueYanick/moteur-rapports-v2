@@ -21,6 +21,7 @@ import {
 export class TemplateFiller implements OnInit, OnDestroy {
   @Input() templateId: string | null = null;
   @Input() selectedBlock: DesignBlock | null = null;
+  @Input() allBlocks: DesignBlock[] = [];
 
   @Output() generatePdfRequest = new EventEmitter<Record<string, any>>();
 
@@ -53,7 +54,12 @@ export class TemplateFiller implements OnInit, OnDestroy {
     private api: TemplateApiService,
     private fillerData: FillerDataService,
     private cdr: ChangeDetectorRef
-  ) {}
+  ) {
+    this.fillerData.values$.subscribe((values) => {
+      this.values = { ...values };
+      this.cdr.detectChanges();
+    });
+  }
 
   ngOnInit(): void {
     if (this.templateId) {
@@ -120,12 +126,52 @@ export class TemplateFiller implements OnInit, OnDestroy {
 
   addRow(varName: string): void {
     if (!this.values[varName]) this.values[varName] = [];
-    const newRow: any = {};
-    const nbCols = 2;
-    for (let i = 1; i <= nbCols; i++) newRow['col' + i] = '';
+    const newRow: Record<string, any> = {};
+    const colonnes = this.getArrayColumns(varName);
+
+    if (colonnes.length > 0) {
+      for (const col of colonnes) {
+        newRow[col] = '';
+      }
+    } else {
+      // Fallback très générique si aucune colonne trouvée
+      newRow['col1'] = '';
+      newRow['col2'] = '';
+    }
     this.values[varName].push(newRow);
     this.fillerData.updateValue(varName, this.values[varName]);
     this.cdr.detectChanges();
+  }
+
+    /** Retourne les noms de colonnes pour une variable ARRAY, en cherchant dans tous les blocs. */
+  getArrayColumns(varName: string): string[] {
+    // Cherche un bloc tableau dynamique dont la source correspond
+    const block = this.allBlocks.find(
+      (b) => b.type === 'tableau' && b.source && b.source.replace('{{', '').replace('}}', '').trim() === varName
+    );
+    // if (block?.colonnes) {
+    //   return block.colonnes.filter(c => c.variable).map(c => c.variable);
+    // }
+    // // Sinon, utilise selectedBlock si c'est le bon tableau
+    // if (this.selectedBlock?.type === 'tableau' && this.selectedBlock.source?.replace('{{', '').replace('}}', '').trim() === varName) {
+    //   return (this.selectedBlock.colonnes || []).filter(c => c.variable).map(c => c.variable);
+    // }
+    // Fallback : clés de la première ligne existante
+    const firstRow = this.values[varName]?.[0];
+    if (firstRow && typeof firstRow === 'object') {
+      return Object.keys(firstRow);
+    }
+    return [];
+  }
+
+  /** Suivi des lignes */
+  trackByRow(index: number): number {
+    return index;
+  }
+
+  /** Suivi des colonnes */
+  trackByCol(index: number, col: string): string {
+    return col;
   }
 
   // ================== DOCUMENTS SAUVEGARDÉS ==================
@@ -227,6 +273,7 @@ export class TemplateFiller implements OnInit, OnDestroy {
 
   private extractBlockVariableNames(block: DesignBlock): Set<string> {
     const names = new Set<string>();
+
     const scan = (text?: string) => {
       if (!text) return;
       const matches = text.match(/\{\{(.+?)\}\}/g);

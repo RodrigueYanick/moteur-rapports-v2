@@ -34,7 +34,7 @@ export class BlockPreview implements OnChanges {
   constructor(
     private sanitizer: DomSanitizer,
     private mockDataService: MockDataService,
-    private fillerdata: FillerDataService
+    private fillerdata: FillerDataService,
   ) {}
 
   renderPreview(): void {
@@ -169,9 +169,12 @@ export class BlockPreview implements OnChanges {
       for (const row of block.lignes) {
         table += '<tr>';
         for (const cell of row) {
+          if (cell.hidden) continue;
           const bg = cell.bgColor ? `background:${cell.bgColor};` : '';
           const color = `color:${cell.textColor || texteDefaut};`;
-          table += `<td style="border:1px solid ${bordure};padding:3px 5px;min-width:90px;${bg}${color}">${this.replaceVars(cell.value || '', mockData)}</td>`;
+          const colspan = cell.colSpan && cell.colSpan > 1 ? ` colspan="${cell.colSpan}"` : '';
+          const rowspan = cell.rowSpan && cell.rowSpan > 1 ? ` rowspan="${cell.rowSpan}"` : '';
+          table += `<td${colspan}${rowspan} style="border:1px solid ${bordure};padding:3px 5px;min-width:90px;${bg}${color}">${this.replaceVars(cell.value || '', mockData)}</td>`;
         }
         table += '</tr>';
       }
@@ -187,15 +190,10 @@ export class BlockPreview implements OnChanges {
     const headerStyle = cellStyle + 'background:#f5f5f5;font-weight:600;';
 
     let table = `<table style="${tableStyle}">`;
-    table += '<tr>';
-    for (const col of block.colonnes || []) {
-      table += `<th style="${headerStyle}">${this.escape(col.titre)}</th>`;
-    }
-    table += '</tr>';
     for (const row of rows) {
       table += '<tr>';
       for (const col of block.colonnes || []) {
-        const val = row[col.variable] !== undefined ? row[col.variable] : '';
+        const val = row[col.variable]
         table += `<td style="${cellStyle}">${this.escape(String(val))}</td>`;
       }
       table += '</tr>';

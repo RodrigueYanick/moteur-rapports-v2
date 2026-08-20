@@ -2,6 +2,9 @@ export interface TableCell {
   value: string;
   bgColor?: string;
   textColor?: string;
+  colSpan?: number;   // nombre de colonnes fusionnées (par défaut 1)
+  rowSpan?: number;   // nombre de lignes fusionnées (par défaut 1)
+  hidden?: boolean;   // true si la cellule est absorbée par une fusion
 }
 
 export interface DesignBlock {
@@ -46,7 +49,7 @@ export interface DesignBlock {
   url?: string;
   lignes?: TableCell[][];
   source?: string;
-  colonnes?: { titre: string; variable: string }[];
+  colonnes?: { titre: string; variable: string; }[];
   nom?: string;
   largeurBox?: number;
   hauteurBox?: number;

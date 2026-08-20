@@ -23,6 +23,7 @@ import {
   AlertCircle,
   FileCheck2,
 } from 'lucide-angular';
+import { DesignBlock, DesignPage } from '../models/design-block.model';
 
 @Component({
   selector: 'app-variable-validation-form',
@@ -35,6 +36,8 @@ export class VariableValidationForm implements OnInit, OnChanges {
   @Input() templateId: string | null = null;
   @Input() active = false;
   @Output() validated = new EventEmitter<void>();
+  @Input() pages: DesignPage[] = []; // 👈 nouveau
+
 
   readonly icons = {
     check: CheckCircle2,
@@ -61,7 +64,12 @@ export class VariableValidationForm implements OnInit, OnChanges {
     private api: TemplateApiService,
     private fillerData: FillerDataService,
     private cdr: ChangeDetectorRef
-  ) {}
+  ) {
+    this.fillerData.values$.subscribe((values) => {
+      this.values = { ...values };
+      this.cdr.detectChanges();
+    });
+  }
 
   ngOnInit(): void {
     if (this.active && this.templateId) this.load();
@@ -74,6 +82,27 @@ export class VariableValidationForm implements OnInit, OnChanges {
       this.cdr.detectChanges(); // 🔧 force la détection de changement après le chargement
     }
   }
+
+  private get allBlocks(): DesignBlock[] {
+    return this.pages.flatMap(p => p.blocks);
+  }
+
+  getArrayColumns(varName: string): string[] {
+    const block = this.allBlocks.find(
+      (b) => b.type === 'tableau' && b.source && b.source.replace('{{', '').replace('}}', '').trim() === varName
+    );
+    if (block?.colonnes) {
+      return block.colonnes.filter(c => c.variable).map(c => c.variable);
+    }
+    const firstRow = this.values[varName]?.[0];
+    if (firstRow && typeof firstRow === 'object') {
+      return Object.keys(firstRow);
+    }
+    return [];
+  }
+
+  trackByRow(index: number): number { return index; }
+  trackByCol(index: number, col: string): string { return col; }
 
   private load(): void {
     if (!this.templateId) return;

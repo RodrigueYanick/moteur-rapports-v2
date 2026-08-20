@@ -66,5 +66,17 @@
     (previewRequest)="openPreview()">
   </app-report-designer>
 
+  <app-template-filler
+    [templateId]="templateId"
+    [selectedBlock]="selectedBlock"
+    [allBlocks]="allBlocksFlat">
+  </app-template-filler>
+
+  <app-variable-validation-form
+    [templateId]="templateId"
+    [active]="template.statut === 'PUBLIE'"
+    [pages]="pages">
+  </app-variable-validation-form>
+
   <div class="generation-error" *ngIf="generationError">{{ generationError }}</div>
 </ng-container>

@@ -1,9 +1,13 @@
 <div
+  #canvasContainer
   class="canvas"
   [style.width.px]="canvasWidth"
   [style.height.px]="canvasHeight"
   [style.transform]="'scale(' + zoom / 100 + ')'"
   [style.transform-origin]="'top left'"
+  tabindex="0"
+  (click)="clearSelection()"
+  (keydown)="onKeyDown($event)"
 >
   <!-- Grille visuelle -->
   <div class="grid-overlay" *ngIf="showGrid"></div>
@@ -14,11 +18,7 @@
     <div
       class="canvas-block"
       *ngIf="block.visible !== false"
-      cdkDrag
-      [cdkDragBoundary]="'.canvas'"
-      [cdkDragDisabled]="block.locked"
-      (cdkDragMoved)="onDragMoved(block, $event)"
-      (cdkDragEnded)="onDragEnded(block, $event)"
+      (mousedown)="onBlockMouseDown($event, block)"
       (click)="selectBlock(block); $event.stopPropagation()"
       [class.selected]="block.id === selectedBlockId"
       [class.locked]="block.locked"
@@ -27,29 +27,41 @@
       [ngStyle]="getBoxStyle(block)"
     >
       <div class="block-content" [style]="getRotationStyle(block)">
+        <!-- contenu inchangé -->
         <h1 *ngIf="block.type === 'titre'" [style]="getStyle(block)">
           {{ displayContent(block) }}
         </h1>
         <p *ngIf="block.type === 'texte'" [style]="getStyle(block)">{{ displayContent(block) }}</p>
 
         <div *ngIf="block.type === 'tableau'" class="canvas-table">
-          <table
-            *ngIf="block.lignes; else dynamicPlaceholder"
-            [style.borderColor]="block.style?.bordureCouleur || '#d9d9d9'"
-          >
+          <table *ngIf="block.lignes; else dynamicPlaceholder" [style.borderColor]="block.style?.bordureCouleur || '#d9d9d9'">
             <tr *ngFor="let row of block.lignes">
-              <td
-                *ngFor="let cell of row"
-                [style.background]="cell.bgColor || 'transparent'"
-                [style.color]="cell.textColor || block.style?.texteCouleurDefaut || '#000'"
-                [style.borderColor]="block.style?.bordureCouleur || '#d9d9d9'"
-              >
-                {{ displayContent2(cell.value) || '\u00A0' }}
-              </td>
+              <ng-container *ngFor="let cell of row">
+                <td *ngIf="!cell.hidden"
+                    [attr.colspan]="cell.colSpan && cell.colSpan > 1 ? cell.colSpan : null"
+                    [attr.rowspan]="cell.rowSpan && cell.rowSpan > 1 ? cell.rowSpan : null"
+                    [style.background]="cell.bgColor || 'transparent'"
+                    [style.color]="cell.textColor || block.style?.texteCouleurDefaut || '#000'"
+                    [style.borderColor]="block.style?.bordureCouleur || '#d9d9d9'">
+                  {{ displayContent2(cell.value) || '\u00A0' }}
+                </td>
+              </ng-container>
             </tr>
           </table>
           <ng-template #dynamicPlaceholder>
-            <div class="table-placeholder">Tableau dynamique ({{ block.source }})</div>
+            <div class="dynamic-table-placeholder">
+              <div class="dynamic-table-badge">
+                <lucide-icon [img]="icons.table" [size]="12"></lucide-icon>
+                Dynamique — source : {{ block.source || '—' }}
+              </div>
+              <table class="dynamic-preview-table" *ngIf="block.colonnes?.length">
+                <tr>
+                  <th *ngFor="let col of block.colonnes">
+                    {{ col.titre || col.variable }}
+                  </th>
+                </tr>
+              </table>
+            </div>
           </ng-template>
         </div>
 

@@ -4,17 +4,18 @@ import { Template } from '../../models/template.model';
 import { TemplateApiService } from '../../services/template-api';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { ReportDesigner } from '../../designer/report-designer/report-designer';
-import { DesignPage } from '../../designer/models/design-block.model';
+import { DesignBlock, DesignPage } from '../../designer/models/design-block.model';
 import { DesignSerializer } from '../../designer/services/design-serializer.service';
 import { Subject, debounceTime } from 'rxjs';
 import { MockDataService } from '../../designer/services/mock-data.service';
 import { VariableValidationForm } from '../../designer/variable-validation-form/variable-validation-form';
 import { LucideAngularModule, Archive, RefreshCw, RotateCcw } from 'lucide-angular';
+import { TemplateFiller } from '../../designer/template-filler/template-filler'; // ajuste le chemin
 
 @Component({
   selector: 'app-template-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule, ReportDesigner, VariableValidationForm, LucideAngularModule],
+  imports: [CommonModule, RouterModule, ReportDesigner, VariableValidationForm, LucideAngularModule, TemplateFiller],
   templateUrl: './template-detail.html',
   styleUrls: ['./template-detail.scss'],
 })
@@ -28,6 +29,7 @@ export class TemplateDetail implements OnInit {
   savingStatus: 'idle' | 'saving' | 'saved' = 'idle';
   private saveSubject = new Subject<void>();
   templateId: string | null = null;
+  selectedBlock: DesignBlock | null = null;
 
   readonly icons = {
     archive: Archive,
@@ -55,7 +57,7 @@ export class TemplateDetail implements OnInit {
     }
   }
 
-  private get allBlocksFlat() {
+  get allBlocksFlat() {
     return this.pages.flatMap(p => p.blocks);
   }
 

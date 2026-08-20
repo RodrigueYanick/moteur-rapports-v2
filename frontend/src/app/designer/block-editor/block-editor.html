@@ -6,22 +6,7 @@
       <lucide-icon [img]="icons.close" [size]="16"></lucide-icon>
     </button>
   </div>
-  
-  <!-- Debug temporaire: supprimer après diagnostic -->
-  <div class="debug-panel">
-    <div class="debug-row">block.locked: {{ block?.locked }}</div>
-    <div class="debug-row">form.invalid: {{ form.invalid }}</div>
-    <div class="debug-row">ngOnChanges count: {{ debugNgChanges }}</div>
-    <div class="debug-row">form.valueChanges count: {{ debugValueChanges }}</div>
-    <div class="debug-row">selectedCell: {{ selectedCell | json }}</div>
-    <div class="debug-row">tableRows: {{ tableRows }}</div>
-    <div class="debug-row">tableCols: {{ tableCols }}</div>
-    <div class="debug-row">block.lignes length: {{ block?.lignes?.length || 0 }}</div>
-    <details>
-      <summary>Form value (JSON)</summary>
-      <pre>{{ form.value | json }}</pre>
-    </details>
-  </div>
+
   <form [formGroup]="form" (ngSubmit)="save()">
     <!-- ======================== GÉNÉRAL ======================== -->
     <div class="section">
@@ -71,32 +56,6 @@
       </div>
     </div>
 
-    <!-- <div class="section" *ngIf="block.type === 'rectangle' || block.type === 'cercle'">
-      <div class="section-header static">Forme</div>
-      <div class="section-body">
-        <div class="field-row">
-          <div class="field">
-            <label>Couleur de fond</label>
-            <input type="color" formControlName="shapeFill" />
-          </div>
-          <div class="field">
-            <label>Couleur de bordure</label>
-            <input type="color" formControlName="shapeBorderColor" />
-          </div>
-        </div>
-        <div class="field-row">
-          <div class="field">
-            <label>Épaisseur bordure</label>
-            <input type="number" formControlName="shapeBorderWidth" min="0" max="20" />
-          </div>
-          <div class="field" *ngIf="block.type === 'rectangle'">
-            <label>Arrondi (px)</label>
-            <input type="number" formControlName="shapeBorderRadius" min="0" max="100" />
-          </div>
-        </div>
-      </div>
-    </div> -->
-
     <!-- ======================== DIMENSIONS ======================== -->
     <div class="section">
       <button type="button" class="section-header" (click)="toggleSection('dimensions')">
@@ -131,8 +90,7 @@
       </button>
       <div class="section-body" *ngIf="sectionsOpen['apparence']">
         <div class="field">
-          <label
-            >Opacité <span class="value-badge">{{ form.value.opacite }}%</span></label>
+          <label>Opacité <span class="value-badge">{{ form.value.opacite }}%</span></label>
           <input type="range" formControlName="opacite" min="0" max="100" />
         </div>
         <div class="field">
@@ -367,9 +325,16 @@
 
     <!-- ======================== TABLEAU ======================== -->
     <div class="section" *ngIf="block.type === 'tableau'">
-      <div class="section-header static">Tableau</div>
+      <div class="section-header static tableau-header">
+        <span>Tableau</span>
+        <div class="mode-toggle">
+          <button type="button" [class.active]="!!block.lignes" (click)="switchToStatic()">Statique</button>
+          <button type="button" [class.active]="!block.lignes" (click)="switchToDynamic()">Dynamique</button>
+        </div>
+      </div>
       <div class="section-body">
         <ng-container *ngIf="block.lignes; else dynamicTable">
+          <!-- ===== MODE STATIQUE ===== -->
           <label class="subtle-label">Dimensions</label>
           <div class="field-row">
             <div class="field">
@@ -426,19 +391,21 @@
           </div>
           <table class="edit-table">
             <tr *ngFor="let row of block.lignes; let i = index; trackBy: trackByIndex">
-              <td
-                *ngFor="let cell of row; let j = index; trackBy: trackByIndex"
-                [class.cell-selected]="isCellSelected(i, j)"
-                (click)="selectCell(i, j)"
-              >
-                <input
-                  type="text"
-                  [ngModel]="cell.value"
-                  (ngModelChange)="updateCellValue(i, j, $event)"
-                  placeholder="Cellule"
-                  [ngModelOptions]="{ standalone: true }"
-                />
+              <td class="row-header-cell">
+                <button type="button" class="row-header-btn" [class.active]="selectedRow === i" (click)="selectRow(i)">
+                  {{ i + 1 }}
+                </button>
               </td>
+              <ng-container *ngFor="let cell of row; let j = index; trackBy: trackByIndex">
+                <td *ngIf="!cell.hidden"
+                    [attr.colspan]="cell.colSpan && cell.colSpan > 1 ? cell.colSpan : null"
+                    [attr.rowspan]="cell.rowSpan && cell.rowSpan > 1 ? cell.rowSpan : null"
+                    [class.cell-selected]="isCellSelected(i, j)"
+                    (click)="selectCell(i, j)">
+                  <input type="text" [ngModel]="cell.value" (ngModelChange)="updateCellValue(i, j, $event)"
+                    placeholder="Cellule" [ngModelOptions]="{ standalone: true }" />
+                </td>
+              </ng-container>
             </tr>
           </table>
 
@@ -466,6 +433,23 @@
                 />
               </div>
             </div>
+
+            <label class="subtle-label">Fusion</label>
+            <div class="merge-buttons">
+              <button type="button" class="merge-btn" [disabled]="!canMergeRight()" (click)="mergeRight()">
+                <lucide-icon [img]="icons.mergeRight" [size]="13"></lucide-icon>
+                Fusionner à droite
+              </button>
+              <button type="button" class="merge-btn" [disabled]="!canMergeDown()" (click)="mergeDown()">
+                <lucide-icon [img]="icons.mergeDown" [size]="13"></lucide-icon>
+                Fusionner en bas
+              </button>
+              <button type="button" class="merge-btn danger" *ngIf="canUnmerge()" (click)="unmergeSelected()">
+                <lucide-icon [img]="icons.close" [size]="13"></lucide-icon>
+                Défusionner
+              </button>
+            </div>
+
             <label class="subtle-label">Insérer une variable dans cette cellule</label>
             <div class="var-buttons">
               <button
@@ -503,13 +487,38 @@
               </div>
             </div>
           </div>
+
+          <div class="cell-editor" *ngIf="selectedRow !== null">
+            <div class="cell-editor-header">
+              <lucide-icon [img]="icons.palette" [size]="13"></lucide-icon>
+              Ligne {{ selectedRow + 1 }} (toutes les colonnes)
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label>Fond</label>
+                <input type="color" value="#ffffff" (input)="updateRowStyle('bgColor', $any($event.target).value)" />
+              </div>
+              <div class="field">
+                <label>Texte</label>
+                <input type="color" value="#000000" (input)="updateRowStyle('textColor', $any($event.target).value)" />
+              </div>
+            </div>
+          </div>
         </ng-container>
 
         <ng-template #dynamicTable>
+          <!-- ===== MODE DYNAMIQUE ===== -->
           <div class="field">
-            <label>Source (variable ARRAY)</label>
-            <input type="text" formControlName="source" />
+            <label>Source (variable Tableau)</label>
+            <select formControlName="source" (change)="onSourceChange($any($event.target).value)">
+              <option value="">— Sélectionner une variable ARRAY —</option>
+              <option *ngFor="let v of arrayVariables" [value]="v.nomVariable">{{ v.nomVariable }}</option>
+            </select>
+            <div class="field-hint" *ngIf="arrayVariables.length === 0">
+              Aucune variable de type "Tableau" définie. Crée-en une dans l'onglet Variables.
+            </div>
           </div>
+
           <div class="colonnes-section">
             <label class="subtle-label">Colonnes</label>
             <div *ngFor="let col of colonnes.controls; let i = index" class="colonne-row">

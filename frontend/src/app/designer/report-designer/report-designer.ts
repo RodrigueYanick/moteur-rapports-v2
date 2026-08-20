@@ -1,6 +1,6 @@
 import { Component, EventEmitter, Input, Output, OnInit, SimpleChanges } from '@angular/core';
 import { DesignBlock, DesignPage } from '../models/design-block.model';
-import { CommonModule, UpperCasePipe } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { BlockEditor } from "../block-editor/block-editor";
 import { BlockPreview } from '../block-preview/block-preview';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
@@ -22,7 +22,7 @@ import { TemplateApiService } from '../../services/template-api';
   selector: 'app-report-designer',
   standalone: true,
   imports: [
-    UpperCasePipe, CommonModule, BlockEditor, BlockPreview, DragDropModule,
+    CommonModule, BlockEditor, BlockPreview, DragDropModule,
     DesignCanvas, Sidebar, FormsModule, LucideAngularModule, TemplateFiller
   ],
   templateUrl: './report-designer.html',
@@ -332,6 +332,14 @@ export class ReportDesigner implements OnInit {
   onCanvasBlocksChange(newBlocks: DesignBlock[]): void {
     if (this.isLocked) { this.showLockedMessage(); return; }
     this.blocks = newBlocks;
+
+    if (this.selectedBlock) {
+      const matchingIndex = newBlocks.findIndex((b) => b.id === this.selectedBlock?.id);
+      if (matchingIndex !== -1) {
+        this.selectedBlock = { ...newBlocks[matchingIndex] };
+      }
+    }
+
     this.afterPagesChanged();
   }
 

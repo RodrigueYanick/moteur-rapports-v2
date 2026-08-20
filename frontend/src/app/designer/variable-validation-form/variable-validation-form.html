@@ -13,16 +13,17 @@
     <div *ngIf="error" class="state-msg error">{{ error }}</div>
 
     <div class="variables-grid" *ngIf="!loading && !error">
-      <div class="variable-card" *ngFor="let v of variables">
+      <div class="variable-card" *ngFor="let v of variables" [class.calculated]="v.type === 'CALCULEE'">
+
         <div class="var-top">
           <span class="var-name">{{ v.nomVariable }}</span>
-          <span class="var-badge" [class.required]="v.obligatoire">
+          <span class="var-badge calculated-badge" *ngIf="v.type === 'CALCULEE'">🧮 Calculée</span>
+          <span class="var-badge" [class.required]="v.obligatoire" *ngIf="v.type !== 'CALCULEE'">
             {{ v.obligatoire ? 'Obligatoire' : 'Optionnelle' }}
           </span>
         </div>
         <div class="var-type">{{ v.type }}</div>
         <p class="var-desc" *ngIf="v.description">{{ v.description }}</p>
-
         <div class="var-input">
           <input
             *ngIf="v.type === 'STRING' || v.type === 'FLOAT' || v.type === 'DATE'"
@@ -38,7 +39,6 @@
               [checked]="values[v.nomVariable] === true"
               (change)="onValueChange(v.nomVariable, $any($event.target).checked)"
             />
-            {{ values[v.nomVariable] ? 'Oui' : 'Non' }}
           </label>
 
           <input
@@ -54,9 +54,9 @@
               + Ligne
             </button>
             <table *ngIf="values[v.nomVariable]?.length > 0">
-              <tr *ngFor="let row of values[v.nomVariable]">
-                <td *ngFor="let col of row | keyvalue">
-                  <input type="text" [(ngModel)]="row[col.key]" />
+              <tr *ngFor="let row of values[v.nomVariable]; let rowIndex = index; trackBy: trackByRow">
+                <td *ngFor="let col of getArrayColumns(v.nomVariable); trackBy: trackByCol">
+                  <input type="text" [(ngModel)]="row[col]" />
                 </td>
               </tr>
             </table>

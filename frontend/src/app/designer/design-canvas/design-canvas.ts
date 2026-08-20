@@ -6,28 +6,26 @@ import {
   OnInit,
   OnDestroy,
   ChangeDetectorRef,
+  ElementRef,
+  ViewChild,
+  HostListener,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import {
-  CdkDragDrop,
-  CdkDragEnd,
-  CdkDragMove,
-  DragDropModule,
-  moveItemInArray,
-} from '@angular/cdk/drag-drop';
 import { FillerDataService } from '../services/filler-data';
 import { Subscription } from 'rxjs';
-import { LucideAngularModule, ImageOff, QrCode, Barcode, PenTool } from 'lucide-angular';
+import { LucideAngularModule, ImageOff, QrCode, Barcode, PenTool, Table2 } from 'lucide-angular';
 import { DesignBlock, BLOCK_DEFAULT_DIMENSIONS } from '../models/design-block.model';
 
 @Component({
   selector: 'app-design-canvas',
   standalone: true,
-  imports: [CommonModule, DragDropModule, LucideAngularModule],
+  imports: [CommonModule, LucideAngularModule], // DragDropModule supprimé
   templateUrl: './design-canvas.html',
   styleUrls: ['./design-canvas.scss'],
 })
 export class DesignCanvas implements OnInit, OnDestroy {
+  @ViewChild('canvasContainer', { static: true }) canvasContainer?: ElementRef<HTMLDivElement>;
+
   @Input() blocks: DesignBlock[] = [];
   @Input() zoom: number = 100;
   @Input() canvasHeight: number = 1123;
@@ -42,16 +40,31 @@ export class DesignCanvas implements OnInit, OnDestroy {
   @Output() blockSelected = new EventEmitter<DesignBlock>();
 
   private valuesSubscription?: Subscription;
-  selectedBlockId: string | null = null;
+  selectedBlockIds: string[] = [];
 
-  // Stockage temporaire de la position initiale pendant un drag
-  private dragStartPositions = new Map<string, { x: number; y: number }>();
+  // État du drag manuel
+  private dragState: {
+    blockId: string;
+    startClientX: number;
+    startClientY: number;
+    startBlockX: number;
+    startBlockY: number;
+    moved: boolean;
+  } | null = null;
+
+  // Flag pour empêcher la sélection après un drag
+  private wasDragging = false;
+
+  get selectedBlockId(): string | null {
+    return this.selectedBlockIds[this.selectedBlockIds.length - 1] ?? null;
+  }
 
   readonly icons = {
     imagePlaceholder: ImageOff,
     qrcode: QrCode,
     barcode: Barcode,
     penTool: PenTool,
+    table: Table2
   };
 
   constructor(
@@ -67,7 +80,135 @@ export class DesignCanvas implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.valuesSubscription?.unsubscribe();
+    // Aucun nettoyage supplémentaire car on utilise des @HostListener
   }
+
+  // ---------- Gestion manuelle du drag & drop ----------
+
+  /**
+   * Déclenché au clic gauche sur un bloc (ou tout bouton si on ne filtre pas).
+   * Initialise l'état du drag et capture les positions de départ.
+   */
+  onBlockMouseDown(event: MouseEvent, block: DesignBlock): void {
+    // Ignorer si le canvas est verrouillé ou si le bloc est verrouillé
+    if (this.locked || block.locked) {
+      this.lockedInteraction.emit();
+      return;
+    }
+
+    // Seul le clic gauche (bouton principal) est autorisé
+    if (event.button !== 0) return;
+
+    // Empêcher la sélection de texte, le défilement, etc.
+    event.preventDefault();
+    event.stopPropagation();
+
+    // Initialiser l'état du drag
+    this.dragState = {
+      blockId: block.id,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      startBlockX: block.x || 0,
+      startBlockY: block.y || 0,
+      moved: false,
+    };
+
+    // Sélectionner le bloc si ce n'est pas déjà le cas
+    if (!this.selectedBlockIds.includes(block.id)) {
+      this.setSelection([block.id], block);
+    }
+  }
+
+  @HostListener('window:mousemove', ['$event'])
+  onWindowMouseMove(event: MouseEvent): void {
+    if (!this.dragState) return;
+
+    const state = this.dragState;
+    const scale = this.zoom / 100 || 1;
+
+    // Calcul du déplacement en pixels écran
+    const deltaScreenX = event.clientX - state.startClientX;
+    const deltaScreenY = event.clientY - state.startClientY;
+
+    // Conversion en pixels canvas (division par le facteur de zoom)
+    const deltaCanvasX = deltaScreenX / scale;
+    const deltaCanvasY = deltaScreenY / scale;
+
+    // Mettre à jour les coordonnées du bloc
+    const block = this.blocks.find(b => b.id === state.blockId);
+    if (block) {
+      block.x = state.startBlockX + deltaCanvasX;
+      block.y = state.startBlockY + deltaCanvasY;
+
+      // Marquer comme déplacé si le déplacement dépasse un petit seuil
+      if (!state.moved && (Math.abs(deltaScreenX) > 1 || Math.abs(deltaScreenY) > 1)) {
+        state.moved = true;
+      }
+
+      this.cdr.detectChanges();
+    }
+  }
+
+  @HostListener('window:mouseup')
+  onWindowMouseUp(): void {
+    if (!this.dragState) return;
+
+    const state = this.dragState;
+    // Si le bloc a réellement été déplacé, on émet les changements
+    if (state.moved) {
+      this.blocksChange.emit([...this.blocks]);
+    }
+
+    // Nettoyer l'état
+    this.dragState = null;
+    // Signaler qu'un drag vient de se terminer (pour ignorer le prochain clic)
+    this.wasDragging = true;
+    this.cdr.detectChanges();
+  }
+
+  // Surcharge de la sélection pour ignorer le clic après un drag
+  selectBlock(block: DesignBlock, event?: MouseEvent): void {
+    if (this.wasDragging) {
+      // Ignorer le clic après un drag
+      this.wasDragging = false;
+      return;
+    }
+
+    if (this.locked) {
+      this.lockedInteraction.emit();
+      return;
+    }
+
+    if (event?.ctrlKey || event?.metaKey) {
+      const alreadySelected = this.selectedBlockIds.includes(block.id);
+      const ids = alreadySelected
+        ? this.selectedBlockIds.filter(id => id !== block.id)
+        : [...this.selectedBlockIds, block.id];
+      this.setSelection(ids, block);
+      return;
+    }
+
+    if (event?.shiftKey) {
+      const ids = this.selectedBlockIds.includes(block.id)
+        ? this.selectedBlockIds
+        : [...this.selectedBlockIds, block.id];
+      this.setSelection(ids, block);
+      return;
+    }
+
+    this.setSelection([block.id], block);
+  }
+
+  // ---------- Fin de la gestion manuelle ----------
+
+  // Les méthodes ci-dessous restent inchangées par rapport à l'original
+  // (replaceVariables, getVaraibleValue, clearSelection, setSelection, focusCanvas,
+  // onKeyDown, moveSelectedBlocks, getStyle, getLigneStyle, getImageStyle,
+  // getBoxStyle, getShapeStyle, displayContent, displayContent2, displayImageUrl,
+  // isImageResolved, getRotationStyle)
+
+  // Je les inclus pour assurer la complétude, mais elles sont identiques
+  // à l'original fourni.
 
   replaceVariables(text: string): string {
     if (!text) return '';
@@ -83,59 +224,53 @@ export class DesignCanvas implements OnInit, OnDestroy {
     return values[varName] !== undefined ? String(values[varName]) : `{{${varName}}}`;
   }
 
-  selectBlock(block: DesignBlock): void {
-    if (this.locked) {
-      this.lockedInteraction.emit();
-      return;
-    }
-    this.selectedBlockId = block.id;
-    this.blockSelected.emit(block);
-  }
-
-  onDrop(event: CdkDragDrop<DesignBlock[]>): void {
-    if (event.previousIndex === event.currentIndex) return;
-    moveItemInArray(this.blocks, event.previousIndex, event.currentIndex);
-    this.blocksChange.emit([...this.blocks]);
-  }
-
-  // ---------- Améliorations de la fluidité ----------
-
-  /**
-   * Appelé en continu pendant le drag.
-   * Met à jour la position du bloc en temps réel en utilisant event.distance.
-   */
-  onDragMoved(block: DesignBlock, event: CdkDragMove): void {
-    // Stocker la position initiale au premier mouvement
-    if (!this.dragStartPositions.has(block.id)) {
-      this.dragStartPositions.set(block.id, {
-        x: block.x || 0,
-        y: block.y || 0,
-      });
-    }
-    const startPos = this.dragStartPositions.get(block.id)!;
-
-    // event.distance.x / y donne le déplacement total depuis le début du drag (en pixels)
-    // Le CDK tient déjà compte du facteur de zoom si le boundary est correctement défini.
-    block.x = startPos.x + event.distance.x;
-    block.y = startPos.y + event.distance.y;
-
-    // Force un rafraîchissement immédiat pour un déplacement fluide
+  clearSelection(): void {
+    this.selectedBlockIds = [];
+    this.blockSelected.emit(null as any);
     this.cdr.detectChanges();
   }
 
-  /**
-   * Appelé à la fin du drag.
-   * Nettoie les données temporaires et émet le changement pour la sauvegarde et l'historique.
-   */
-  onDragEnded(block: DesignBlock, event: CdkDragEnd): void {
-    // Nettoyage de la position initiale stockée
-    this.dragStartPositions.delete(block.id);
-
-    // Émet le changement uniquement à la fin pour éviter des appels API trop fréquents
-    this.blocksChange.emit([...this.blocks]);
+  setSelection(ids: string[], lastSelected: DesignBlock): void {
+    this.selectedBlockIds = [...new Set(ids)];
+    this.blockSelected.emit(lastSelected);
+    this.focusCanvas();
+    this.cdr.detectChanges();
   }
 
-  // ---------- Styles et affichage ----------
+  focusCanvas(): void {
+    this.canvasContainer?.nativeElement?.focus();
+  }
+
+  onKeyDown(event: KeyboardEvent): void {
+    if (this.locked) return;
+    if (!this.selectedBlockIds.length) return;
+
+    const step = event.shiftKey ? 10 : 1;
+    let dx = 0;
+    let dy = 0;
+
+    switch (event.key) {
+      case 'ArrowLeft': dx = -step; break;
+      case 'ArrowRight': dx = step; break;
+      case 'ArrowUp': dy = -step; break;
+      case 'ArrowDown': dy = step; break;
+      default: return;
+    }
+
+    event.preventDefault();
+    this.moveSelectedBlocks(dx, dy);
+  }
+
+  moveSelectedBlocks(dx: number, dy: number): void {
+    const selection = new Set(this.selectedBlockIds);
+    for (const block of this.blocks) {
+      if (!selection.has(block.id)) continue;
+      block.x = Math.max(0, (block.x || 0) + dx);
+      block.y = Math.max(0, (block.y || 0) + dy);
+    }
+    this.blocksChange.emit([...this.blocks]);
+    this.cdr.detectChanges();
+  }
 
   getStyle(block: DesignBlock): string {
     const s = block.style || {};

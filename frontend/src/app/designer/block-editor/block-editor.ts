@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, DoCheck, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   ReactiveFormsModule,
@@ -11,6 +11,7 @@ import {
 } from '@angular/forms';
 import { DesignBlock, TableCell, BLOCK_DEFAULT_DIMENSIONS } from '../models/design-block.model';
 import { debounceTime, Subject } from 'rxjs';
+import { Variable } from '../../models/variable.model'; // NOUVEAU
 import {
   LucideAngularModule,
   X,
@@ -34,6 +35,8 @@ import {
   ChevronUp,
   PaintBucket,
   Palette,
+  ChevronsRight,
+  ChevronsDown,
 } from 'lucide-angular';
 
 @Component({
@@ -43,14 +46,15 @@ import {
   templateUrl: './block-editor.html',
   styleUrls: ['./block-editor.scss'],
 })
-export class BlockEditor implements OnChanges {
+export class BlockEditor implements OnChanges, DoCheck {
   @Input() block: DesignBlock | null = null;
   @Input() allBlocks: DesignBlock[] = [];
-  @Input() explicitVariables: { nomVariable: string }[] = [];
+  @Input() explicitVariables: Variable[] = []; // MODIFIÉ : type Variable[] au lieu de { nomVariable: string }[]
   @Output() updated = new EventEmitter<DesignBlock>();
   @Output() closed = new EventEmitter<void>();
   newVariableName = '';
   selectedColumn: number | null = null;
+  selectedRow: number | null = null;
   selectedCell: { row: number; col: number } | null = null;
 
   readonly icons = {
@@ -75,20 +79,19 @@ export class BlockEditor implements OnChanges {
     chevronUp: ChevronUp,
     fill: PaintBucket,
     palette: Palette,
+    mergeRight: ChevronsRight,
+    mergeDown: ChevronsDown,
   };
 
   form: FormGroup;
   availableVariables: string[] = [];
   private tableChange$ = new Subject<void>();
 
-  // Debug counters
   debugNgChanges = 0;
   debugValueChanges = 0;
 
   tableRows = 2;
   tableCols = 2;
-
-  // --- Nouveau : cellule actuellement sélectionnée pour édition de couleur/variable ---
 
   sectionsOpen: Record<string, boolean> = {
     general: true,
@@ -134,7 +137,6 @@ export class BlockEditor implements OnChanges {
       dataDefault: [''],
       bordureCouleur: ['#d9d9d9'],
       texteCouleurDefaut: ['#000000'],
-      // --- NOUVEAU ---
       rotation: [0],
       shapeFill: ['#e5e7eb'],
       shapeBorderColor: ['#94a3b8'],
@@ -146,11 +148,56 @@ export class BlockEditor implements OnChanges {
       if (this.block) this.updated.emit(this.block);
     });
 
-    // Track form changes for debugging
     this.form.valueChanges.subscribe(() => {
       this.debugValueChanges++;
     });
   }
+
+  // ==================== NOUVEAU : variables ARRAY disponibles ====================
+  get arrayVariables(): Variable[] {
+    return (this.explicitVariables || []).filter(v => v.type === 'ARRAY');
+  }
+
+  // ==================== NOUVEAU : bascule Statique / Dynamique ====================
+  switchToStatic(): void {
+    if (!this.block || this.block.type !== 'tableau' || this.block.lignes) return;
+    const newLignes: TableCell[][] = [];
+    for (let i = 0; i < this.tableRows; i++) {
+      const row: TableCell[] = [];
+      for (let j = 0; j < this.tableCols; j++) row.push({ value: '' });
+      newLignes.push(row);
+    }
+    this.block.lignes = newLignes;
+    this.block.source = undefined;
+    this.block.colonnes = undefined;
+    this.selectedCell = null;
+    this.selectedColumn = null;
+    this.selectedRow = null;
+    this.tableChange$.next();
+  }
+
+  switchToDynamic(): void {
+    if (!this.block || this.block.type !== 'tableau' || !this.block.lignes) return;
+    this.block.lignes = undefined;
+    this.block.source = this.block.source || '';
+    this.block.colonnes = this.block.colonnes?.length
+      ? this.block.colonnes
+      : [{ titre: '', variable: '' }];
+    this.form.patchValue({ source: this.block.source }, { emitEvent: false });
+    this.buildColonnesArray(this.block.colonnes);
+    this.selectedCell = null;
+    this.selectedColumn = null;
+    this.selectedRow = null;
+    this.tableChange$.next();
+  }
+
+  onSourceChange(value: string): void {
+    if (!this.block) return;
+    this.block.source = value;
+    this.tableChange$.next();
+  }
+
+  // ==================== FIN NOUVEAU ====================
 
   toggleSection(key: string): void {
     this.sectionsOpen[key] = !this.sectionsOpen[key];
@@ -162,27 +209,32 @@ export class BlockEditor implements OnChanges {
     for (let i = 0; i < this.tableRows; i++) {
       const row: TableCell[] = [];
       for (let j = 0; j < this.tableCols; j++) {
-        row.push(this.block.lignes?.[i]?.[j] || { value: '' });
+        row.push({ value: '' });
       }
       newLignes.push(row);
     }
-    if (this.block.lignes !== newLignes) {
-      this.block.lignes = newLignes;
-    }
+    this.block.lignes = newLignes;
+    this.selectedCell = null;
+    this.selectedColumn = null;
+    this.selectedRow = null;
     this.tableChange$.next();
   }
 
   updateCellValue(row: number, col: number, value: string): void {
-    if (!this.block?.lignes) return;
-    const newLignes = this.block.lignes.map((r) => r.map((c) => ({ ...c })));
-    newLignes[row][col] = { ...newLignes[row][col], value };
-    this.block.lignes = newLignes;
+    if (!this.block?.lignes || !this.block.lignes[row] || !this.block.lignes[row][col]) return;
+    
+    // ✅ CORRECTION: Mutation in-place au lieu de copie profonde complète
+    // Cela évite que le DOM soit recréé à chaque caractère saisi
+    this.block.lignes[row][col].value = value;
+    
+    // Trigger une mise à jour sans changer la référence du tableau entier
     this.tableChange$.next();
   }
 
   selectCell(row: number, col: number): void {
     this.selectedCell = { row, col };
     this.selectedColumn = null;
+    this.selectedRow = null;
   }
 
   isCellSelected(row: number, col: number): boolean {
@@ -197,6 +249,13 @@ export class BlockEditor implements OnChanges {
   selectColumn(colIndex: number): void {
     this.selectedColumn = colIndex;
     this.selectedCell = null;
+    this.selectedRow = null;
+  }
+
+  selectRow(rowIndex: number): void {
+    this.selectedRow = rowIndex;
+    this.selectedCell = null;
+    this.selectedColumn = null;
   }
 
   updateColumnStyle(field: 'bgColor' | 'textColor', value: string): void {
@@ -218,6 +277,16 @@ export class BlockEditor implements OnChanges {
     this.tableChange$.next();
   }
 
+  updateRowStyle(field: 'bgColor' | 'textColor', value: string): void {
+    if (this.selectedRow === null || !this.block?.lignes) return;
+    const row = this.selectedRow;
+    const newLignes = this.block.lignes.map((r, idx) =>
+      idx === row ? r.map(c => ({ ...c, [field]: value })) : r.map(c => ({ ...c }))
+    );
+    this.block.lignes = newLignes;
+    this.tableChange$.next();
+  }
+
   insertVariableInCell(varName: string): void {
     if (!this.selectedCell || !this.block?.lignes) return;
     const { row, col } = this.selectedCell;
@@ -232,11 +301,7 @@ export class BlockEditor implements OnChanges {
   ngOnChanges(changes: SimpleChanges): void {
     this.debugNgChanges++;
     this.refreshAvailableVariables();
-    // Only clear selected cell when the input `block` actually changed to a different block
-    // (preserve selection when parent emits an updated block object for the same id).
 
-    // Only patch the form when the `block` input actually changed to avoid
-    // clobbering user edits when parent recomputes inputs frequently.
     if (changes['block'] && this.block) {
       const fallback = BLOCK_DEFAULT_DIMENSIONS[this.block.type];
       this.form.patchValue(
@@ -273,16 +338,14 @@ export class BlockEditor implements OnChanges {
           shapeFill: this.block.style?.fill || '#e5e7eb',
           shapeBorderColor: this.block.style?.couleur || '#94a3b8',
           shapeBorderWidth: this.block.style?.epaisseur ?? 1,
-          shapeBorderRadius: this.block.style?.borderRadius ?? 0
+          shapeBorderRadius: this.block.style?.borderRadius ?? 0,
         },
         { emitEvent: false },
       );
       this.buildColonnesArray(this.block.colonnes || []);
+      this.selectedRow = null;
     }
 
-    // Manage selectedCell preservation: if the block input changed but it's the
-    // same logical block (same id), keep the current `selectedCell` so the user
-    // can continue editing (e.g., cell color) without the panel disappearing.
     if (changes['block']) {
       const prevId = changes['block'].previousValue?.id as string | undefined;
       const newId = this.block?.id as string | undefined;
@@ -294,8 +357,25 @@ export class BlockEditor implements OnChanges {
     if (this.block && this.block.type === 'tableau' && this.block.lignes) {
       this.tableRows = this.block.lignes.length;
       this.tableCols = this.block.lignes[0]?.length || 2;
-      // Do not reassign `this.block` here - reassigning the Input
-      // causes repeated ngOnChanges cycles and prevents stable editing.
+    }
+  }
+
+  ngDoCheck(): void {
+    if (!this.block) return;
+    const posXControl = this.form.get('posX');
+    const posYControl = this.form.get('posY');
+    if (!posXControl || !posYControl) return;
+
+    const blockX = this.block.x ?? 0;
+    const blockY = this.block.y ?? 0;
+    const formX = Number(posXControl.value) ?? 0;
+    const formY = Number(posYControl.value) ?? 0;
+
+    if (blockX !== formX && !posXControl.dirty && !posXControl.touched) {
+      posXControl.setValue(blockX, { emitEvent: false });
+    }
+    if (blockY !== formY && !posYControl.dirty && !posYControl.touched) {
+      posYControl.setValue(blockY, { emitEvent: false });
     }
   }
 
@@ -308,7 +388,7 @@ export class BlockEditor implements OnChanges {
     return this.form.get('colonnes') as FormArray;
   }
 
-  buildColonnesArray(cols: { titre: string; variable: string }[]): void {
+  buildColonnesArray(cols: { titre: string; variable: string; }[]): void {
     while (this.colonnes.length) this.colonnes.removeAt(0);
     cols.forEach((col) => this.addColonne(col.titre, col.variable));
   }
@@ -457,15 +537,23 @@ export class BlockEditor implements OnChanges {
         };
         break;
       case 'tableau':
+      if (this.block.lignes) {
+        // Mode statique : on garde les lignes, on supprime les propriétés dynamiques
+        updatedBlock.lignes = this.block.lignes;
+        updatedBlock.source = undefined;
+        updatedBlock.colonnes = undefined;
+      } else {
+        // Mode dynamique : on utilise la source et les colonnes
         updatedBlock.source = val.source;
         updatedBlock.colonnes = val.colonnes;
-        updatedBlock.lignes = this.block?.lignes;
-        updatedBlock.style = {
-          ...updatedBlock.style,
-          bordureCouleur: val.bordureCouleur,
-          texteCouleurDefaut: val.texteCouleurDefaut,
-        };
-        break;
+        updatedBlock.lignes = undefined;
+      }
+      updatedBlock.style = {
+        ...updatedBlock.style,
+        bordureCouleur: val.bordureCouleur,
+        texteCouleurDefaut: val.texteCouleurDefaut,
+      };
+      break;
       case 'rectangle':
       case 'cercle':
         updatedBlock.style = {
@@ -497,5 +585,90 @@ export class BlockEditor implements OnChanges {
   get canAddVariable(): boolean {
     const name = this.newVariableName.trim();
     return name.length > 0 && /^[a-zA-Z0-9_]+$/.test(name);
+  }
+
+  // ==================== Fusion ====================
+  canMergeRight(): boolean {
+    if (!this.selectedCell || !this.block?.lignes) return false;
+    const { row, col } = this.selectedCell;
+    const cell = this.block.lignes[row][col];
+    const nextCol = col + (cell.colSpan || 1);
+    if (nextCol >= this.tableCols) return false;
+    const nextCell = this.block.lignes[row][nextCol];
+    return !!nextCell && !nextCell.hidden && (nextCell.colSpan || 1) === 1 && (nextCell.rowSpan || 1) === 1;
+  }
+
+  canMergeDown(): boolean {
+    if (!this.selectedCell || !this.block?.lignes) return false;
+    const { row, col } = this.selectedCell;
+    const cell = this.block.lignes[row][col];
+    if ((cell.colSpan || 1) !== 1) return false;
+    const nextRow = row + (cell.rowSpan || 1);
+    if (nextRow >= this.tableRows) return false;
+    const nextCell = this.block.lignes[nextRow][col];
+    return !!nextCell && !nextCell.hidden && (nextCell.colSpan || 1) === 1 && (nextCell.rowSpan || 1) === 1;
+  }
+
+  canUnmerge(): boolean {
+    const c = this.selectedCellData;
+    return !!c && ((c.colSpan || 1) > 1 || (c.rowSpan || 1) > 1);
+  }
+
+  mergeRight(): void {
+    if (!this.canMergeRight() || !this.block?.lignes || !this.selectedCell) return;
+    const { row, col } = this.selectedCell;
+    const newLignes = this.block.lignes.map(r => r.map(c => ({ ...c })));
+    const cell = newLignes[row][col];
+    const nextCol = col + (cell.colSpan || 1);
+    const nextCell = newLignes[row][nextCol];
+
+    cell.colSpan = (cell.colSpan || 1) + (nextCell.colSpan || 1);
+    nextCell.hidden = true;
+
+    this.block.lignes = newLignes;
+    this.tableChange$.next();
+  }
+
+  mergeDown(): void {
+    if (!this.canMergeDown() || !this.block?.lignes || !this.selectedCell) return;
+    const { row, col } = this.selectedCell;
+    const newLignes = this.block.lignes.map(r => r.map(c => ({ ...c })));
+    const cell = newLignes[row][col];
+    const nextRow = row + (cell.rowSpan || 1);
+    const nextCell = newLignes[nextRow][col];
+
+    cell.rowSpan = (cell.rowSpan || 1) + (nextCell.rowSpan || 1);
+    nextCell.hidden = true;
+
+    this.block.lignes = newLignes;
+    this.tableChange$.next();
+  }
+
+  unmergeSelected(): void {
+    if (!this.canUnmerge() || !this.block?.lignes || !this.selectedCell) return;
+    const { row, col } = this.selectedCell;
+    const newLignes = this.block.lignes.map(r => r.map(c => ({ ...c })));
+    const cell = newLignes[row][col];
+
+    if (cell.colSpan && cell.colSpan > 1) {
+      for (let j = col + 1; j < col + cell.colSpan; j++) {
+        if (newLignes[row] && newLignes[row][j]) {
+          newLignes[row][j].hidden = false;
+        }
+      }
+    }
+    if (cell.rowSpan && cell.rowSpan > 1) {
+      for (let i = row + 1; i < row + cell.rowSpan; i++) {
+        if (newLignes[i] && newLignes[i][col]) {
+          newLignes[i][col].hidden = false;
+        }
+      }
+    }
+
+    cell.colSpan = 1;
+    cell.rowSpan = 1;
+
+    this.block.lignes = newLignes;
+    this.tableChange$.next();
   }
 }

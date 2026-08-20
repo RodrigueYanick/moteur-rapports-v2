@@ -85,15 +85,6 @@ export class DesignSerializer {
         };
         break;
 
-      case 'tableau':
-        if (block.lignes) {
-          b.lignes = block.lignes;
-        } else {
-          b.source = block.source || '';
-          b.colonnes = block.colonnes || [];
-        }
-        break;
-
       case 'ligne':
         b.style = {
           epaisseur: block.style?.epaisseur ?? 1,
@@ -104,17 +95,15 @@ export class DesignSerializer {
 
       case 'tableau':
         if (block.lignes) {
-          b.lignes = block.lignes; // déjà au format TableCell[][]
+          b.lignes = block.lignes;
         } else {
           b.source = block.source || '';
           b.colonnes = block.colonnes || [];
         }
-        if (block.style?.bordureCouleur || block.style?.texteCouleurDefaut) {
-          b.style = {
-            bordureCouleur: block.style?.bordureCouleur ?? '#d9d9d9',
-            texteCouleurDefaut: block.style?.texteCouleurDefaut ?? '#000000',
-          };
-        }
+        b.style = {
+          bordureCouleur: block.style?.bordureCouleur ?? '#d9d9d9',
+          texteCouleurDefaut: block.style?.texteCouleurDefaut ?? '#000000',
+        };
         break;
 
       case 'image':
@@ -263,13 +252,14 @@ export class DesignSerializer {
   private migrateLignes(rawLignes: any[][]): TableCell[][] {
     return rawLignes.map((row) =>
       row.map((cell) => {
-        if (typeof cell === 'string') {
-          return { value: cell };
-        }
+        if (typeof cell === 'string') return { value: cell };
         return {
           value: cell?.value ?? '',
           bgColor: cell?.bgColor,
           textColor: cell?.textColor,
+          colSpan: cell?.colSpan ?? 1,
+          rowSpan: cell?.rowSpan ?? 1,
+          hidden: cell?.hidden ?? false,
         };
       }),
     );

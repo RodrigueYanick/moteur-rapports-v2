@@ -59,11 +59,11 @@
             Ajouter une ligne
           </button>
           <table *ngIf="values[v.nomVariable]?.length > 0">
-            <tr *ngFor="let row of values[v.nomVariable]; let i = index">
-              <td *ngFor="let col of row | keyvalue">
+            <tr *ngFor="let row of values[v.nomVariable]; let i = index; trackBy: trackByRow">
+              <td *ngFor="let col of getArrayColumns(v.nomVariable); trackBy: trackByCol">
                 <input
                   type="text"
-                  [(ngModel)]="row[col.key]"
+                  [(ngModel)]="row[col]"
                   (ngModelChange)="onValueChange(v.nomVariable, values[v.nomVariable])"
                 />
               </td>

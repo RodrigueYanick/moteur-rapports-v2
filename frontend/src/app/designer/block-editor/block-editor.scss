@@ -509,3 +509,103 @@ input[type='range'] {
     background: rgba(109, 94, 252, 0.1);
   }
 }
+
+.row-header-cell {
+  border: none !important;
+  padding: 1px !important;
+}
+
+.row-header-btn {
+  width: 24px;
+  height: 24px;
+  background: $bg-input;
+  border: 1px solid $border;
+  color: $text-secondary;
+  border-radius: 4px;
+  font-size: 10px;
+  cursor: pointer;
+
+  &:hover { color: $text-primary; }
+  &.active { border-color: $accent; color: $accent; background: rgba(109, 94, 252, 0.1); }
+}
+
+.column-headers {
+  margin-left: 26px; // pour aligner avec les en-têtes de colonne
+}
+
+.merge-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.merge-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  background: $bg-input;
+  border: 1px solid $border;
+  color: $text-secondary;
+  border-radius: 6px;
+  padding: 5px 9px;
+  cursor: pointer;
+
+  &:hover:not(:disabled) { border-color: $accent; color: $accent; }
+  &:disabled { opacity: 0.35; cursor: not-allowed; }
+  &.danger:hover { border-color: #ef4444; color: #ef4444; }
+}
+
+.formula-input-small {
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  flex: 1.3;
+}
+
+.tableau-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mode-toggle {
+  display: flex;
+  gap: 2px;
+  background: $bg-input;
+  border: 1px solid $border;
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.mode-toggle button {
+  background: transparent;
+  border: none;
+  color: $text-secondary;
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  text-transform: none;
+  letter-spacing: normal;
+
+  &.active { background: $accent; color: white; }
+}
+
+.field-hint {
+  font-size: 10px;
+  color: #f0b429;
+  margin-top: 4px;
+}
+
+select {
+  width: 100%;
+  background: $bg-input;
+  border: 1px solid $border;
+  border-radius: 6px;
+  padding: 7px 9px;
+  color: $text-primary;
+  font-size: 13px;
+
+  &:focus { outline: none; border-color: $accent; }
+}

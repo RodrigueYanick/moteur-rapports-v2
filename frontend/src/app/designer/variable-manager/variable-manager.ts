@@ -37,8 +37,9 @@ export class VariableManager implements OnInit, OnDestroy {
   form: FormGroup;
   editingVariableId: string | null = null;
 
+  
   private destroy$ = new Subject<void>();
-
+  
   constructor(
     private fb: FormBuilder,
     private api: TemplateApiService,

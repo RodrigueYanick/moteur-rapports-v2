@@ -363,3 +363,19 @@ $success: #34d399;
     }
   }
 }
+
+.variable-card.calculated {
+  background: rgba(109, 94, 252, 0.06);
+  border-color: rgba(109, 94, 252, 0.25);
+}
+.calculated-badge {
+  background: rgba(109, 94, 252, 0.15) !important;
+  color: $accent !important;
+}
+.computed-value {
+  font-family: 'Courier New', monospace;
+  font-size: 18px;
+  font-weight: 700;
+  color: $accent;
+  padding: 8px 0;
+}
