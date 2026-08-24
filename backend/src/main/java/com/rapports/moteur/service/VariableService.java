@@ -39,13 +39,18 @@ public class VariableService {
      * Charge un template et vérifie son appartenance à l'entreprise courante.
      * Même pattern que ReportTemplateService.loadTemplateForCurrentEntreprise().
      */
-    private ReportTemplate loadTemplateForCurrentEntreprise(UUID templateId) {
-        ReportTemplate template = templateRepository.findById(templateId)
-                .orElseThrow(() -> new TemplateNotFoundException("Template introuvable : " + templateId));
-
+    private ReportTemplate loadTemplateForCurrentEntreprise(UUID id) {
+        ReportTemplate template = templateRepository.findById(id)
+                .orElseThrow(() -> new TemplateNotFoundException("Template introuvable : " + id));
         String currentCode = entrepriseService.getCurrentCodeEntreprise();
+        
+        // Si le template est public (codeEntreprise null), accessible à tous
+        if (template.getCodeEntreprise() == null || template.getCodeEntreprise().isBlank()) {
+            return template;
+        }
+        // Si le template est privé, le header doit correspondre
         if (currentCode == null || !currentCode.equals(template.getCodeEntreprise())) {
-            throw new TemplateNotFoundException("Template introuvable : " + templateId);
+            throw new TemplateNotFoundException("Template introuvable : " + id);
         }
         return template;
     }

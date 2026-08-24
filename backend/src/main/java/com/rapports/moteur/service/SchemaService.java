@@ -30,6 +30,13 @@ public class SchemaService {
     private ReportTemplate loadTemplateForCurrentEntreprise(UUID id) {
         ReportTemplate template = templateRepository.findById(id)
                 .orElseThrow(() -> new TemplateNotFoundException("Template introuvable : " + id));
+
+        // Template public : accessible à tous
+        if (template.getCodeEntreprise() == null || template.getCodeEntreprise().isBlank()) {
+            return template;
+        }
+
+        // Template privé : exiger le bon header
         String currentCode = entrepriseService.getCurrentCodeEntreprise();
         if (currentCode == null || !currentCode.equals(template.getCodeEntreprise())) {
             throw new TemplateNotFoundException("Template introuvable : " + id);

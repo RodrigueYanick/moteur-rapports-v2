@@ -20,10 +20,45 @@ public class TemplateHtmlBuilder {
         this.codeGenerator = codeGenerator;
     }
 
-    public String build(String contenuDesignJson, Map<String, Object> data) {
+    private int[] getStandardDimensions(String format) {
+        switch (format) {
+            case "A0": return new int[]{841, 1189};
+            case "A1": return new int[]{594, 841};
+            case "A2": return new int[]{420, 594};
+            case "A3": return new int[]{297, 420};
+            case "A4": return new int[]{210, 297};
+            case "A5": return new int[]{148, 210};
+            case "A6": return new int[]{105, 148};
+            case "A7": return new int[]{74, 105};
+            case "A8": return new int[]{52, 74};
+            case "A9": return new int[]{37, 52};
+            case "A10": return new int[]{26, 37};
+            case "Letter": return new int[]{216, 279};
+            case "Legal": return new int[]{216, 356};
+            default: return new int[]{210, 297}; // A4 par défaut
+        }
+    }
+
+    public String build(String contenuDesignJson, Map<String, Object> data, String formatPapier, Integer largeurMm, Integer hauteurMm) {
+            int widthPx, heightPx;
+        String pageSizeCss;
+
+        if ("CUSTOM".equalsIgnoreCase(formatPapier)) {
+            // Convertir mm en px (96 dpi)
+            widthPx = (int) Math.round(largeurMm * 96.0 / 25.4);
+            heightPx = (int) Math.round(hauteurMm * 96.0 / 25.4);
+            pageSizeCss = "size: " + largeurMm + "mm " + hauteurMm + "mm;";
+        } else {
+            // Format standard : dimensions prédéfinies en mm
+            int[] dims = getStandardDimensions(formatPapier);
+            widthPx = (int) Math.round(dims[0] * 96.0 / 25.4);
+            heightPx = (int) Math.round(dims[1] * 96.0 / 25.4);
+            pageSizeCss = "size: " + formatPapier + ";";
+        }
+
         StringBuilder html = new StringBuilder(
             "<html><head><meta charset='UTF-8'/><style>"
-            + "@page{size:A4;margin:0;} html,body{margin:0;padding:0;} body{margin:0;}"
+            + "@page{" + pageSizeCss + "margin:0;} html,body{margin:0;padding:0;} body{margin:0;}"
             + " .page{page-break-after:always;} .page:last-child{page-break-after:auto;}"
             + "</style></head><body>"
         );
@@ -31,11 +66,11 @@ public class TemplateHtmlBuilder {
             JsonNode root = objectMapper.readTree(contenuDesignJson);
             if (root.has("pages") && root.path("pages").isArray()) {
                 for (JsonNode page : root.path("pages")) {
-                    html.append(renderPage(page.path("blocs"), data));
+                    html.append(renderPage(page.path("blocs"), data, widthPx, heightPx));
                 }
             } else if (root.has("blocs")) {
                 // Rétrocompatibilité : ancien format sans pages
-                html.append(renderPage(root.path("blocs"), data));
+                html.append(renderPage(root.path("blocs"), data, widthPx, heightPx));
             }
         } catch (Exception e) {
             html.append("<p>Erreur de design : ").append(e.getMessage()).append("</p>");
@@ -57,9 +92,9 @@ public class TemplateHtmlBuilder {
         Map.entry("graphique", new int[]{300, 180})
     );
 
-    private String renderPage(JsonNode blocs, Map<String, Object> data) {
+    private String renderPage(JsonNode blocs, Map<String, Object> data, int pageWidthPx, int pageHeightPx) {
         StringBuilder page = new StringBuilder(
-            "<div class='page' style='position:relative;width:794px;height:1123px;background:white;overflow:hidden;box-sizing:border-box;'>"
+            "<div class='page' style='position:relative;width:" + pageWidthPx + "px;height:" + pageHeightPx + "px;background:white;overflow:hidden;box-sizing:border-box;'>"
         );
         for (JsonNode bloc : blocs) {
             int x = bloc.path("x").asInt(0);

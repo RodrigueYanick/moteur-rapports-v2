@@ -36,13 +36,18 @@ public class DocumentService {
      * appartient à une autre entreprise (on ne révèle jamais l'existence d'un
      * template étranger).
      */
-    private ReportTemplate loadTemplateForCurrentEntreprise(UUID templateId) {
-        ReportTemplate template = templateRepository.findById(templateId)
-                .orElseThrow(() -> new TemplateNotFoundException("Template introuvable : " + templateId));
-
+    private ReportTemplate loadTemplateForCurrentEntreprise(UUID id) {
+        ReportTemplate template = templateRepository.findById(id)
+                .orElseThrow(() -> new TemplateNotFoundException("Template introuvable : " + id));
         String currentCode = entrepriseService.getCurrentCodeEntreprise();
+        
+        // Si le template est public (codeEntreprise null), accessible à tous
+        if (template.getCodeEntreprise() == null || template.getCodeEntreprise().isBlank()) {
+            return template;
+        }
+        // Si le template est privé, le header doit correspondre
         if (currentCode == null || !currentCode.equals(template.getCodeEntreprise())) {
-            throw new TemplateNotFoundException("Template introuvable : " + templateId);
+            throw new TemplateNotFoundException("Template introuvable : " + id);
         }
         return template;
     }
@@ -92,9 +97,11 @@ public class DocumentService {
     }
 
     @Transactional
-    public DocumentResponse update(UUID id, DocumentCreate request) {
-        // Vérifie que le document appartient à l'entreprise courante
+    public DocumentResponse update(UUID templateId, UUID id, DocumentCreate request) {
         Document document = loadDocumentForCurrentEntreprise(id);
+        if (!document.getTemplate().getId().equals(templateId)) {
+            throw new ValidationException("Document introuvable");
+        }
 
         document.setNom(request.getNom());
         try {
@@ -115,14 +122,22 @@ public class DocumentService {
                 .collect(Collectors.toList());
     }
 
-    public DocumentResponse getById(UUID id) {
-        Document document = loadDocumentForCurrentEntreprise(id);
+    public DocumentResponse getById(UUID templateId, UUID documentId) {
+        Document document = loadDocumentForCurrentEntreprise(documentId);
+
+        // Vérifie que le document appartient bien au template donné
+        if (!document.getTemplate().getId().equals(templateId)) {
+            throw new ValidationException("Document introuvable");
+        }
         return mapToDto(document);
     }
 
     @Transactional
-    public void delete(UUID id) {
+    public void delete(UUID templateId, UUID id) {
         Document document = loadDocumentForCurrentEntreprise(id);
+        if (!document.getTemplate().getId().equals(templateId)) {
+            throw new ValidationException("Document introuvable");
+        }
         documentRepository.delete(document);
     }
 

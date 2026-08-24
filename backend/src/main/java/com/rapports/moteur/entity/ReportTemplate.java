@@ -34,7 +34,7 @@ public class ReportTemplate {
     @ColumnTransformer(write = "?::jsonb")
     private String schema;
 
-    @Column(name = "code_entreprise", nullable = false, length = 50)
+    @Column(name = "code_entreprise", length = 50)   // supprimer nullable = false
     private String codeEntreprise;
 
     @Enumerated(EnumType.STRING)
@@ -58,6 +58,12 @@ public class ReportTemplate {
     @Column(name = "format_papier", nullable = false, length = 10)
     @Builder.Default
     private String formatPapier = "A4";
+
+    @Column(name = "largeur_mm")
+    private Integer largeurMm;
+
+    @Column(name = "hauteur_mm")
+    private Integer hauteurMm;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_template_id")

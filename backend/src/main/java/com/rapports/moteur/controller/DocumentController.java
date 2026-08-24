@@ -1,5 +1,6 @@
 package com.rapports.moteur.controller;
 
+import com.rapports.moteur.dto.ApiError;
 import com.rapports.moteur.dto.dtoDocument.DocumentCreate;
 import com.rapports.moteur.dto.dtoDocument.DocumentResponse;
 import com.rapports.moteur.service.DocumentService;
@@ -22,99 +23,111 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/templates/{templateId}/documents")
 @RequiredArgsConstructor
-@Tag(name = "Documents d'un modèle", description = "Gestion des documents générés à partir d'un template spécifique")
+@Tag(name = "Documents d'un modèle", description = "Gestion des documents générés pour un modèle spécifique")
 public class DocumentController {
 
     private final DocumentService documentService;
 
     @Operation(
         summary = "Créer un document",
-        description = "Enregistre un nouveau document pour le template donné, avec les données fournies."
+        description = """
+            Enregistre un nouveau document pour le modèle spécifié.
+            Le document est créé avec le statut BROUILLON.
+            Les données fournies doivent correspondre aux variables du modèle.
+            """
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "201", description = "Document créé avec succès",
                      content = @Content(schema = @Schema(implementation = DocumentResponse.class))),
         @ApiResponse(responseCode = "400", description = "Données invalides ou erreur de validation",
-                     content = @Content),
-        @ApiResponse(responseCode = "404", description = "Template introuvable",
-                     content = @Content)
+                     content = @Content(schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "404", description = "Modèle introuvable ou inaccessible",
+                     content = @Content(schema = @Schema(implementation = ApiError.class)))
     })
     @PostMapping
     public ResponseEntity<DocumentResponse> create(
-            @Parameter(description = "Identifiant du template", required = true)
+            @Parameter(description = "Identifiant UUID du modèle", required = true,
+                       example = "3fa85f64-5717-4562-b3fc-2c963f66afa6")
             @PathVariable UUID templateId,
             @Valid @RequestBody DocumentCreate request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(documentService.create(templateId, request));
     }
 
     @Operation(
-        summary = "Lister les documents d'un template",
-        description = "Retourne tous les documents enregistrés pour le template spécifié."
+        summary = "Lister les documents d'un modèle",
+        description = "Retourne tous les documents enregistrés pour le modèle spécifié."
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Liste des documents",
-                     content = @Content(schema = @Schema(implementation = List.class))),
-        @ApiResponse(responseCode = "404", description = "Template introuvable",
-                     content = @Content)
+                     content = @Content(schema = @Schema(implementation = DocumentResponse.class))),
+        @ApiResponse(responseCode = "404", description = "Modèle introuvable ou inaccessible",
+                     content = @Content(schema = @Schema(implementation = ApiError.class)))
     })
     @GetMapping
     public ResponseEntity<List<DocumentResponse>> getByTemplate(
-            @Parameter(description = "Identifiant du template", required = true)
+            @Parameter(description = "Identifiant UUID du modèle", required = true,
+                       example = "3fa85f64-5717-4562-b3fc-2c963f66afa6")
             @PathVariable UUID templateId) {
         return ResponseEntity.ok(documentService.getByTemplate(templateId));
     }
 
     @Operation(
         summary = "Obtenir un document par ID",
-        description = "Retourne les détails d'un document spécifique."
+        description = "Retourne les détails d'un document spécifique appartenant au template donné."
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Document trouvé",
                      content = @Content(schema = @Schema(implementation = DocumentResponse.class))),
-        @ApiResponse(responseCode = "404", description = "Document introuvable",
-                     content = @Content)
+        @ApiResponse(responseCode = "404", description = "Document introuvable ou inaccessible",
+                     content = @Content(schema = @Schema(implementation = ApiError.class)))
     })
     @GetMapping("/{id}")
     public ResponseEntity<DocumentResponse> getById(
-            @Parameter(description = "Identifiant du document", required = true)
+            @Parameter(description = "Identifiant UUID du template", required = true)
+            @PathVariable UUID templateId,
+            @Parameter(description = "Identifiant UUID du document", required = true)
             @PathVariable UUID id) {
-        return ResponseEntity.ok(documentService.getById(id));
+        return ResponseEntity.ok(documentService.getById(templateId, id));
     }
 
     @Operation(
         summary = "Mettre à jour un document",
-        description = "Met à jour les données d'un document existant."
+        description = "Met à jour les données d'un document existant appartenant au template donné."
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Document mis à jour",
                      content = @Content(schema = @Schema(implementation = DocumentResponse.class))),
         @ApiResponse(responseCode = "400", description = "Données invalides",
-                     content = @Content),
-        @ApiResponse(responseCode = "404", description = "Document introuvable",
-                     content = @Content)
+                     content = @Content(schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "404", description = "Document introuvable ou inaccessible",
+                     content = @Content(schema = @Schema(implementation = ApiError.class)))
     })
     @PutMapping("/{id}")
     public ResponseEntity<DocumentResponse> update(
-            @Parameter(description = "Identifiant du document", required = true)
+            @Parameter(description = "Identifiant UUID du template", required = true)
+            @PathVariable UUID templateId,
+            @Parameter(description = "Identifiant UUID du document", required = true)
             @PathVariable UUID id,
             @Valid @RequestBody DocumentCreate request) {
-        return ResponseEntity.ok(documentService.update(id, request));
+        return ResponseEntity.ok(documentService.update(templateId, id, request));
     }
 
     @Operation(
         summary = "Supprimer un document",
-        description = "Supprime définitivement un document existant."
+        description = "Supprime définitivement un document existant appartenant au template donné."
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "204", description = "Document supprimé avec succès"),
-        @ApiResponse(responseCode = "404", description = "Document introuvable",
-                     content = @Content)
+        @ApiResponse(responseCode = "404", description = "Document introuvable ou inaccessible",
+                     content = @Content(schema = @Schema(implementation = ApiError.class)))
     })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(
-            @Parameter(description = "Identifiant du document", required = true)
+            @Parameter(description = "Identifiant UUID du template", required = true)
+            @PathVariable UUID templateId,
+            @Parameter(description = "Identifiant UUID du document", required = true)
             @PathVariable UUID id) {
-        documentService.delete(id);
+        documentService.delete(templateId, id);
         return ResponseEntity.noContent().build();
     }
 }

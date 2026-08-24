@@ -3,12 +3,20 @@ package com.rapports.moteur.exceptions;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import com.rapports.moteur.dto.ApiError;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
@@ -53,5 +61,25 @@ public class ApiExceptionHandler {
         );
         problem.setTitle("Erreur interne");
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(problem);
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ResponseEntity<ApiError> handleValidationExceptions(MethodArgumentNotValidException ex) {
+        List<String> errors = ex.getBindingResult()
+            .getFieldErrors()
+            .stream()
+            .map(err -> err.getField() + " : " + err.getDefaultMessage())
+            .collect(Collectors.toList());
+
+        ApiError apiError = ApiError.builder()
+            .timestamp(LocalDateTime.now())
+            .status(HttpStatus.BAD_REQUEST.value())   // 400
+            .error("Bad Request")
+            .message(String.join(" ; ", errors))
+            .path("")   // vous pouvez récupérer le path si disponible
+            .build();
+
+        return ResponseEntity.badRequest().body(apiError);
     }
 }

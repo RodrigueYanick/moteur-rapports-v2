@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5454/moteur_rapports}
+    url: ${DB_URL:jdbc:postgresql://localhost:5454/moteur_rapports_test}
     username: ${DB_USERNAME:reportuser}
     password: ${DB_PASSWORD:rodrigue}
     driver-class-name: org.postgresql.Driver
@@ -15,16 +15,32 @@ spring:
 springdoc:
   api-docs:
     version: openapi_3_0
+    path: /v3/api-docs
   swagger-ui:
+    title: "Moteur de Rapports – Documentation API"
     path: /swagger-ui.html
     url: /v3/api-docs
-    operations-sorter: method          # trie les opérations par méthode HTTP
-    tags-sorter: alpha                # trie les tags par ordre alphabétique
-    display-request-duration: true    # affiche la durée des requêtes
-    doc-expansion: none               # les sections sont repliées au chargement
-    filter: true                      # active le champ de recherche/filtre
-    show-extensions: true
+    # --- Ergonomie ---
+    display-request-duration: true      # affiche la durée de chaque requête
+    operations-sorter: method           # tri par méthode HTTP (GET, POST, etc.)
+    tags-sorter: alpha                  # tri alphabétique des tags
+    doc-expansion: none                 # sections repliées par défaut (plus clair)
+    filter: true                        # champ de recherche/filtre
+    try-it-out-enabled: true            # permet de tester directement
+    show-extensions: true               # montre les extensions OpenAPI
     show-common-extensions: true
+    persist-authorization: true         # conserve les clés saisies entre les requêtes
+    use-root-path: false
+    display-operation-id: false
+    default-model-rendering: example    # affiche l'exemple plutôt que le schéma brut
+    show-request-headers: true          # montre les en-têtes de requête
+    deep-linking: true                  # permet de partager un lien vers une opération précise
+    # --- Apparence ---
+    syntax-highlight:
+      activated: true
+      theme: monokai                   # thème de coloration (agréable)
+    # --- CSS personnalisé (voir plus bas) ---
+    custom-css: /swagger-ui.css
 
 server:
   port: 8082

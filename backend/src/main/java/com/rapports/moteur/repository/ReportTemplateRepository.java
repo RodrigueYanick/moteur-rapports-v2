@@ -10,4 +10,6 @@ import java.util.UUID;
 @Repository
 public interface ReportTemplateRepository extends JpaRepository<ReportTemplate, UUID> {
     List<ReportTemplate> findByCodeEntreprise(String codeEntreprise);
+    List<ReportTemplate> findByCodeEntrepriseOrCodeEntrepriseIsNull(String codeEntreprise);
+    List<ReportTemplate> findByCodeEntrepriseIsNull();
 }

@@ -17,6 +17,8 @@ public class TemplateMapper {
                 .contenuDesign(entity.getContenuDesign())
                 .categorie(entity.getCategorie())
                 .formatPapier(entity.getFormatPapier())
+                .largeurMm(entity.getLargeurMm())
+                .hauteurMm(entity.getHauteurMm())
                 .statut(entity.getStatut())
                 .version(entity.getVersion())
                 .dateCreation(entity.getDateCreation())
@@ -31,6 +33,8 @@ public class TemplateMapper {
         template.setDescription(create.getDescription());
         template.setCategorie(create.getCategorie());
         template.setFormatPapier(create.getFormatPapier());
+        template.setLargeurMm(create.getLargeurMm());
+        template.setHauteurMm(create.getHauteurMm());
         return template;
     }
 }

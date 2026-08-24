@@ -25,4 +25,10 @@ public class TemplateCreate {
 
     @Schema(description = "Format papier du modèle", example = "A4", allowableValues = {"A4", "A5", "Letter", "Legal"})
     private String formatPapier;
+
+    @Schema(description = "Largeur personnalisée en millimètres (obligatoire si formatPapier = CUSTOM)", example = "80")
+    private Integer largeurMm;
+
+    @Schema(description = "Hauteur personnalisée en millimètres (obligatoire si formatPapier = CUSTOM)", example = "200")
+    private Integer hauteurMm;
 }

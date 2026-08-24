@@ -34,6 +34,12 @@ public class TemplateResponse {
     @Schema(description = "Format papier du modèle", example = "A4", allowableValues = {"A4", "A5", "Letter", "Legal"})
     private String formatPapier;
 
+    @Schema(description = "Largeur personnalisée en millimètres", example = "80")
+    private Integer largeurMm;
+
+    @Schema(description = "Hauteur personnalisée en millimètres", example = "200")
+    private Integer hauteurMm;
+
     @Schema(description = "Statut actuel du modèle", example = "PUBLIE", allowableValues = {"BROUILLON", "PUBLIE", "ARCHIVE"})
     private TemplateStatus statut;
 

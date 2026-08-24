@@ -56,7 +56,15 @@ public class AsyncGenerationProcessor {
         }
 
         try {
-            byte[] pdf = pdfRenderer.renderToPdf(htmlBuilder.build(template.getContenuDesign(), data));
+            byte[] pdf = pdfRenderer.renderToPdf(
+                htmlBuilder.build(
+                    template.getContenuDesign(),
+                    data,
+                    template.getFormatPapier(),
+                    template.getLargeurMm(),
+                    template.getHauteurMm()
+                )
+            );
             String filePath = storePdf(generationId, pdf, storagePath);
             generation.setUrlFichierGenere(filePath);
             generation.setStatut(GenerationStatus.SUCCES);

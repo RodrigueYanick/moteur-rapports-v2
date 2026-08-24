@@ -52,8 +52,13 @@ public class ReportTemplateService {
     private ReportTemplate loadTemplateForCurrentEntreprise(UUID id) {
         ReportTemplate template = repository.findById(id)
                 .orElseThrow(() -> new TemplateNotFoundException("Template introuvable : " + id));
-
         String currentCode = entrepriseService.getCurrentCodeEntreprise();
+        
+        // Si le template est public (codeEntreprise null), accessible à tous
+        if (template.getCodeEntreprise() == null || template.getCodeEntreprise().isBlank()) {
+            return template;
+        }
+        // Si le template est privé, le header doit correspondre
         if (currentCode == null || !currentCode.equals(template.getCodeEntreprise())) {
             throw new TemplateNotFoundException("Template introuvable : " + id);
         }
@@ -62,8 +67,26 @@ public class ReportTemplateService {
 
     public List<TemplateResponse> findAll() {
         String code = entrepriseService.getCurrentCodeEntreprise();
-        List<ReportTemplate> templates = repository.findByCodeEntreprise(code);
+        List<ReportTemplate> templates;
+        if (code != null) {
+            templates = repository.findByCodeEntrepriseOrCodeEntrepriseIsNull(code);
+        } else {
+            templates = repository.findByCodeEntrepriseIsNull();
+        }
         return templates.stream().map(mapper::toDto).collect(Collectors.toList());
+    }
+
+    private void validateFormat(ReportTemplate template) {
+        if ("CUSTOM".equalsIgnoreCase(template.getFormatPapier())) {
+            if (template.getLargeurMm() == null || template.getHauteurMm() == null
+                || template.getLargeurMm() <= 0 || template.getHauteurMm() <= 0) {
+                throw new ValidationException("Les dimensions personnalisées (largeurMm, hauteurMm) sont obligatoires pour un format CUSTOM");
+            }
+        } else {
+            // Pour les formats standards, on ignore/annule les dimensions personnalisées
+            template.setLargeurMm(null);
+            template.setHauteurMm(null);
+        }
     }
 
     public TemplateResponse create(TemplateCreate request) {
@@ -74,6 +97,7 @@ public class ReportTemplateService {
 
         if (entity.getCategorie() == null) entity.setCategorie(Categorie.AUTRES);
         if (entity.getFormatPapier() == null) entity.setFormatPapier("A4");
+        validateFormat(entity);
 
         if (entity.getContenuDesign() == null || entity.getContenuDesign().isBlank()) {
             entity.setContenuDesign("{\"blocs\":[]}");
@@ -170,6 +194,10 @@ public class ReportTemplateService {
         entity.setNom(request.getNom());
         entity.setDescription(request.getDescription());
         entity.setContenuDesign(request.getContenuDesign());
+        entity.setFormatPapier(request.getFormatPapier());
+        entity.setLargeurMm(request.getLargeurMm());
+        entity.setHauteurMm(request.getHauteurMm());
+        validateFormat(entity);
 
         repository.save(entity);
         return mapper.toDto(entity);
@@ -185,6 +213,8 @@ public class ReportTemplateService {
         copy.setContenuDesign(original.getContenuDesign());
         copy.setCategorie(original.getCategorie());
         copy.setFormatPapier(original.getFormatPapier());
+        copy.setLargeurMm(original.getLargeurMm());
+        copy.setHauteurMm(original.getHauteurMm());
         copy.setCodeEntreprise(original.getCodeEntreprise());
         copy.setStatut(TemplateStatus.BROUILLON);
         copy.setVersion(1);
@@ -234,6 +264,8 @@ public class ReportTemplateService {
         newVersion.setContenuDesign(original.getContenuDesign());
         newVersion.setCategorie(original.getCategorie());
         newVersion.setFormatPapier(original.getFormatPapier());
+        newVersion.setLargeurMm(original.getLargeurMm());
+        newVersion.setHauteurMm(original.getHauteurMm());
         newVersion.setCodeEntreprise(original.getCodeEntreprise());
         newVersion.setStatut(TemplateStatus.BROUILLON);
         newVersion.setVersion(original.getVersion() + 1);
