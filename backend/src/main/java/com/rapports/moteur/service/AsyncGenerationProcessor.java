@@ -24,7 +24,7 @@ public class AsyncGenerationProcessor {
     private final ReportTemplateRepository templateRepository;
     private final TemplateHtmlBuilder htmlBuilder;
     private final PdfRendererService pdfRenderer;
-    private final EntrepriseService entrepriseService;   // ✅ ajouté
+    private final EntrepriseService entrepriseService;
 
     public AsyncGenerationProcessor(ReportGenerationRepository generationRepository,
                                     ReportTemplateRepository templateRepository,
@@ -62,7 +62,12 @@ public class AsyncGenerationProcessor {
                     data,
                     template.getFormatPapier(),
                     template.getLargeurMm(),
-                    template.getHauteurMm()
+                    template.getHauteurMm(),
+                    template.getModePagination(),
+                    template.getMargeGaucheMm(),
+                    template.getMargeDroiteMm(),
+                    template.getMargeHautMm(),
+                    template.getMargeBasMm()
                 )
             );
             String filePath = storePdf(generationId, pdf, storagePath);

@@ -35,7 +35,7 @@ export class TemplateFiller implements OnInit, OnDestroy {
   docNameInput = '';
   savingDocument = false;
   activeDocumentId: string | null = null;
-  showAllVariables = false;
+  showAllVariables = true;  // ✅ Par défaut: afficher TOUTES les variables
 
   private destroy$ = new Subject<void>();
 

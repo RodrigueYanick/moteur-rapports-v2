@@ -7,10 +7,18 @@
       <h1>Mes documents</h1>
     </div>
 
-    <div class="search-box" *ngIf="documents.length > 0">
+    <div class="search-box">
       <lucide-icon [img]="icons.search" [size]="14"></lucide-icon>
-      <input type="text" [(ngModel)]="searchTerm" placeholder="Rechercher un document ou un modèle..." />
+      <input type="text" [(ngModel)]="searchTerm"
+             (ngModelChange)="onSearchChange()"
+             placeholder="Rechercher un document ou un modèle..." />
     </div>
+
+    <select [(ngModel)]="visibilityFilter" (change)="loadDocuments()" class="filter-select">
+      <option value="ALL">Tous les documents</option>
+      <option value="PRIVATE">Mes documents</option>
+      <option value="PUBLIC">Publics</option>
+    </select>
 
     <span class="doc-count" *ngIf="!loading && documents.length > 0">
       {{ filteredDocuments.length }} document{{ filteredDocuments.length > 1 ? 's' : '' }}

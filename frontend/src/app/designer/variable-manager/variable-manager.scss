@@ -1,106 +1,278 @@
+$bg-panel: #1a1d29;
+$bg-card: #20232f;
+$bg-input: #14161f;
+$bg-hover: #262a38;
+$border: #2a2e3d;
+$accent: #6d5efc;
+$text-primary: #e8e9ee;
+$text-secondary: #9498a8;
+$text-muted: #676c7f;
+$danger: #ef4444;
+
 .variable-manager {
-  padding: 0.5rem;
-  font-size: 0.9rem;
+  padding: 12px;
+  font-size: 13px;
+  color: $text-primary;
 }
 
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: $accent;
+  margin-bottom: 12px;
+
+  h4 {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: $text-secondary;
+  }
+}
+
+.state-msg {
+  color: $text-secondary;
+  font-size: 12px;
+  padding: 6px 0;
+
+  &.error { color: $danger; }
+}
+
+/* ---------- Liste ---------- */
 .var-list {
-  margin-bottom: 1rem;
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .var-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.3rem 0;
-  border-bottom: 1px solid #eee;
+  padding: 7px 8px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  transition: background 0.15s ease, border-color 0.15s ease;
+
+  &:hover { background: $bg-hover; }
+
   &.editing {
-    background-color: #f0f0f0;
+    background: rgba(109, 94, 252, 0.1);
+    border-color: rgba(109, 94, 252, 0.35);
+  }
+
+  &.calculated {
+    background: rgba(109, 94, 252, 0.05);
   }
 }
 
 .var-info {
   display: flex;
-  gap: 0.5rem;
-  align-items: baseline;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.var-icon {
+  color: $accent;
+  flex-shrink: 0;
+}
+
+.var-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
 .var-name {
-  font-weight: bold;
+  font-weight: 600;
+  font-size: 13px;
+  color: $text-primary;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
+
 .var-type {
-  color: #888;
-  font-size: 0.8rem;
+  font-size: 10px;
+  color: $text-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
-.var-actions button {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 1rem;
-  margin-left: 0.3rem;
+.required-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #f0b429;
+  flex-shrink: 0;
+  margin-left: 6px;
 }
 
+.var-actions {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+
+  button {
+    background: none;
+    border: none;
+    color: $text-secondary;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 6px;
+    display: flex;
+
+    &:hover { background: rgba(255, 255, 255, 0.06); color: $text-primary; }
+    &.danger:hover { color: $danger; background: rgba(239, 68, 68, 0.1); }
+  }
+}
+
+.no-vars {
+  font-style: italic;
+  color: $text-muted;
+  font-size: 12px;
+  text-align: center;
+  padding: 12px 0;
+}
+
+/* ---------- Formulaire ---------- */
 .var-form {
-  background: #f9f9f9;
-  padding: 0.5rem;
-  border-radius: 6px;
+  background: $bg-card;
+  border: 1px solid $border;
+  padding: 12px;
+  border-radius: 10px;
 }
 
 .form-row {
-  margin-bottom: 0.5rem;
+  margin-bottom: 10px;
+
   label {
     display: block;
-    font-weight: 600;
-    margin-bottom: 0.1rem;
+    font-size: 11px;
+    color: $text-secondary;
+    margin-bottom: 4px;
   }
+
   input,
   select {
     width: 100%;
-    padding: 0.3rem;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-  }
-}
+    padding: 7px 9px;
+    background: $bg-input;
+    border: 1px solid $border;
+    border-radius: 6px;
+    color: $text-primary;
+    font-size: 13px;
+    box-sizing: border-box;
+    transition: border-color 0.15s ease;
 
-.checkbox label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-weight: normal;
-}
-
-.form-actions {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-  button {
-    padding: 0.3rem 0.8rem;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    background: #3498db;
-    color: white;
-    &:disabled {
-      background: #ccc;
+    &:focus {
+      outline: none;
+      border-color: $accent;
     }
-  }
-}
 
-.error {
-  color: #e74c3c;
-  font-size: 0.8rem;
-}
-.no-vars {
-  font-style: italic;
-  color: #888;
+    &::placeholder { color: $text-muted; }
+  }
 }
 
 .formula-input {
   font-family: 'Courier New', monospace;
   font-size: 12px;
 }
+
 .formula-hint {
+  display: block;
   font-size: 10px;
-  color: #9ca3af;
-  margin-top: 2px;
+  color: $text-muted;
+  margin-top: 4px;
+}
+
+.checkbox-label {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  font-weight: normal !important;
+  cursor: pointer;
+  color: $text-primary;
+
+  input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+}
+
+.toggle-slider {
+  position: relative;
+  display: inline-block;
+  width: 30px;
+  height: 16px;
+  background: $border;
+  border-radius: 999px;
+  transition: background 0.2s ease;
+  flex-shrink: 0;
+
+  &::before {
+    content: "";
+    position: absolute;
+    left: 2px;
+    top: 2px;
+    width: 12px;
+    height: 12px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.2s ease;
+  }
+}
+
+.checkbox-label input:checked + .toggle-slider {
+  background: $accent;
+
+  &::before { transform: translateX(14px); }
+}
+
+.form-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.btn-primary,
+.btn-secondary {
+  padding: 7px 14px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+
+  &:active { transform: scale(0.97); }
+}
+
+.btn-primary {
+  flex: 1;
+  background: $accent;
+  color: white;
+  border: none;
+
+  &:hover:not(:disabled) { background: #5b4de8; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid $border;
+  color: $text-secondary;
+
+  &:hover { color: $text-primary; border-color: #3a3f52; }
+}
+
+.error {
+  color: $danger;
+  font-size: 10px;
+  margin-top: 3px;
 }

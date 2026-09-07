@@ -12,9 +12,11 @@ $danger: #ef4444;
 $success: #34d399;
 
 .filler-panel {
-  padding: 16px;
+  margin-left: -35px;
+  padding: 25px;
   background: $bg-panel;
   height: 100%;
+  max-width: 100%;
   overflow-y: auto;
   color: $text-primary;
   font-size: 13px;

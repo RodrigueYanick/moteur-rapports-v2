@@ -7,6 +7,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import com.rapports.moteur.dto.ApiError;
 
@@ -81,5 +82,17 @@ public class ApiExceptionHandler {
             .build();
 
         return ResponseEntity.badRequest().body(apiError);
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiError> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        ApiError error = ApiError.builder()
+            .timestamp(LocalDateTime.now())
+            .status(HttpStatus.BAD_REQUEST.value())
+            .error("Bad Request")
+            .message("Paramètre invalide : " + ex.getName())
+            .path("") // récupérez le path si possible
+            .build();
+        return ResponseEntity.badRequest().body(error);
     }
 }

@@ -73,6 +73,25 @@ $danger: #ef4444;
   }
 }
 
+.filter-select {
+  background: $bg-card;
+  border: 1px solid $border;
+  border-radius: 9px;
+  padding: 9px 12px;
+  min-height: 55px;
+  min-width: 200px;
+  font-size: 18px;
+  font-weight: 600;
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-style: italic;
+  color: $text-primary;
+  cursor: pointer;
+
+  &:hover { border-color: #3a3f52; }
+  &:focus { outline: none; border-color: $accent; }
+
+}
+
 .doc-count {
   font-size: 20px;
   font-weight: 600;

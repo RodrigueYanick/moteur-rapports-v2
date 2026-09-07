@@ -27,10 +27,32 @@ export class TemplateCreate {
       contenuDesign: [''],
       categorie: ['AUTRES'],
       formatPapier: ['A4'],
+      modePagination: ['FIXED'],
+      largeurMm: [null],
+      hauteurMm: [null],
+      margeHautMm: [10, [Validators.required, Validators.min(0)]],
+      margeBasMm: [10, [Validators.required, Validators.min(0)]],
+      margeGaucheMm: [10, [Validators.required, Validators.min(0)]],
+      margeDroiteMm: [10, [Validators.required, Validators.min(0)]],
+    });
+    this.form.get('formatPapier')?.valueChanges.subscribe((format) => {
+      const largeurCtrl = this.form.get('largeurMm');
+      const hauteurCtrl = this.form.get('hauteurMm');
+      if (format === 'CUSTOM') {
+        largeurCtrl?.setValidators([Validators.required, Validators.min(1)]);
+        hauteurCtrl?.setValidators([Validators.required, Validators.min(1)]);
+      } else {
+        largeurCtrl?.clearValidators();
+        hauteurCtrl?.clearValidators();
+        largeurCtrl?.setValue(null);
+        hauteurCtrl?.setValue(null);
+      }
+      largeurCtrl?.updateValueAndValidity();
+      hauteurCtrl?.updateValueAndValidity();
     });
   }
 
-  onSubmit(): void {
+    onSubmit(): void {
     if (this.form.invalid) return;
 
     // Validation du contenuDesign s’il est fourni
@@ -47,6 +69,11 @@ export class TemplateCreate {
     this.submitting = true;
     this.error = '';
     const formData = this.form.value;
+    if (formData.formatPapier !== 'CUSTOM') {
+      delete formData.largeurMm;
+      delete formData.hauteurMm;
+    }
+    // formData.modePagination est déjà inclus automatiquement
     this.api.createTemplate(formData).subscribe({
       next: (template) => {
         this.router.navigate(['/templates', template.id]);

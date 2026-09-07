@@ -70,7 +70,8 @@ export class MockDataService {
       }
       return row;
     };
-    return [makeRow(1), makeRow(2)];
+    // 15 lignes pour que la pagination des tableaux soit visible en preview
+    return Array.from({ length: 15 }, (_, i) => makeRow(i + 1));
   }
 
   private sampleValueForField(fieldName: string, index: number): any {
@@ -91,7 +92,9 @@ export class MockDataService {
 
       if (varName.startsWith('titre')) data[varName] = 'Titre exemple';
       else if (varName.startsWith('texte')) data[varName] = 'Texte exemple';
-      else if (varName.startsWith('image')) data[varName] = 'https://via.placeholder.com/150';
+      else if (varName.startsWith('image')) {
+        data[varName] = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="150" height="150" viewBox="0 0 150 150"%3E%3Crect width="150" height="150" fill="%23eef0f4"/%3E%3Cpath d="M25 110l32-35 23 23 13-14 32 26H25z" fill="%2399a2b3"/%3E%3Ccircle cx="99" cy="50" r="14" fill="%236d5efc"/%3E%3C/svg%3E';
+      }
       else if (varName.startsWith('qrcode') || varName.startsWith('codebarre')) data[varName] = 'DEMO-12345';
       else data[varName] = varName;
     }

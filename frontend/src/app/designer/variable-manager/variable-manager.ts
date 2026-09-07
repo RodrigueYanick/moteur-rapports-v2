@@ -18,17 +18,30 @@ import {
 import { TemplateApiService } from '../../services/template-api';
 import { Variable } from '../../models/variable.model';
 import { Subject } from 'rxjs';
+import {
+  LucideAngularModule, Braces, Sigma, Edit3, Trash2
+} from 'lucide-angular';
 
 @Component({
   selector: 'app-variable-manager',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, LucideAngularModule],
   templateUrl: './variable-manager.html',
   styleUrls: ['./variable-manager.scss'],
 })
+
+
+
 export class VariableManager implements OnInit, OnDestroy {
   @Input() templateId: string | null = null;
   @Output() variablesLoaded = new EventEmitter<Variable[]>();
+  
+  readonly icons = {
+    variable: Braces,
+    formula: Sigma,
+    edit: Edit3,
+    trash: Trash2,
+  };
 
   variables: Variable[] = [];
   loading = false;

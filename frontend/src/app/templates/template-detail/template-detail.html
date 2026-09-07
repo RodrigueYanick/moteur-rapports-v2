@@ -52,19 +52,27 @@
   <app-variable-validation-form [templateId]="templateId" [active]="template.statut === 'PUBLIE'">
   </app-variable-validation-form>
 
-  <app-report-designer
-    [pages]="pages"
-    [templateId]="templateId"
-    [templateName]="template.nom"
-    [templateStatus]="template.statut"
-    [savingStatus]="savingStatus"
-    (exportRequest)="onExportRequest($event)"
-    (pagesChange)="onPagesChange($event)"
-    (publishRequest)="publish()"
-    (duplicateRequest)="duplicateAndNavigate()"
-    (manualSaveRequest)="saveNow()"
-    (previewRequest)="openPreview()">
-  </app-report-designer>
+    <app-report-designer
+      [pages]="pages"
+      [templateId]="templateId"
+      [templateName]="template.nom"
+      [templateStatus]="template.statut"
+      [formatPapier]="template.formatPapier || 'A4'"
+      [largeurMm]="template.largeurMm"
+      [hauteurMm]="template.hauteurMm"
+      [modePagination]="template.modePagination || 'FIXED'"
+      [margeHautMm]="template.margeHautMm ?? 10"
+      [margeBasMm]="template.margeBasMm ?? 10"
+      [margeGaucheMm]="template.margeGaucheMm ?? 10"
+      [margeDroiteMm]="template.margeDroiteMm ?? 10"
+      [savingStatus]="savingStatus"
+      (exportRequest)="onExportRequest($event)"
+      (pagesChange)="onPagesChange($event)"
+      (publishRequest)="publish()"
+      (duplicateRequest)="duplicateAndNavigate()"
+      (manualSaveRequest)="saveNow()"
+      (previewRequest)="openPreview()">
+    </app-report-designer>
 
   <app-template-filler
     [templateId]="templateId"

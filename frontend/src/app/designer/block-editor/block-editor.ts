@@ -50,6 +50,12 @@ export class BlockEditor implements OnChanges, DoCheck {
   @Input() block: DesignBlock | null = null;
   @Input() allBlocks: DesignBlock[] = [];
   @Input() explicitVariables: Variable[] = []; // MODIFIÉ : type Variable[] au lieu de { nomVariable: string }[]
+  @Input() margeGauchePx: number = 0;
+  @Input() margeHautPx: number = 0;
+  @Input() margeDroitePx: number = 0;
+  @Input() margeBasPx: number = 0;
+  @Input() canvasWidth: number = 794;
+  @Input() canvasHeight: number = 1123;
   @Output() updated = new EventEmitter<DesignBlock>();
   @Output() closed = new EventEmitter<void>();
   newVariableName = '';
@@ -483,19 +489,72 @@ export class BlockEditor implements OnChanges, DoCheck {
       messages.push('Le formulaire contient des champs invalides.');
     }
 
+    // Vérification des marges : position et dimensions doivent rester dans la zone utilisable
+    const val = this.form.value;
+    if (val.posX !== undefined && val.posY !== undefined && val.largeurBox && val.hauteurBox) {
+      const area = this.usableArea;
+      if (val.largeurBox > area.width) {
+        messages.push(`La largeur dépasse la zone utilisable (max ${area.width}px).`);
+      }
+      if (val.hauteurBox > area.height) {
+        messages.push(`La hauteur dépasse la zone utilisable (max ${area.height}px).`);
+      }
+      if (val.posX < area.minX) {
+        messages.push(`La position X ne peut pas être inférieure à ${area.minX}px (marge gauche).`);
+      }
+      if (val.posY < area.minY) {
+        messages.push(`La position Y ne peut pas être inférieure à ${area.minY}px (marge haute).`);
+      }
+      if (val.posX + val.largeurBox > area.maxX) {
+        messages.push(`Le bloc déborde sur la marge droite.`);
+      }
+      if (val.posY + val.hauteurBox > area.maxY) {
+        messages.push(`Le bloc déborde sur la marge basse.`);
+      }
+    }
+
     return messages;
+  }
+
+  /** Zone utilisable (hors marges) calculée à partir des Inputs */
+  get usableArea(): { minX: number; minY: number; maxX: number; maxY: number; width: number; height: number } {
+    return {
+      minX: this.margeGauchePx,
+      minY: this.margeHautPx,
+      maxX: this.canvasWidth - this.margeDroitePx,
+      maxY: this.canvasHeight - this.margeBasPx,
+      width: this.canvasWidth - this.margeGauchePx - this.margeDroitePx,
+      height: this.canvasHeight - this.margeHautPx - this.margeBasPx,
+    };
   }
 
   save(): void {
     if (!this.block || this.form.invalid) return;
     const val = this.form.value;
+
+    // Contrainte des marges : on clamp la position et les dimensions
+    const area = this.usableArea;
+    const fallback = BLOCK_DEFAULT_DIMENSIONS[this.block.type];
+    let clampedLargeur = val.largeurBox || fallback.w;
+    let clampedHauteur = val.hauteurBox || fallback.h;
+
+    // Limiter les dimensions à la zone utilisable
+    if (clampedLargeur > area.width) clampedLargeur = area.width;
+    if (clampedHauteur > area.height) clampedHauteur = area.height;
+
+    // Contraintre la position dans la zone utilisable
+    let clampedX = val.posX || 0;
+    let clampedY = val.posY || 0;
+    clampedX = Math.max(area.minX, Math.min(clampedX, area.maxX - clampedLargeur));
+    clampedY = Math.max(area.minY, Math.min(clampedY, area.maxY - clampedHauteur));
+
     let updatedBlock: DesignBlock = {
       ...this.block,
       nom: val.nom,
-      x: val.posX,
-      y: val.posY,
-      largeurBox: val.largeurBox,
-      hauteurBox: val.hauteurBox,
+      x: clampedX,
+      y: clampedY,
+      largeurBox: clampedLargeur,
+      hauteurBox: clampedHauteur,
       opacite: val.opacite,
       visible: val.visible,
       locked: val.locked,

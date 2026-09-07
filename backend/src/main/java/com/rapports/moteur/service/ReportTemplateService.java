@@ -8,9 +8,11 @@ import com.rapports.moteur.dto.dtoTemplate.TemplateCreate;
 import com.rapports.moteur.dto.dtoTemplate.TemplateResponse;
 import com.rapports.moteur.dto.dtoVariable.ExtractedVariable;
 import com.rapports.moteur.entity.Categorie;
+import com.rapports.moteur.entity.PaginationMode;
 import com.rapports.moteur.entity.ReportTemplate;
 import com.rapports.moteur.entity.ReportVariable;
 import com.rapports.moteur.entity.TemplateStatus;
+import com.rapports.moteur.entity.Visibilite;
 import com.rapports.moteur.exceptions.TemplateNotFoundException;
 import com.rapports.moteur.exceptions.ValidationException;
 import com.rapports.moteur.mapper.TemplateMapper;
@@ -38,6 +40,7 @@ public class ReportTemplateService {
     private final ObjectMapper objectMapper;
     private final ReportVariableRepository variableRepository;
     private final EntrepriseService entrepriseService;
+    
 
     // ============================================================
     // Contrôle d'appartenance multi-entreprise — point d'entrée unique
@@ -65,14 +68,55 @@ public class ReportTemplateService {
         return template;
     }
 
-    public List<TemplateResponse> findAll() {
+    public List<TemplateResponse> findAll(Visibilite visibilite, String q) {
         String code = entrepriseService.getCurrentCodeEntreprise();
         List<ReportTemplate> templates;
-        if (code != null) {
-            templates = repository.findByCodeEntrepriseOrCodeEntrepriseIsNull(code);
+
+        String search = (q != null && !q.isBlank()) ? q.trim() : null;
+
+        if (visibilite == null) {
+            // Ancien comportement : selon la présence du header
+            if (code != null) {
+                templates = (search != null)
+                    ? repository.findByCodeEntrepriseOrCodeEntrepriseIsNullAndNomContaining(code, search)
+                    : repository.findByCodeEntrepriseOrCodeEntrepriseIsNull(code);
+            } else {
+                templates = (search != null)
+                    ? repository.findByCodeEntrepriseIsNullAndNomContaining(search)
+                    : repository.findByCodeEntrepriseIsNull();
+            }
         } else {
-            templates = repository.findByCodeEntrepriseIsNull();
+            switch (visibilite) {
+                case PRIVATE:
+                    if (code == null) {
+                        // Un utilisateur sans header ne peut pas avoir de templates privés
+                        templates = List.of();
+                    } else {
+                        templates = (search != null)
+                            ? repository.findByCodeEntrepriseAndNomContaining(code, search)
+                            : repository.findByCodeEntreprise(code);
+                    }
+                    break;
+                case PUBLIC:
+                    templates = (search != null)
+                        ? repository.findByCodeEntrepriseIsNullAndNomContaining(search)
+                        : repository.findByCodeEntrepriseIsNull();
+                    break;
+                case ALL:
+                default:
+                    if (code != null) {
+                        templates = (search != null)
+                            ? repository.findByCodeEntrepriseOrCodeEntrepriseIsNullAndNomContaining(code, search)
+                            : repository.findByCodeEntrepriseOrCodeEntrepriseIsNull(code);
+                    } else {
+                        templates = (search != null)
+                            ? repository.findByCodeEntrepriseIsNullAndNomContaining(search)
+                            : repository.findByCodeEntrepriseIsNull();
+                    }
+                    break;
+            }
         }
+
         return templates.stream().map(mapper::toDto).collect(Collectors.toList());
     }
 
@@ -91,6 +135,7 @@ public class ReportTemplateService {
 
     public TemplateResponse create(TemplateCreate request) {
         ReportTemplate entity = mapper.toEntity(request);
+        if (entity.getModePagination() == null) entity.setModePagination(PaginationMode.FIXED);
         entity.setStatut(TemplateStatus.BROUILLON);
         entity.setVersion(1);
         entity.setCodeEntreprise(entrepriseService.getCurrentCodeEntreprise());
@@ -197,6 +242,11 @@ public class ReportTemplateService {
         entity.setFormatPapier(request.getFormatPapier());
         entity.setLargeurMm(request.getLargeurMm());
         entity.setHauteurMm(request.getHauteurMm());
+        entity.setModePagination(request.getModePagination() != null ? request.getModePagination() : PaginationMode.FIXED);
+        entity.setMargeGaucheMm(request.getMargeGaucheMm() != null ? request.getMargeGaucheMm() : 0);
+        entity.setMargeDroiteMm(request.getMargeDroiteMm() != null ? request.getMargeDroiteMm() : 0);
+        entity.setMargeHautMm(request.getMargeHautMm() != null ? request.getMargeHautMm() : 0);
+        entity.setMargeBasMm(request.getMargeBasMm() != null ? request.getMargeBasMm() : 0);
         validateFormat(entity);
 
         repository.save(entity);
@@ -216,6 +266,11 @@ public class ReportTemplateService {
         copy.setLargeurMm(original.getLargeurMm());
         copy.setHauteurMm(original.getHauteurMm());
         copy.setCodeEntreprise(original.getCodeEntreprise());
+        copy.setModePagination(original.getModePagination());
+        copy.setMargeGaucheMm(original.getMargeGaucheMm());
+        copy.setMargeDroiteMm(original.getMargeDroiteMm());
+        copy.setMargeHautMm(original.getMargeHautMm());
+        copy.setMargeBasMm(original.getMargeBasMm());
         copy.setStatut(TemplateStatus.BROUILLON);
         copy.setVersion(1);
 
@@ -267,6 +322,11 @@ public class ReportTemplateService {
         newVersion.setLargeurMm(original.getLargeurMm());
         newVersion.setHauteurMm(original.getHauteurMm());
         newVersion.setCodeEntreprise(original.getCodeEntreprise());
+        newVersion.setModePagination(original.getModePagination());
+        newVersion.setMargeGaucheMm(original.getMargeGaucheMm());
+        newVersion.setMargeDroiteMm(original.getMargeDroiteMm());
+        newVersion.setMargeHautMm(original.getMargeHautMm());
+        newVersion.setMargeBasMm(original.getMargeBasMm());
         newVersion.setStatut(TemplateStatus.BROUILLON);
         newVersion.setVersion(original.getVersion() + 1);
         newVersion.setParentTemplate(original);

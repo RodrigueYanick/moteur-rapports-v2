@@ -1,12 +1,19 @@
 <div class="library-container">
 
-  <!-- ===== Barre de filtres ===== -->
+  <!-- ===== Onglets de visibilité ===== -->
   <div class="toolbar">
     <div class="search-box">
       <lucide-icon [img]="icons.search" [size]="15"></lucide-icon>
-      <input type="text" [(ngModel)]="searchTerm" (ngModelChange)="applyFilters()"
+      <input type="text" [(ngModel)]="searchTerm"
+             (ngModelChange)="onSearchChange()"
              placeholder="Rechercher un modèle..." />
     </div>
+
+    <select [(ngModel)]="visibilityFilter" (change)="loadTemplates()" class="filter-select">
+      <option value="ALL">Tous les modèles</option>
+      <option value="PRIVATE">Mes modèles</option>
+      <option value="PUBLIC">Publics</option>
+    </select>
 
     <select [(ngModel)]="filterCategorie" (change)="applyFilters()" class="filter-select">
       <option value="">Toutes catégories</option>

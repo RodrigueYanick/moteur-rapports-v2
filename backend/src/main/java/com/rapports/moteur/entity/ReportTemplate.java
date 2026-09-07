@@ -65,6 +65,27 @@ public class ReportTemplate {
     @Column(name = "hauteur_mm")
     private Integer hauteurMm;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "mode_pagination", nullable = false, length = 20)
+    @Builder.Default
+    private PaginationMode modePagination = PaginationMode.FIXED;
+
+    @Column(name = "marge_gauche_mm")
+    @Builder.Default
+    private Integer margeGaucheMm = 0;
+
+    @Column(name = "marge_droite_mm")
+    @Builder.Default
+    private Integer margeDroiteMm = 0;
+
+    @Column(name = "marge_haut_mm")
+    @Builder.Default
+    private Integer margeHautMm = 0;
+
+    @Column(name = "marge_bas_mm")
+    @Builder.Default
+    private Integer margeBasMm = 0;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_template_id")
     private ReportTemplate parentTemplate;

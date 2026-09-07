@@ -1,6 +1,7 @@
 package com.rapports.moteur.dto.dtoTemplate;
 
 import com.rapports.moteur.entity.Categorie;
+import com.rapports.moteur.entity.PaginationMode;
 import com.rapports.moteur.entity.TemplateStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
@@ -51,4 +52,19 @@ public class TemplateResponse {
 
     @Schema(description = "Date de dernière modification", example = "2026-08-19T14:22:10")
     private LocalDateTime dateModification;
+
+    @Schema(description = "Mode de pagination du modèle", example = "FIXED", allowableValues = {"FIXED", "AUTO"})
+    private PaginationMode modePagination;
+
+    @Schema(description = "Marge gauche en mm", example = "5")
+    private Integer margeGaucheMm;
+
+    @Schema(description = "Marge droite en mm", example = "5")
+    private Integer margeDroiteMm;
+
+    @Schema(description = "Marge haute en mm", example = "5")
+    private Integer margeHautMm;
+
+    @Schema(description = "Marge basse en mm", example = "5")
+    private Integer margeBasMm;
 }

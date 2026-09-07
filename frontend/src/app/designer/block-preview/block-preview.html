@@ -1,8 +1,8 @@
-<div class="preview-container">
+<div #previewViewport class="preview-container">
   <div class="preview-header">
     <div class="header-left">
       <lucide-icon [img]="icons.preview" [size]="14"></lucide-icon>
-      <span>Aperçu en temps réel ({{ safePreviewPages.length }} page{{ safePreviewPages.length > 1 ? 's' : '' }})</span>
+      <span>Aperçu en temps réel ({{ displayedPageCount }} page{{ displayedPageCount > 1 ? 's' : '' }})</span>
     </div>
     <div class="zoom-controls">
       <button (click)="zoomOut()" [disabled]="zoom <= minZoom" title="Zoom arrière">
@@ -18,15 +18,50 @@
     </div>
   </div>
 
+  <!-- ===== Contrôles de navigation de pages (NOUVEAU) ===== -->
+  <div class="page-nav-controls" *ngIf="displayedPageCount > 1">
+    <button 
+      class="nav-btn nav-btn-prev"
+      (click)="previousPreviewPage()" 
+      [disabled]="currentPreviewPageIndex === 0" 
+      title="Page précédente">
+      <lucide-icon [img]="icons.previous" [size]="18"></lucide-icon>
+      <span class="btn-label">Précédent</span>
+    </button>
+
+    <div class="page-indicator">
+      <span class="current-page">{{ currentPreviewPageIndex + 1 }}</span>
+      <span class="page-separator">/</span>
+      <span class="total-pages">{{ displayedPageCount }}</span>
+      <span class="page-text">pages</span>
+    </div>
+
+    <button 
+      class="nav-btn nav-btn-next"
+      (click)="nextPreviewPage()" 
+      [disabled]="currentPreviewPageIndex >= displayedPageCount - 1" 
+      title="Page suivante">
+      <span class="btn-label">Suivant</span>
+      <lucide-icon [img]="icons.next" [size]="18"></lucide-icon>
+    </button>
+  </div>
+
   <div class="preview-content">
-    <div class="preview-page-block" *ngFor="let p of safePreviewPages; let i = index">
-      <div class="preview-page-label">{{ p.nom || 'Page ' + (i+1) }}</div>
-      <div class="preview-sheet-wrapper">
-        <div class="preview-sheet" [style.transform]="'scale(' + zoom + ')'" [style.transform-origin]="'top center'">
+    <div class="preview-page-block" *ngIf="currentPreviewPage as p">
+      <div class="preview-page-label">{{ p.nom || 'Page ' + (currentPreviewPageIndex + 1) }}</div>
+        <div class="preview-sheet-wrapper"
+          [style.width.px]="canvasWidth * zoom"
+          [style.height.px]="canvasHeight * zoom">
+        <div class="preview-sheet"
+          [style.left.px]="0"
+          [style.width.px]="canvasWidth"
+          [style.height.px]="canvasHeight"
+          [style.transform]="'scale(' + zoom + ')'"
+          [style.transform-origin]="'top left'">
           <!-- Contenu de la page -->
           <div [innerHTML]="p.html"></div>
           <!-- Numéro de page en bas -->
-          <div class="page-number">{{ i+1 }}</div>
+          <div class="page-number">{{ currentPreviewPageIndex + 1 }}</div>
         </div>
       </div>
     </div>

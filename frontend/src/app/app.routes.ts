@@ -6,6 +6,7 @@ import { TemplateLibrary } from './templates/template-library/template-library';
 
 export const routes: Routes = [
   { path: '', redirectTo: '/bibliotheque', pathMatch: 'full' },
+  { path: 'auth/login', redirectTo: '/bibliotheque', pathMatch: 'full' },
   { path: 'bibliotheque', component: TemplateLibrary },
   { path: 'templates/new', component: TemplateCreate },
   { path: 'templates/:id', component: TemplateDetail },

@@ -65,3 +65,20 @@
   background-color: #fadbd8;
   color: #e74c3c;
 }
+
+.margins-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+  margin-top: 0.4rem;
+
+  .margin-field {
+    label {
+      display: block;
+      margin-bottom: 0.15rem;
+      font-weight: 500;
+      font-size: 0.85rem;
+      color: #555;
+    }
+  }
+}

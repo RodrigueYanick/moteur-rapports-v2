@@ -26,6 +26,7 @@ export class TemplateLibrary implements OnInit {
   filterCategorie = '';
   filterStatut = '';
   viewMode: 'grid' | 'list' = 'grid';
+  visibilityFilter: 'ALL' | 'PUBLIC' | 'PRIVATE' = 'ALL';
 
   categories: string[] = [
     'VENTES', 'ACHATS', 'FINANCE', 'RH', 'LOGISTIQUE',
@@ -61,13 +62,13 @@ export class TemplateLibrary implements OnInit {
     this.loadTemplates();
   }
 
-  loadTemplates(): void {
+    loadTemplates(): void {
     this.loading = true;
     this.error = '';
-    this.api.getTemplates().subscribe({
+    this.api.getTemplates(this.visibilityFilter, this.searchTerm).subscribe({
       next: (templates) => {
         this.templates = templates;
-        this.applyFilters();
+        this.applyFilters();  // garde les filtres locaux (catégorie/statut)
         this.loading = false;
         this.cdr.detectChanges();
       },
@@ -78,6 +79,18 @@ export class TemplateLibrary implements OnInit {
         console.error(err);
       },
     });
+  }
+
+
+  // Nouvelle méthode pour changer le filtre de visibilité
+  setVisibilityFilter(filter: 'ALL' | 'PRIVATE' | 'PUBLIC'): void {
+    this.visibilityFilter = filter;
+    this.loadTemplates();
+  }
+
+  // Ajuster la recherche : lorsque l'utilisateur tape, on relance l'API
+  onSearchChange(): void {
+    this.loadTemplates();
   }
 
   applyFilters(): void {

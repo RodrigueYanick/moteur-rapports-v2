@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import com.rapports.moteur.entity.Categorie;
+import com.rapports.moteur.entity.PaginationMode;
 
 @Schema(description = "Requête de création ou de mise à jour d'un modèle de rapport")
 @Data
@@ -31,4 +32,19 @@ public class TemplateCreate {
 
     @Schema(description = "Hauteur personnalisée en millimètres (obligatoire si formatPapier = CUSTOM)", example = "200")
     private Integer hauteurMm;
+
+    @Schema(description = "Mode de pagination du modèle", example = "FIXED", allowableValues = {"FIXED", "AUTO"})
+    private PaginationMode modePagination = PaginationMode.FIXED;
+
+    @Schema(description = "Marge gauche en mm", example = "5")
+    private Integer margeGaucheMm;
+
+    @Schema(description = "Marge droite en mm", example = "5")
+    private Integer margeDroiteMm;
+
+    @Schema(description = "Marge haute en mm", example = "5")
+    private Integer margeHautMm;
+
+    @Schema(description = "Marge basse en mm", example = "5")
+    private Integer margeBasMm;
 }

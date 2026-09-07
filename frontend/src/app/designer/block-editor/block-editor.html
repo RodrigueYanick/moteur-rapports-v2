@@ -46,12 +46,15 @@
         <div class="field-row">
           <div class="field">
             <label>X</label>
-            <input type="number" formControlName="posX" />
+            <input type="number" formControlName="posX" [min]="margeGauchePx" />
           </div>
           <div class="field">
             <label>Y</label>
-            <input type="number" formControlName="posY" />
+            <input type="number" formControlName="posY" [min]="margeHautPx" />
           </div>
+        </div>
+        <div class="field-hint" *ngIf="margeGauchePx > 0 || margeHautPx > 0">
+          Position min : X={{ margeGauchePx }}, Y={{ margeHautPx }} (marges)
         </div>
       </div>
     </div>
@@ -69,12 +72,15 @@
         <div class="field-row">
           <div class="field">
             <label>Largeur</label>
-            <input type="number" formControlName="largeurBox" />
+            <input type="number" formControlName="largeurBox" [max]="canvasWidth - margeGauchePx - margeDroitePx" />
           </div>
           <div class="field">
             <label>Hauteur</label>
-            <input type="number" formControlName="hauteurBox" />
+            <input type="number" formControlName="hauteurBox" [max]="canvasHeight - margeHautPx - margeBasPx" />
           </div>
+        </div>
+        <div class="field-hint" *ngIf="margeGauchePx > 0 || margeDroitePx > 0 || margeHautPx > 0 || margeBasPx > 0">
+          Dimensions max : {{ canvasWidth - margeGauchePx - margeDroitePx }} × {{ canvasHeight - margeHautPx - margeBasPx }} (zone utile)
         </div>
       </div>
     </div>

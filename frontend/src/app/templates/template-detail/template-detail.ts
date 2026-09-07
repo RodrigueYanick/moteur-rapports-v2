@@ -30,6 +30,7 @@ export class TemplateDetail implements OnInit {
   private saveSubject = new Subject<void>();
   templateId: string | null = null;
   selectedBlock: DesignBlock | null = null;
+   modePagination: 'FIXED' | 'AUTO' = 'FIXED';
 
   readonly icons = {
     archive: Archive,
@@ -170,10 +171,10 @@ export class TemplateDetail implements OnInit {
     this.error = '';
     this.template = null;
     this.pages = [];
-
     this.api.getTemplate(templateId).subscribe({
       next: (template) => {
         this.template = template;
+        this.modePagination = template.modePagination || 'FIXED'
         this.loading = false;
         this.loadDesign();
         this.cdr.detectChanges();
@@ -189,35 +190,39 @@ export class TemplateDetail implements OnInit {
 
   publish(): void {
     if (!this.template || this.publishing) return;
-    const contenuDesign = this.serializer.serialize(this.pages);
-    this.api
-      .updateTemplate(this.template.id, {
+      const contenuDesign = this.serializer.serialize(this.pages);
+      const updateData: any = {
         nom: this.template.nom,
         description: this.template.description,
         contenuDesign: contenuDesign,
         categorie: (this.template as any).categorie || 'AUTRES',
         formatPapier: (this.template as any).formatPapier || 'A4',
-      })
-      .subscribe({
-        next: () => {
-          this.publishing = true;
-          this.api.publishTemplate(this.template!.id).subscribe({
-            next: (updated) => {
-              this.template = updated;
-              this.publishing = false;
-              this.cdr.detectChanges();
-            },
-            error: (err) => {
-              console.error('Échec publication', err);
-              this.publishing = false;
-            },
-          });
-        },
-        error: (err) => {
-          alert('Impossible de sauvegarder le design avant publication.');
-          console.error(err);
-        },
-      });
+        modePagination: this.template.modePagination || 'FIXED',   // ← ajouté
+      };
+      if (this.template.formatPapier === 'CUSTOM') {
+        updateData.largeurMm = this.template.largeurMm;
+        updateData.hauteurMm = this.template.hauteurMm;
+      }
+      this.api.updateTemplate(this.template.id, updateData).subscribe({
+      next: () => {
+        this.publishing = true;
+        this.api.publishTemplate(this.template!.id).subscribe({
+          next: (updated) => {
+            this.template = updated;
+            this.publishing = false;
+            this.cdr.detectChanges();
+          },
+          error: (err) => {
+            console.error('Échec publication', err);
+            this.publishing = false;
+          },
+        });
+      },
+      error: (err) => {
+        alert('Impossible de sauvegarder le design avant publication.');
+        console.error(err);
+      },
+    });
   }
 
   saveNow(): void {
@@ -252,7 +257,16 @@ export class TemplateDetail implements OnInit {
       contenuDesign: contenuDesign,
       categorie: (this.template as any).categorie || 'AUTRES',
       formatPapier: (this.template as any).formatPapier || 'A4',
+      modePagination: this.template.modePagination || 'FIXED',
+      margeHautMm: this.template.margeHautMm ?? 10,
+      margeBasMm: this.template.margeBasMm ?? 10,
+      margeGaucheMm: this.template.margeGaucheMm ?? 10,
+      margeDroiteMm: this.template.margeDroiteMm ?? 10,
     };
+    if (this.template.formatPapier === 'CUSTOM') {
+      updateData.largeurMm = this.template.largeurMm;
+      updateData.hauteurMm = this.template.hauteurMm;
+    }
     this.api.updateTemplate(this.template.id, updateData).subscribe({
       next: (updated) => {
         this.template = updated;

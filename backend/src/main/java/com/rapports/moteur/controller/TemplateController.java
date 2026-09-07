@@ -8,6 +8,7 @@ import com.rapports.moteur.dto.dtoTemplate.TemplateResponse;
 import com.rapports.moteur.dto.dtoTemplate.TemplateSchemaDto;
 import com.rapports.moteur.dto.dtoVariable.VariableRequest;
 import com.rapports.moteur.dto.dtoVariable.VariableResponse;
+import com.rapports.moteur.entity.Visibilite;
 import com.rapports.moteur.service.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -69,22 +70,27 @@ public class TemplateController {
     }
 
     @Operation(
-        summary = "Lister tous les modèles accessibles",
+        summary = "Lister les modèles selon la visibilité et la recherche",
         description = """
-            Retourne les modèles visibles selon le contexte entreprise :
-            - Sans header X-Entreprise-Code : uniquement les modèles publics (codeEntreprise null).
-            - Avec un header : les modèles publics + les modèles privés de cette entreprise.
+            Retourne les modèles accessibles en fonction du filtre de visibilité et de la recherche textuelle.
+            Paramètres optionnels :
+            - visibilite : ALL (défaut si header présent), PRIVATE (uniquement modèles privés), PUBLIC (uniquement modèles publics)
+            - q : terme de recherche sur le nom du modèle
             """
     )
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Liste des modèles accessibles",
-                     content = @Content(schema = @Schema(implementation = TemplateResponse.class))),
-        @ApiResponse(responseCode = "400", description = "Code entreprise invalide (mal formé)",
-                     content = @Content(schema = @Schema(implementation = ApiError.class)))
+        @ApiResponse(responseCode = "200", description = "Liste des modèles",
+                    content = @Content(schema = @Schema(implementation = TemplateResponse.class))),
+        @ApiResponse(responseCode = "400", description = "Code entreprise invalide ou paramètres incorrects",
+                    content = @Content(schema = @Schema(implementation = ApiError.class)))
     })
     @GetMapping
-    public ResponseEntity<List<TemplateResponse>> getAll() {
-        return ResponseEntity.ok(templateService.findAll());
+    public ResponseEntity<List<TemplateResponse>> getAll(
+            @Parameter(description = "Filtre de visibilité (ALL, PRIVATE, PUBLIC)")
+            @RequestParam(required = false) Visibilite visibilite,
+            @Parameter(description = "Terme de recherche sur le nom du modèle")
+            @RequestParam(required = false) String q) {
+        return ResponseEntity.ok(templateService.findAll(visibilite, q));
     }
 
     @Operation(
@@ -143,6 +149,7 @@ public class TemplateController {
         templateService.delete(id);
         return ResponseEntity.noContent().build();
     }
+
 
     @Operation(
         summary = "Publier un modèle",

@@ -9,5 +9,12 @@ export interface Template {
   dateModification: string;
   categorie?: string;
   formatPapier?: string;
+  modePagination?: 'FIXED' | 'AUTO';
+  largeurMm?: number;
+  hauteurMm?: number;
+  margeHautMm?: number;
+  margeBasMm?: number;
+  margeGaucheMm?: number;
+  margeDroiteMm?: number;
   parentTemplateId?: string | null;
 }

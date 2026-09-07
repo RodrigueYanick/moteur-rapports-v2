@@ -1,18 +1,30 @@
-<div
-  #canvasContainer
-  class="canvas"
-  [style.width.px]="canvasWidth"
-  [style.height.px]="canvasHeight"
-  [style.transform]="'scale(' + zoom / 100 + ')'"
-  [style.transform-origin]="'top left'"
-  tabindex="0"
-  (click)="clearSelection()"
-  (keydown)="onKeyDown($event)"
->
+<div class="canvas-wrapper"
+     [style.width.px]="canvasWidth * zoom / 100"
+     [style.height.px]="canvasHeight * zoom / 100">
+  <div
+    #canvasContainer
+    class="canvas"
+    [style.width.px]="canvasWidth"
+    [style.height.px]="canvasHeight"
+    [style.transform]="'scale(' + zoom / 100 + ')'"
+    [style.transform-origin]="'top left'"
+    tabindex="0"
+    (click)="clearSelection()"
+    (keydown)="onKeyDown($event)"
+  >
   <!-- Grille visuelle -->
   <div class="grid-overlay" *ngIf="showGrid"></div>
   <!-- Repères (simulés) -->
   <div class="guides-overlay" *ngIf="showGuides"></div>
+
+  <!-- Zones de marges interdites (4 côtés) -->
+  <div class="margin-zone margin-zone-top" [ngStyle]="marginTopStyle"></div>
+  <div class="margin-zone margin-zone-bottom" [ngStyle]="marginBottomStyle"></div>
+  <div class="margin-zone margin-zone-left" [ngStyle]="marginLeftStyle"></div>
+  <div class="margin-zone margin-zone-right" [ngStyle]="marginRightStyle"></div>
+
+  <!-- Zone de contenu utilisable (bordure délimitant la zone autorisée) -->
+  <div class="content-area-indicator" [ngStyle]="contentAreaStyle"></div>
 
   <ng-container *ngFor="let block of blocks">
     <div

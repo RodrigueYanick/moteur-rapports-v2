@@ -59,6 +59,25 @@ $warning: #f0b429;
   }
 }
 
+.visibility-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 16px 20px 0;
+  button {
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid #2a2e3d;
+    background: #1a1d29;
+    color: #e8e9ee;
+    cursor: pointer;
+    &.active {
+      background: #6d5efc;
+      border-color: #6d5efc;
+      color: white;
+    }
+  }
+}
+
 .filter-select {
   background: $bg-card;
   border: 1px solid $border;

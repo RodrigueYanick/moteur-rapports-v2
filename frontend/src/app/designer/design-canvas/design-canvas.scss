@@ -10,6 +10,29 @@ $text-secondary: #6b7280;
   overflow: hidden;
 }
 
+:host {
+  display: block;
+  margin: auto;          // centrage flexible, sans perte de scroll
+}
+
+.canvas-wrapper {
+  position: relative;
+  // supprimer margin: 0 auto;
+}
+
+.canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: white;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+  border-radius: 2px;
+  margin: 0;
+  overflow: hidden;
+  transform-origin: top left;
+  box-sizing: border-box;
+}
+
 .canvas-block {
   position: absolute;
   cursor: move;
@@ -127,6 +150,49 @@ $text-secondary: #6b7280;
   bottom: 0;
   border: 2px dashed rgba(255, 0, 0, 0.3);
   pointer-events: none;
+}
+
+.content-area-indicator {
+  position: absolute;
+  border: 1px dashed rgba(109, 94, 252, 0.35);
+  background: transparent;
+  pointer-events: none;
+  z-index: 0;
+}
+
+// ---------- Zones de marges interdites ----------
+.margin-zone {
+  position: absolute;
+  pointer-events: none;
+  z-index: 0;
+  // Hachures diagonales grises + fond semi-transparent rouge/orange
+  background:
+    repeating-linear-gradient(
+      -45deg,
+      rgba(239, 68, 68, 0.04),
+      rgba(239, 68, 68, 0.04) 3px,
+      transparent 3px,
+      transparent 7px
+    ),
+    rgba(239, 68, 68, 0.06);
+  // Bordure interne pour marquer la limite de la zone autorisée
+  border: 0 solid rgba(239, 68, 68, 0.2);
+}
+
+.margin-zone-top {
+  border-bottom-width: 1px;
+}
+
+.margin-zone-bottom {
+  border-top-width: 1px;
+}
+
+.margin-zone-left {
+  border-right-width: 1px;
+}
+
+.margin-zone-right {
+  border-left-width: 1px;
 }
 
 .code-placeholder {

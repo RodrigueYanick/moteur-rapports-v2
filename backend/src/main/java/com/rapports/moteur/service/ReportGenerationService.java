@@ -168,7 +168,7 @@ public class ReportGenerationService {
     }
 
     public String generateHtml(UUID templateId, Object rawData) {
-        ReportTemplate template = getPublishedTemplate(templateId);
+        ReportTemplate template = loadTemplateForCurrentEntreprise(templateId);
         Map<String, Object> data = toDataMap(rawData);
         validatorService.validate(template.getSchema(), data);
         return htmlBuilder.build(
@@ -176,7 +176,12 @@ public class ReportGenerationService {
             data,
             template.getFormatPapier(),
             template.getLargeurMm(),
-            template.getHauteurMm()
+            template.getHauteurMm(),
+            template.getModePagination(),
+            template.getMargeGaucheMm(),
+            template.getMargeDroiteMm(),
+            template.getMargeHautMm(),
+            template.getMargeBasMm()
         );
     }
 
@@ -219,7 +224,12 @@ public class ReportGenerationService {
                 data,
                 template.getFormatPapier(),
                 template.getLargeurMm(),
-                template.getHauteurMm()
+                template.getHauteurMm(),
+                template.getModePagination(),
+                template.getMargeGaucheMm(),
+                template.getMargeDroiteMm(),
+                template.getMargeHautMm(),
+                template.getMargeBasMm()
             )
         );
     }

@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Template } from '../models/template.model';
 import { TemplateSchema } from '../models/template-schema.model';
@@ -16,9 +16,12 @@ export class TemplateApiService {
 
   constructor(private http: HttpClient) {}
 
-  // Liste tous les templates
-  getTemplates(): Observable<Template[]> {
-    return this.http.get<Template[]>(`${this.baseUrl}`);
+  // Liste des templates avec visibilité et recherche
+  getTemplates(visibilite?: string, q?: string): Observable<Template[]> {
+    let params = new HttpParams();
+    if (visibilite) params = params.set('visibilite', visibilite);
+    if (q) params = params.set('q', q);
+    return this.http.get<Template[]>(`${this.baseUrl}`, { params });
   }
 
   // Détail d'un template
@@ -27,14 +30,14 @@ export class TemplateApiService {
   }
 
   // Créer un nouveau template
-  createTemplate(form: TemplateForm): Observable<Template> {
+  createTemplate(form: any): Observable<Template> {
     return this.http.post<Template>(`${this.baseUrl}`, form);
   }
-
+  
   // Modifier un template
-  updateTemplate(id: string, form: TemplateForm): Observable<Template> {
-    return this.http.put<Template>(`${this.baseUrl}/${id}`, form);
-  }
+updateTemplate(id: string, form: any): Observable<Template> {
+  return this.http.put<Template>(`${this.baseUrl}/${id}`, form);
+}
 
   // Publier un template
   publishTemplate(id: string): Observable<Template> {
@@ -118,8 +121,12 @@ export class TemplateApiService {
     return this.http.delete<void>(`${this.baseUrl}/${templateId}/documents/${documentId}`);
   }
 
-  getAllDocuments(): Observable<GeneratedDocument[]> {
-    return this.http.get<GeneratedDocument[]>('/api/documents');
+  // Tous les documents avec visibilité et recherche
+  getAllDocuments(visibilite?: string, q?: string): Observable<GeneratedDocument[]> {
+    let params = new HttpParams();
+    if (visibilite) params = params.set('visibilite', visibilite);
+    if (q) params = params.set('q', q);
+    return this.http.get<GeneratedDocument[]>('/api/documents', { params });
   }
 
   archiveTemplate(id: string): Observable<Template> {
@@ -133,4 +140,9 @@ export class TemplateApiService {
   restoreTemplate(id: string): Observable<Template> {
     return this.http.post<Template>(`${this.baseUrl}/${id}/restore`, {});
   }
+
+  getPreviewHtml(templateId: string, data: any): Observable<string> {
+    return this.http.post(`${this.baseUrl}/${templateId}/preview-html`, data, { responseType: 'text' });
+  }
+  
 }

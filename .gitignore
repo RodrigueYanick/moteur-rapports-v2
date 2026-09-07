@@ -1,2 +1,20 @@
-*.log
+# Angular
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+
+# Spring Boot
+backend/target/
+
+# Fichiers générés par l'application
+backend/data/reports/
+
+# IDE
+.idea/
+
+# Environnement
 .env
+.env.*
+
+# Logs
+*.log

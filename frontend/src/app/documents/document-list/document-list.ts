@@ -24,6 +24,7 @@ export class DocumentList implements OnInit {
   viewMode: 'grid' | 'list' = 'grid';
   downloadingId: string | null = null;
   deletingId: string | null = null;
+  visibilityFilter: 'ALL' | 'PUBLIC' | 'PRIVATE' = 'ALL';
 
   readonly icons = {
     file: FileText, search: Search, loader: Loader2, download: Download,
@@ -62,10 +63,10 @@ export class DocumentList implements OnInit {
     this.viewMode = mode;
   }
 
-  loadDocuments(): void {
+    loadDocuments(): void {
     this.loading = true;
     this.error = '';
-    this.api.getAllDocuments().subscribe({
+    this.api.getAllDocuments(this.visibilityFilter, this.searchTerm).subscribe({
       next: (docs) => {
         this.documents = docs;
         this.loading = false;
@@ -78,6 +79,15 @@ export class DocumentList implements OnInit {
         console.error(err);
       }
     });
+  }
+
+  setVisibilityFilter(filter: 'ALL' | 'PRIVATE' | 'PUBLIC'): void {
+    this.visibilityFilter = filter;
+    this.loadDocuments();
+  }
+
+  onSearchChange(): void {
+    this.loadDocuments();
   }
 
   cardBackground(doc: GeneratedDocument): string {

@@ -141,13 +141,56 @@ public class DocumentService {
         documentRepository.delete(document);
     }
 
-    public List<DocumentResponse> getAll() {
+    public List<DocumentResponse> getAll(Visibilite visibilite, String q) {
         String code = entrepriseService.getCurrentCodeEntreprise();
-        List<Document> documents = documentRepository.findByCodeEntreprise(code);
+        String search = (q != null && !q.isBlank()) ? q.trim() : null;
+        List<Document> documents;
+
+        if (visibilite == null) {
+            // comportement par défaut : selon présence header
+            if (code != null) {
+                documents = (search != null)
+                    ? documentRepository.findByTemplateCodeEntrepriseOrTemplateCodeEntrepriseIsNullAndNomContaining(code, search)
+                    : documentRepository.findByTemplateCodeEntrepriseOrTemplateCodeEntrepriseIsNull(code);
+            } else {
+                documents = (search != null)
+                    ? documentRepository.findByTemplateCodeEntrepriseIsNullAndNomContaining(search)
+                    : documentRepository.findByTemplateCodeEntrepriseIsNull();
+            }
+        } else {
+            switch (visibilite) {
+                case PRIVATE:
+                    if (code == null) {
+                        documents = List.of();
+                    } else {
+                        documents = (search != null)
+                            ? documentRepository.findByTemplateCodeEntrepriseAndNomContaining(code, search)
+                            : documentRepository.findByTemplateCodeEntreprise(code);
+                    }
+                    break;
+                case PUBLIC:
+                    documents = (search != null)
+                        ? documentRepository.findByTemplateCodeEntrepriseIsNullAndNomContaining(search)
+                        : documentRepository.findByTemplateCodeEntrepriseIsNull();
+                    break;
+                case ALL:
+                default:
+                    if (code != null) {
+                        documents = (search != null)
+                            ? documentRepository.findByTemplateCodeEntrepriseOrTemplateCodeEntrepriseIsNullAndNomContaining(code, search)
+                            : documentRepository.findByTemplateCodeEntrepriseOrTemplateCodeEntrepriseIsNull(code);
+                    } else {
+                        documents = (search != null)
+                            ? documentRepository.findByTemplateCodeEntrepriseIsNullAndNomContaining(search)
+                            : documentRepository.findByTemplateCodeEntrepriseIsNull();
+                    }
+                    break;
+            }
+        }
+
         return documents.stream()
-                .filter(doc -> doc.getTemplate().getCodeEntreprise().equals(code))
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
+            .map(this::mapToDto)
+            .collect(Collectors.toList());
     }
 
     private DocumentResponse mapToDto(Document document) {

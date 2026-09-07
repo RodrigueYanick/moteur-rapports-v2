@@ -1,5 +1,5 @@
 import { Component, EventEmitter, Input, Output, OnInit, SimpleChanges } from '@angular/core';
-import { DesignBlock, DesignPage } from '../models/design-block.model';
+import { DesignBlock, DesignPage, BLOCK_DEFAULT_DIMENSIONS } from '../models/design-block.model';
 import { CommonModule } from '@angular/common';
 import { BlockEditor } from "../block-editor/block-editor";
 import { BlockPreview } from '../block-preview/block-preview';
@@ -34,6 +34,14 @@ export class ReportDesigner implements OnInit {
   @Input() savingStatus: 'idle' | 'saving' | 'saved' = 'idle';
   @Input() templateId: string | null = null;
   @Input() templateStatus: 'BROUILLON' | 'PUBLIE' | 'ARCHIVE' = 'BROUILLON';
+  @Input() formatPapier: string = 'A4';
+  @Input() largeurMm?: number | null;
+  @Input() hauteurMm?: number | null;
+  @Input() modePagination: 'FIXED' | 'AUTO' = 'FIXED';
+  @Input() margeHautMm: number = 10;
+  @Input() margeBasMm: number = 10;
+  @Input() margeGaucheMm: number = 10;
+  @Input() margeDroiteMm: number = 10;
 
   @Output() pagesChange = new EventEmitter<DesignPage[]>();
   @Output() publishRequest = new EventEmitter<void>();
@@ -69,12 +77,12 @@ export class ReportDesigner implements OnInit {
     private mockDataService: MockDataService
   ) {}
 
-  private paperDimensions: Record<string, { width: number; height: number }> = {
-    'A4': { width: 794, height: 1123 },
-    'A5': { width: 559, height: 794 },
-    'Letter': { width: 816, height: 1056 },
-    'Legal': { width: 816, height: 1344 }
-  };
+  // private paperDimensions: Record<string, { width: number; height: number }> = {
+  //   'A4': { width: 794, height: 1123 },
+  //   'A5': { width: 559, height: 794 },
+  //   'Letter': { width: 816, height: 1056 },
+  //   'Legal': { width: 816, height: 1344 }
+  // };
 
   readonly icons = {
     undo: Undo2, redo: Redo2, grid: Grid3x3, snap: Magnet, guides: Ruler,
@@ -90,10 +98,28 @@ export class ReportDesigner implements OnInit {
   get blocks(): DesignBlock[] {
     return this.pages[this.activePageIndex]?.blocks || [];
   }
+  
   set blocks(value: DesignBlock[]) {
     if (this.pages[this.activePageIndex]) {
       this.pages[this.activePageIndex].blocks = value;
     }
+  }
+
+  get isAutoPagination(): boolean {
+    return this.modePagination === 'AUTO';
+  }
+
+  // Pour le mode AUTO, on définit une hauteur virtuelle pour le canvas
+  get virtualCanvasHeight(): number {
+    if (!this.isAutoPagination) {
+      return this.canvasHeight;
+    }
+    let maxY = 0;
+    for (const block of this.blocks) {
+      const bottom = (block.y || 0) + (block.hauteurBox || 100);
+      if (bottom > maxY) maxY = bottom;
+    }
+    return Math.max(this.canvasHeight, maxY + 200);
   }
 
   get allBlocksFlat(): DesignBlock[] {
@@ -110,6 +136,95 @@ export class ReportDesigner implements OnInit {
     }
     this.pushUndoState();
   }
+
+  // Supprimer ou commenter l'ancienne table paperDimensions
+  // private paperDimensions: Record<string, { width: number; height: number }> = { ... };
+
+  get canvasWidth(): number {
+    const dims = this.getPaperDimensions(this.formatPapier, this.largeurMm, this.hauteurMm);
+    return dims.width;
+  }
+
+  get canvasHeight(): number {
+    const dims = this.getPaperDimensions(this.formatPapier, this.largeurMm, this.hauteurMm);
+    return dims.height;
+  }
+
+  private readonly pxPerMm = 96 / 25.4;
+
+  get margeHautPx(): number { return Math.round(this.margeHautMm * this.pxPerMm); }
+  get margeBasPx(): number { return Math.round(this.margeBasMm * this.pxPerMm); }
+  get margeGauchePx(): number { return Math.round(this.margeGaucheMm * this.pxPerMm); }
+  get margeDroitePx(): number { return Math.round(this.margeDroiteMm * this.pxPerMm); }
+
+  /** Zone utilisable en pixels (hors marges) */
+  get usableAreaPx(): { minX: number; minY: number; maxX: number; maxY: number; width: number; height: number } {
+    return {
+      minX: this.margeGauchePx,
+      minY: this.margeHautPx,
+      maxX: this.canvasWidth - this.margeDroitePx,
+      maxY: this.canvasHeight - this.margeBasPx,
+      width: this.canvasWidth - this.margeGauchePx - this.margeDroitePx,
+      height: this.canvasHeight - this.margeHautPx - this.margeBasPx,
+    };
+  }
+  
+
+  /**
+   * Contraint la position et les dimensions d'un bloc pour qu'il reste
+   * entièrement dans la zone utilisable (hors marges).
+   */
+  private clampBlockToUsableArea(block: DesignBlock): void {
+    const area = this.usableAreaPx;
+    const fallback = BLOCK_DEFAULT_DIMENSIONS[block.type];
+    const w = block.largeurBox || fallback.w;
+    const h = block.hauteurBox || fallback.h;
+
+    // Limiter les dimensions si le bloc est plus grand que la zone
+    const maxW = area.width;
+    const maxH = area.height;
+    if (w > maxW) block.largeurBox = maxW;
+    if (h > maxH) block.hauteurBox = maxH;
+
+    const effectiveW = block.largeurBox || fallback.w;
+    const effectiveH = block.hauteurBox || fallback.h;
+
+    // Contraint la position
+    block.x = Math.max(area.minX, Math.min(block.x || 0, area.maxX - effectiveW));
+    block.y = Math.max(area.minY, Math.min(block.y || 0, area.maxY - effectiveH));
+  }
+
+  private getPaperDimensions(format: string, largeurMm?: number | null, hauteurMm?: number | null): { width: number; height: number } {
+    const pxPerMm = 96 / 25.4; // 96 dpi
+    if (format === 'CUSTOM' && largeurMm && hauteurMm) {
+      return {
+        width: Math.round(largeurMm * pxPerMm),
+        height: Math.round(hauteurMm * pxPerMm),
+      };
+    }
+    // Formats prédéfinis (largeur x hauteur en mm)
+    const standardSizes: Record<string, { wMm: number; hMm: number }> = {
+      'A0': { wMm: 841, hMm: 1189 },
+      'A1': { wMm: 594, hMm: 841 },
+      'A2': { wMm: 420, hMm: 594 },
+      'A3': { wMm: 297, hMm: 420 },
+      'A4': { wMm: 210, hMm: 297 },
+      'A5': { wMm: 148, hMm: 210 },
+      'A6': { wMm: 105, hMm: 148 },
+      'A7': { wMm: 74, hMm: 105 },
+      'A8': { wMm: 52, hMm: 74 },
+      'A9': { wMm: 37, hMm: 52 },
+      'A10': { wMm: 26, hMm: 37 },
+      'Letter': { wMm: 216, hMm: 279 },
+      'Legal': { wMm: 216, hMm: 356 },
+    };
+    const size = standardSizes[format] || standardSizes['A4'];
+    return {
+      width: Math.round(size.wMm * pxPerMm),
+      height: Math.round(size.hMm * pxPerMm),
+    };
+  }
+
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['pages'] && !changes['pages'].firstChange) {
@@ -165,7 +280,7 @@ export class ReportDesigner implements OnInit {
   // ---------- Pages ----------
 
   addPage(): void {
-    if (this.isLocked) { this.showLockedMessage(); return; }
+    if (this.isLocked || this.isAutoPagination) { this.showLockedMessage(); return; }
     const newPage: DesignPage = { id: crypto.randomUUID(), nom: `Page ${this.pages.length + 1}`, blocks: [] };
     this.pages = [...this.pages, newPage];
     this.activePageIndex = this.pages.length - 1;
@@ -175,7 +290,7 @@ export class ReportDesigner implements OnInit {
 
   removePage(index: number, event: Event): void {
     event.stopPropagation();
-    if (this.isLocked) { this.showLockedMessage(); return; }
+    if (this.isLocked || this.isAutoPagination) { this.showLockedMessage(); return; }
     if (this.pages.length <= 1) return;
     this.pages = this.pages.filter((_, i) => i !== index);
     if (this.activePageIndex >= this.pages.length) this.activePageIndex = this.pages.length - 1;
@@ -190,6 +305,8 @@ export class ReportDesigner implements OnInit {
     const source = this.pages[index];
     const clonedBlocks: DesignBlock[] = JSON.parse(JSON.stringify(source.blocks))
       .map((b: DesignBlock) => ({ ...b, id: crypto.randomUUID() }));
+    // Contraint chaque bloc cloné dans la zone utilisable
+    clonedBlocks.forEach(b => this.clampBlockToUsableArea(b));
     const copy: DesignPage = { id: crypto.randomUUID(), nom: `${source.nom} (copie)`, blocks: clonedBlocks };
     this.pages = [...this.pages.slice(0, index + 1), copy, ...this.pages.slice(index + 1)];
     this.activePageIndex = index + 1;
@@ -217,9 +334,11 @@ export class ReportDesigner implements OnInit {
   addBlock(type: DesignBlock['type']): void {
     if (this.isLocked) { this.showLockedMessage(); return; }
 
+    const area = this.usableAreaPx;
+
     const newBlock: DesignBlock = {
       id: crypto.randomUUID(), type, contenu: '', style: {},
-      x: 50, y: 50, visible: true, locked: false, rotation: 0
+      x: area.minX + 10, y: area.minY + 10, visible: true, locked: false, rotation: 0
     };
 
     switch (type) {
@@ -277,6 +396,9 @@ export class ReportDesigner implements OnInit {
         break;
     }
 
+    // Contraint le bloc dans la zone utilisable (hors marges)
+    this.clampBlockToUsableArea(newBlock);
+
     this.blocks.push(newBlock);
     this.afterPagesChanged();
   }
@@ -312,6 +434,10 @@ export class ReportDesigner implements OnInit {
 
   updateBlock(updated: DesignBlock): void {
     if (this.isLocked) { this.showLockedMessage(); return; }
+
+    // Contraint le bloc dans la zone utilisable (hors marges)
+    this.clampBlockToUsableArea(updated);
+
     const index = this.blocks.findIndex(b => b.id === updated.id);
     if (index !== -1) {
       const newBlocks = [...this.blocks];
@@ -341,6 +467,13 @@ export class ReportDesigner implements OnInit {
     }
 
     this.afterPagesChanged();
+  }
+
+  onCanvasPreviewChange(newBlocks: DesignBlock[]): void {
+    if (this.isLocked || !this.pages[this.activePageIndex]) return;
+    this.pages = this.pages.map((page, index) =>
+      index === this.activePageIndex ? { ...page, blocks: newBlocks } : page
+    );
   }
 
   private generateVariableName(type: string): string {
@@ -489,14 +622,19 @@ export class ReportDesigner implements OnInit {
   toggleGrid(): void { this.showGrid = !this.showGrid; }
   toggleSnap(): void { this.snapEnabled = !this.snapEnabled; }
   toggleGuides(): void { this.showGuides = !this.showGuides; }
-  zoomIn(): void { this.zoomPercent = Math.min(200, this.zoomPercent + 10); }
-  zoomOut(): void { this.zoomPercent = Math.max(50, this.zoomPercent - 10); }
 
-  get canvasWidth(): number { return this.paperDimensions[this.paperFormat]?.width || 794; }
-  get canvasHeight(): number { return this.paperDimensions[this.paperFormat]?.height || 1123; }
 
   onPaperFormatChange(): void {}
 
   preview(): void { this.previewRequest.emit(); }
   publish(): void { this.publishRequest.emit(); }
+
+  zoomIn(): void {
+    this.zoomPercent = Math.min(500, this.zoomPercent + 10);
+  }
+
+  zoomOut(): void {
+    this.zoomPercent = Math.max(10, this.zoomPercent - 10);
+  }
+  
 }

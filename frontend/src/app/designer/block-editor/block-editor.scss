@@ -438,6 +438,13 @@ input[type='range'] {
   outline-offset: -2px;
 }
 
+.field-hint {
+  font-size: 0.72rem;
+  color: var(--color-text-muted, #8b8b9e);
+  padding: 2px 0 4px 2px;
+  line-height: 1.3;
+}
+
 .validation-errors {
   margin: 0 16px 12px;
   padding: 10px 12px;

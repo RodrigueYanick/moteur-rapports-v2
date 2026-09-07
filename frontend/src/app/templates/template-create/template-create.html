@@ -14,10 +14,10 @@
     <input id="description" type="text" formControlName="description" class="form-control" />
   </div>
 
-  <div class="form-group">
+  <!-- <div class="form-group">
     <label for="codeEntreprise">Code entreprise</label>
     <input id="codeEntreprise" type="text" formControlName="codeEntreprise" class="form-control" />
-  </div>
+  </div> -->
 
   <div class="form-group">
     <label for="categorie">Catégorie</label>
@@ -39,9 +39,68 @@
     <select id="formatPapier" formControlName="formatPapier" class="form-control">
       <option value="A4">A4</option>
       <option value="A5">A5</option>
+      <option value="A3">A3</option>
+      <option value="A6">A6</option>
       <option value="Letter">Letter</option>
       <option value="Legal">Legal</option>
+      <option value="CUSTOM">Personnalisé</option>
     </select>
+  </div>
+
+  <!-- Champs pour format personnalisé -->
+  <ng-container *ngIf="form.get('formatPapier')?.value === 'CUSTOM'">
+    <div class="form-group">
+      <label for="largeurMm">Largeur (mm) *</label>
+      <input id="largeurMm" type="number" formControlName="largeurMm" class="form-control" min="1" />
+      <div class="error" *ngIf="form.get('largeurMm')?.invalid && form.get('largeurMm')?.touched">
+        Largeur obligatoire et supérieure à 0.
+      </div>
+    </div>
+    <div class="form-group">
+      <label for="hauteurMm">Hauteur (mm) *</label>
+      <input id="hauteurMm" type="number" formControlName="hauteurMm" class="form-control" min="1" />
+      <div class="error" *ngIf="form.get('hauteurMm')?.invalid && form.get('hauteurMm')?.touched">
+        Hauteur obligatoire et supérieure à 0.
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- Marges de la page -->
+  <div class="form-group">
+    <label>Marges (mm)</label>
+    <div class="margins-grid">
+      <div class="margin-field">
+        <label for="margeHautMm">Haut</label>
+        <input id="margeHautMm" type="number" formControlName="margeHautMm" class="form-control" min="0" />
+      </div>
+      <div class="margin-field">
+        <label for="margeBasMm">Bas</label>
+        <input id="margeBasMm" type="number" formControlName="margeBasMm" class="form-control" min="0" />
+      </div>
+      <div class="margin-field">
+        <label for="margeGaucheMm">Gauche</label>
+        <input id="margeGaucheMm" type="number" formControlName="margeGaucheMm" class="form-control" min="0" />
+      </div>
+      <div class="margin-field">
+        <label for="margeDroiteMm">Droite</label>
+        <input id="margeDroiteMm" type="number" formControlName="margeDroiteMm" class="form-control" min="0" />
+      </div>
+    </div>
+    <div class="error" *ngIf="(form.get('margeHautMm')?.invalid || form.get('margeBasMm')?.invalid || form.get('margeGaucheMm')?.invalid || form.get('margeDroiteMm')?.invalid) && (form.get('margeHautMm')?.touched || form.get('margeBasMm')?.touched || form.get('margeGaucheMm')?.touched || form.get('margeDroiteMm')?.touched)">
+      Les marges doivent être des nombres positifs.
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label for="modePagination">Mode de pagination</label>
+    <select id="modePagination" formControlName="modePagination" class="form-control">
+      <option value="FIXED">Pages fixes</option>
+      <option value="AUTO">Pagination automatique</option>
+    </select>
+    <small class="form-hint">
+      <strong>Pages fixes</strong> : vous contrôlez manuellement les pages.<br>
+      <strong>Automatique</strong> : le système crée les pages nécessaires selon le contenu.
+    </small>
   </div>
 
   <!-- <app-report-designer [(blocks)]="blocks" (blocksChange)="saveDesign()"></app-report-designer> -->

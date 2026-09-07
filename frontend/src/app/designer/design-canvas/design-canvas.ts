@@ -34,8 +34,13 @@ export class DesignCanvas implements OnInit, OnDestroy {
   @Input() snapEnabled = false;
   @Input() showGuides = false;
   @Input() locked = false;
+  @Input() margeHautPx: number = 0;
+  @Input() margeBasPx: number = 0;
+  @Input() margeGauchePx: number = 0;
+  @Input() margeDroitePx: number = 0;
 
   @Output() lockedInteraction = new EventEmitter<void>();
+  @Output() blocksPreviewChange = new EventEmitter<DesignBlock[]>();
   @Output() blocksChange = new EventEmitter<DesignBlock[]>();
   @Output() blockSelected = new EventEmitter<DesignBlock>();
 
@@ -57,6 +62,107 @@ export class DesignCanvas implements OnInit, OnDestroy {
 
   get selectedBlockId(): string | null {
     return this.selectedBlockIds[this.selectedBlockIds.length - 1] ?? null;
+  }
+
+  // ---------- Zone utilisable (hors marges) ----------
+
+  /** Retourne les bornes de la zone utilisable en pixels */
+  get usableArea(): { minX: number; minY: number; maxX: number; maxY: number } {
+    return {
+      minX: this.margeGauchePx,
+      minY: this.margeHautPx,
+      maxX: this.canvasWidth - this.margeDroitePx,
+      maxY: this.canvasHeight - this.margeBasPx,
+    };
+  }
+
+  get contentAreaStyle(): { [key: string]: string } {
+    const left = this.margeGauchePx;
+    const top = this.margeHautPx;
+    const width = this.canvasWidth - this.margeGauchePx - this.margeDroitePx;
+    const height = this.canvasHeight - this.margeHautPx - this.margeBasPx;
+    return {
+      'left': `${left}px`,
+      'top': `${top}px`,
+      'width': `${width}px`,
+      'height': `${height}px`,
+    };
+  }
+
+  get marginTopStyle(): { [key: string]: string } {
+    return {
+      'left': '0',
+      'top': '0',
+      'width': `${this.canvasWidth}px`,
+      'height': `${this.margeHautPx}px`,
+    };
+  }
+
+  get marginBottomStyle(): { [key: string]: string } {
+    return {
+      'left': '0',
+      'bottom': '0',
+      'width': `${this.canvasWidth}px`,
+      'height': `${this.margeBasPx}px`,
+    };
+  }
+
+  get marginLeftStyle(): { [key: string]: string } {
+    const topOffset = this.margeHautPx;
+    const height = this.canvasHeight - this.margeHautPx - this.margeBasPx;
+    return {
+      'left': '0',
+      'top': `${topOffset}px`,
+      'width': `${this.margeGauchePx}px`,
+      'height': `${Math.max(0, height)}px`,
+    };
+  }
+
+  get marginRightStyle(): { [key: string]: string } {
+    const topOffset = this.margeHautPx;
+    const height = this.canvasHeight - this.margeHautPx - this.margeBasPx;
+    return {
+      'right': '0',
+      'top': `${topOffset}px`,
+      'width': `${this.margeDroitePx}px`,
+      'height': `${Math.max(0, height)}px`,
+    };
+  }
+
+  /**
+   * Contraint la position d'un bloc pour qu'il reste entièrement
+   * dans la zone utilisable (hors marges).
+   * Modifie le bloc en place et le retourne.
+   */
+  clampBlockPosition(block: DesignBlock): DesignBlock {
+    const area = this.usableArea;
+    const fallback = BLOCK_DEFAULT_DIMENSIONS[block.type];
+    const w = block.largeurBox || fallback.w;
+    const h = block.hauteurBox || fallback.h;
+
+    // Largeur maximale disponible dans la zone utilisable
+    const maxW = area.maxX - area.minX;
+    const maxH = area.maxY - area.minY;
+
+    // Si le bloc est plus grand que la zone, on limite ses dimensions
+    if (w > maxW) {
+      block.largeurBox = maxW;
+    }
+    if (h > maxH) {
+      block.hauteurBox = maxH;
+    }
+
+    const effectiveW = block.largeurBox || fallback.w;
+    const effectiveH = block.hauteurBox || fallback.h;
+
+    // Contraint la position : le bloc doit rester dans [minX, maxX] et [minY, maxY]
+    const clampedX = Math.max(area.minX, Math.min(block.x || 0, area.maxX - effectiveW));
+    const clampedY = Math.max(area.minY, Math.min(block.y || 0, area.maxY - effectiveH));
+
+    block.x = clampedX;
+    block.y = clampedY;
+
+    return block;
   }
 
   readonly icons = {
@@ -134,18 +240,34 @@ export class DesignCanvas implements OnInit, OnDestroy {
     const deltaCanvasX = deltaScreenX / scale;
     const deltaCanvasY = deltaScreenY / scale;
 
-    // Mettre à jour les coordonnées du bloc
-    const block = this.blocks.find(b => b.id === state.blockId);
-    if (block) {
-      block.x = state.startBlockX + deltaCanvasX;
-      block.y = state.startBlockY + deltaCanvasY;
+    // Mettre à jour les coordonnées du bloc avec contrainte des marges
+    const blockIndex = this.blocks.findIndex(b => b.id === state.blockId);
+    if (blockIndex !== -1) {
+      const area = this.usableArea;
+      const nextBlocks = this.blocks.map((currentBlock, index) => {
+        if (index !== blockIndex) return { ...currentBlock };
+
+        const fallback = BLOCK_DEFAULT_DIMENSIONS[currentBlock.type];
+        const w = currentBlock.largeurBox || fallback.w;
+        const h = currentBlock.hauteurBox || fallback.h;
+
+        // Position brute calculée à partir du delta
+        let newX = state.startBlockX + deltaCanvasX;
+        let newY = state.startBlockY + deltaCanvasY;
+
+        // Contrainte : le bloc ne doit pas empiéter sur les marges
+        newX = Math.max(area.minX, Math.min(newX, area.maxX - w));
+        newY = Math.max(area.minY, Math.min(newY, area.maxY - h));
+
+        return { ...currentBlock, x: newX, y: newY };
+      });
 
       // Marquer comme déplacé si le déplacement dépasse un petit seuil
       if (!state.moved && (Math.abs(deltaScreenX) > 1 || Math.abs(deltaScreenY) > 1)) {
         state.moved = true;
       }
 
-      this.cdr.detectChanges();
+      this.blocksPreviewChange.emit(nextBlocks);
     }
   }
 
@@ -154,16 +276,20 @@ export class DesignCanvas implements OnInit, OnDestroy {
     if (!this.dragState) return;
 
     const state = this.dragState;
-    // Si le bloc a réellement été déplacé, on émet les changements
+    // Si le bloc a réellement été déplacé, on contraint et on émet les changements
     if (state.moved) {
-      this.blocksChange.emit([...this.blocks]);
+      const clampedBlocks = this.blocks.map(block => {
+        const cloned = { ...block };
+        this.clampBlockPosition(cloned);
+        return cloned;
+      });
+      this.blocksChange.emit(clampedBlocks);
     }
 
     // Nettoyer l'état
     this.dragState = null;
     // Signaler qu'un drag vient de se terminer (pour ignorer le prochain clic)
     this.wasDragging = true;
-    this.cdr.detectChanges();
   }
 
   // Surcharge de la sélection pour ignorer le clic après un drag
@@ -263,10 +389,18 @@ export class DesignCanvas implements OnInit, OnDestroy {
 
   moveSelectedBlocks(dx: number, dy: number): void {
     const selection = new Set(this.selectedBlockIds);
+    const area = this.usableArea;
     for (const block of this.blocks) {
       if (!selection.has(block.id)) continue;
-      block.x = Math.max(0, (block.x || 0) + dx);
-      block.y = Math.max(0, (block.y || 0) + dy);
+      const fallback = BLOCK_DEFAULT_DIMENSIONS[block.type];
+      const w = block.largeurBox || fallback.w;
+      const h = block.hauteurBox || fallback.h;
+      // Position cible avant contrainte
+      const targetX = (block.x || 0) + dx;
+      const targetY = (block.y || 0) + dy;
+      // Contrainte dans la zone utilisable
+      block.x = Math.max(area.minX, Math.min(targetX, area.maxX - w));
+      block.y = Math.max(area.minY, Math.min(targetY, area.maxY - h));
     }
     this.blocksChange.emit([...this.blocks]);
     this.cdr.detectChanges();
@@ -352,4 +486,5 @@ export class DesignCanvas implements OnInit, OnDestroy {
     }
     return parts.join(' ');
   }
+
 }

@@ -266,9 +266,9 @@ $success: #34d399;
   background: #0e0f16;
   overflow: auto;
   display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding: 32px 0;
+  // align-items: center;          /* changement : flex-start -> center */
+  // justify-content: center;      /* inchangé */
+  padding: 32px 0;              /* inchangé, peut être ajusté */
 }
 
 .right-panel {
@@ -447,4 +447,8 @@ select {
   cursor: pointer;
 
   &:hover { border-color: $accent; color: $accent; }
+}
+
+#fillingPanel{
+  margin-left: 10px;
 }

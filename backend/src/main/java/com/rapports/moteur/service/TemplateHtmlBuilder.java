@@ -2,8 +2,13 @@ package com.rapports.moteur.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.rapports.moteur.entity.PaginationMode;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -13,12 +18,39 @@ import java.util.regex.Pattern;
 public class TemplateHtmlBuilder {
 
     private static final Pattern VAR_PATTERN = Pattern.compile("\\{\\{(.+?)\\}\\}");
+
+    /**
+     * Conversion px (96 DPI) → mm.
+     * Le front-end stocke les positions en px à 96 DPI.
+     * Pour le rendu HTML/CSS on utilise des mm afin que Flying Saucer
+     * (72 DPI en interne) produise un PDF identique à l'aperçu navigateur.
+     */
+    private static final double MM_PER_PX = 25.4 / 96.0;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final CodeGeneratorService codeGenerator;
 
     public TemplateHtmlBuilder(CodeGeneratorService codeGenerator) {
         this.codeGenerator = codeGenerator;
     }
+
+    // ------------------------------------------------------------------
+    // Utilitaires de conversion
+    // ------------------------------------------------------------------
+
+    /** Convertit des pixels (96 DPI) en millimètres, arrondi à 2 décimales. */
+    private static double pxToMm(int px) {
+        return Math.round(px * MM_PER_PX * 100.0) / 100.0;
+    }
+
+    /** Formate un double pour le CSS (2 décimales, pas de virgule locale). */
+    private static String fmt(double v) {
+        return String.format(java.util.Locale.US, "%.2f", v);
+    }
+
+    // ------------------------------------------------------------------
+    // Dimensions standard des formats papier (largeur mm, hauteur mm)
+    // ------------------------------------------------------------------
 
     private int[] getStandardDimensions(String format) {
         switch (format) {
@@ -35,48 +67,395 @@ public class TemplateHtmlBuilder {
             case "A10": return new int[]{26, 37};
             case "Letter": return new int[]{216, 279};
             case "Legal": return new int[]{216, 356};
-            default: return new int[]{210, 297}; // A4 par défaut
+            default: return new int[]{210, 297};
         }
     }
 
-    public String build(String contenuDesignJson, Map<String, Object> data, String formatPapier, Integer largeurMm, Integer hauteurMm) {
-            int widthPx, heightPx;
-        String pageSizeCss;
+    public String build(String contenuDesignJson, Map<String, Object> data,
+                    String formatPapier, Integer largeurMm, Integer hauteurMm,
+                    PaginationMode modePagination,
+                    Integer margeGaucheMm, Integer margeDroiteMm,
+                    Integer margeHautMm, Integer margeBasMm) {
 
+        int widthMm, heightMm;
         if ("CUSTOM".equalsIgnoreCase(formatPapier)) {
-            // Convertir mm en px (96 dpi)
-            widthPx = (int) Math.round(largeurMm * 96.0 / 25.4);
-            heightPx = (int) Math.round(hauteurMm * 96.0 / 25.4);
-            pageSizeCss = "size: " + largeurMm + "mm " + hauteurMm + "mm;";
+            widthMm = largeurMm != null ? largeurMm : 210;
+            heightMm = hauteurMm != null ? hauteurMm : 297;
         } else {
-            // Format standard : dimensions prédéfinies en mm
             int[] dims = getStandardDimensions(formatPapier);
-            widthPx = (int) Math.round(dims[0] * 96.0 / 25.4);
-            heightPx = (int) Math.round(dims[1] * 96.0 / 25.4);
-            pageSizeCss = "size: " + formatPapier + ";";
+            widthMm = dims[0];
+            heightMm = dims[1];
         }
+
+        // Marges (par défaut 0 pour compatibilité ascendante)
+        int mLeft   = margeGaucheMm  != null ? margeGaucheMm  : 0;
+        int mRight  = margeDroiteMm  != null ? margeDroiteMm  : 0;
+        int mTop    = margeHautMm    != null ? margeHautMm    : 0;
+        int mBottom = margeBasMm     != null ? margeBasMm     : 0;
+
+        // Dimensions de la zone de contenu (mm)
+        int contentWidthMm  = widthMm  - mLeft - mRight;
+        int contentHeightMm = heightMm - mTop  - mBottom;
+
+        // Dimensions en px (96 DPI) — uniquement pour les calculs internes de pagination
+        int widthPx  = (int) Math.round(widthMm  * 96.0 / 25.4);
+        int heightPx = (int) Math.round(heightMm * 96.0 / 25.4);
+
+        // CSS @page : taille physique + marges
+        String pageSizeCss = "size: " + widthMm + "mm " + heightMm + "mm;";
+        String pageMarginCss = "margin: " + mTop + "mm " + mRight + "mm " + mBottom + "mm " + mLeft + "mm;";
 
         StringBuilder html = new StringBuilder(
             "<html><head><meta charset='UTF-8'/><style>"
-            + "@page{" + pageSizeCss + "margin:0;} html,body{margin:0;padding:0;} body{margin:0;}"
-            + " .page{page-break-after:always;} .page:last-child{page-break-after:auto;}"
+            + "@page{" + pageSizeCss + pageMarginCss + "}"
+            + " html,body{margin:0;padding:0;}"
             + "</style></head><body>"
         );
+
         try {
             JsonNode root = objectMapper.readTree(contenuDesignJson);
-            if (root.has("pages") && root.path("pages").isArray()) {
-                for (JsonNode page : root.path("pages")) {
-                    html.append(renderPage(page.path("blocs"), data, widthPx, heightPx));
+            PageContext ctx = new PageContext(data, widthMm, heightMm,
+                                             mLeft, mRight, mTop, mBottom,
+                                             contentWidthMm, contentHeightMm,
+                                             widthPx, heightPx);
+
+            if (modePagination == PaginationMode.AUTO) {
+                ArrayNode autoBlocs = objectMapper.createArrayNode();
+                JsonNode blocs = autoBlocs;
+                if (root.has("pages") && root.path("pages").isArray() && root.path("pages").size() > 0) {
+                    for (int pageIndex = 0; pageIndex < root.path("pages").size(); pageIndex++) {
+                        JsonNode pageBlocks = root.path("pages").get(pageIndex).path("blocs");
+                        if (!pageBlocks.isArray()) continue;
+                        for (JsonNode bloc : pageBlocks) {
+                            ObjectNode positioned = bloc.deepCopy();
+                            positioned.put("y", bloc.path("y").asInt(0) + pageIndex * heightPx);
+                            autoBlocs.add(positioned);
+                        }
+                    }
+                } else if (root.has("blocs")) {
+                    blocs = root.path("blocs");
                 }
-            } else if (root.has("blocs")) {
-                // Rétrocompatibilité : ancien format sans pages
-                html.append(renderPage(root.path("blocs"), data, widthPx, heightPx));
+                if (blocs.isArray()) {
+                    html.append(renderAutoPages(blocs, ctx));
+                }
+            } else {
+                // Mode FIXED : même logique de pagination que AUTO
+                if (root.has("pages") && root.path("pages").isArray()) {
+                    ArrayNode fixedBlocs = objectMapper.createArrayNode();
+                    int pageIndex = 0;
+                    for (JsonNode page : root.path("pages")) {
+                        JsonNode pageBlocs = page.path("blocs");
+                        if (pageBlocs.isArray()) {
+                            for (JsonNode bloc : pageBlocs) {
+                                ObjectNode positioned = bloc.deepCopy();
+                                int originalY = bloc.path("y").asInt(0);
+                                positioned.put("y", originalY + pageIndex * heightPx);
+                                fixedBlocs.add(positioned);
+                            }
+                        }
+                        pageIndex++;
+                    }
+                    html.append(renderSmartPages(fixedBlocs, ctx));
+                } else if (root.has("blocs")) {
+                    html.append(renderSmartPages(root.path("blocs"), ctx));
+                }
             }
         } catch (Exception e) {
             html.append("<p>Erreur de design : ").append(e.getMessage()).append("</p>");
         }
         return html.append("</body></html>").toString();
     }
+
+    // ============================================================
+    // CONTEXTE DE PAGE
+    // ============================================================
+
+    private static class PageContext {
+        final Map<String, Object> data;
+        final int widthMm, heightMm;
+        final int mLeftMm, mRightMm, mTopMm, mBottomMm;
+        final int contentWidthMm, contentHeightMm;
+        final int widthPx, heightPx;
+
+        PageContext(Map<String, Object> data,
+                    int widthMm, int heightMm,
+                    int mLeftMm, int mRightMm, int mTopMm, int mBottomMm,
+                    int contentWidthMm, int contentHeightMm,
+                    int widthPx, int heightPx) {
+            this.data = data;
+            this.widthMm = widthMm;
+            this.heightMm = heightMm;
+            this.mLeftMm = mLeftMm;
+            this.mRightMm = mRightMm;
+            this.mTopMm = mTopMm;
+            this.mBottomMm = mBottomMm;
+            this.contentWidthMm = contentWidthMm;
+            this.contentHeightMm = contentHeightMm;
+            this.widthPx = widthPx;
+            this.heightPx = heightPx;
+        }
+
+        /** Hauteur de la zone de contenu en px (96 DPI), utile pour les calculs de fragmentation. */
+        int contentHeightPx() {
+            return (int) Math.round(contentHeightMm * 96.0 / 25.4);
+        }
+    }
+
+    // ============================================================
+    // PAGINATION AUTOMATIQUE
+    // ============================================================
+
+    /**
+     * Découpe une liste de blocs en plusieurs pages automatiquement.
+     * Les blocs sont triés par position Y, puis répartis page par page.
+     * Les tableaux (statiques et dynamiques) peuvent être fragmentés en plusieurs morceaux.
+     * La zone de contenu (hauteur de page moins marges verticales) détermine la limite.
+     */
+    private String renderAutoPages(JsonNode blocs, PageContext ctx) {
+        List<JsonNode> sortedBlocks = new ArrayList<>();
+        if (blocs.isArray()) {
+            blocs.forEach(bloc -> {
+                if (!bloc.has("visible") || bloc.path("visible").asBoolean(true)) {
+                    sortedBlocks.add(bloc);
+                }
+            });
+        }
+        sortedBlocks.sort(Comparator.comparingInt(b -> b.path("y").asInt(0)));
+
+        // Fragmentation des tableaux
+        int contentHeightPx = ctx.contentHeightPx();
+        int pageHeightPx = ctx.heightPx;
+        int mTopPx    = (int) Math.round(ctx.mTopMm    * 96.0 / 25.4);
+        int mBottomPx = (int) Math.round(ctx.mBottomMm * 96.0 / 25.4);
+        int contentBottomPx = pageHeightPx - mBottomPx;
+
+        List<JsonNode> allFragments = new ArrayList<>();
+        for (JsonNode bloc : sortedBlocks) {
+            if (isTableau(bloc)) {
+                // Calculer l'espace restant sur la première page à partir de la position Y du tableau
+                int baseY = Math.max(0, bloc.path("y").asInt(0));
+                int firstPageAvailable = Math.max(0, contentBottomPx - Math.max(baseY, mTopPx));
+                allFragments.addAll(splitTableIntoFragments(bloc, ctx.data, contentHeightPx, firstPageAvailable, pageHeightPx, mTopPx));
+            } else {
+                allFragments.add(bloc);
+            }
+        }
+
+        if (allFragments.isEmpty()) return "";
+
+        List<List<JsonNode>> pages = new ArrayList<>();
+        for (JsonNode fragment : allFragments) {
+            int virtualY = Math.max(0, fragment.path("y").asInt(0));
+            int fragmentHeight = Math.max(1, getEstimatedBlocHeight(fragment, ctx.data, contentHeightPx));
+            int pageIndex = virtualY / pageHeightPx;
+            int localY = virtualY % pageHeightPx;
+
+            // Si le bloc est dans la marge haute, le ramener au début de la zone de contenu
+            if (localY < mTopPx) {
+                localY = mTopPx;
+            }
+
+            // Les fragments de tableau sont déjà dimensionnés pour tenir dans la page ;
+            // on ne les pousse PAS sur la page suivante.
+            // Seuls les blocs non-tableau indivisibles sont déplacés.
+            boolean isTableFragment = fragment.path("_tableFragment").asBoolean(false);
+            if (!isTableFragment && localY > mTopPx && localY + fragmentHeight > contentBottomPx) {
+                pageIndex++;
+                localY = mTopPx;
+            }
+
+            while (pages.size() <= pageIndex) pages.add(new ArrayList<>());
+            pages.get(pageIndex).add(adjustBlockY(fragment, localY));
+        }
+
+        StringBuilder html = new StringBuilder();
+        for (int i = 0; i < pages.size(); i++) {
+            html.append(renderPage(pages.get(i), ctx, i == pages.size() - 1));
+        }
+        return html.toString();
+    }
+
+    // ============================================================
+    // PAGINATION INTELLIGENTE (MODE FIXED)
+    // ============================================================
+
+    /**
+     * Mode FIXED : même logique de pagination qu'AUTO, mais appliquée
+     * aux blocs déjà positionnés par l'utilisateur sur des pages fixes.
+     * Les blocs qui dépassent la zone de contenu sont automatiquement
+     * déplacés vers la page suivante.
+     */
+    private String renderSmartPages(JsonNode blocs, PageContext ctx) {
+        return renderAutoPages(blocs, ctx);
+    }
+
+    private boolean isTableau(JsonNode bloc) {
+        return "tableau".equals(bloc.path("type").asText());
+    }
+
+    /**
+     * Estime la hauteur d'un bloc en pixels.
+     * Pour les tableaux dynamiques, on se base sur le nombre de lignes de données.
+     * Pour les autres, on utilise hauteurBox ou une valeur par défaut.
+     */
+    private int getEstimatedBlocHeight(JsonNode bloc, Map<String, Object> data, int pageHeightPx) {
+        String type = bloc.path("type").asText();
+        if ("tableau".equals(type)) {
+            int rowHeight = 30;
+            int headerHeight = 40;
+            if (bloc.has("lignes")) {
+                int rows = bloc.path("lignes").size();
+                return rows * rowHeight + headerHeight;
+            } else {
+                String source = stripBraces(bloc.path("source").asText(""));
+                Object rowsObj = data.get(source);
+                if (rowsObj instanceof List<?> rows) {
+                    return rows.size() * rowHeight + headerHeight;
+                }
+                return 150;
+            }
+        }
+        return bloc.path("hauteurBox").asInt(150);
+    }
+    /**
+     * Fractionne un tableau (statique ou dynamique) en plusieurs blocs de tableau,
+     * chacun tenant dans la hauteur disponible de la page courante.
+     *
+     * @param bloc              le bloc tableau d'origine
+     * @param data              les données de remplacement
+     * @param contentHeightPx   hauteur de la zone de contenu d'une page complète (px)
+     * @param firstPageAvailable espace restant sur la première page à partir de la position Y du tableau (px)
+     * @param pageHeightPx      hauteur totale d'une page en px (pour calculer les positions Y absolues)
+     * @param mTopPx            marge haute en px (début de la zone de contenu sur chaque page)
+     */
+    private List<JsonNode> splitTableIntoFragments(JsonNode bloc, Map<String, Object> data,
+                                                    int contentHeightPx, int firstPageAvailable,
+                                                    int pageHeightPx, int mTopPx) {
+        List<JsonNode> fragments = new ArrayList<>();
+        int rowHeight = 30;
+        int headerHeight = 40;
+        int baseY = Math.max(0, bloc.path("y").asInt(0));
+
+        // Si l'espace sur la première page est insuffisant pour l'en-tête + 1 ligne,
+        // on commence le tableau sur la page suivante
+        int minRequired = headerHeight + rowHeight;
+        boolean startOnNextPage = firstPageAvailable < minRequired;
+
+        int effectiveFirstAvailable = startOnNextPage ? contentHeightPx : firstPageAvailable;
+        int effectiveBaseY = startOnNextPage
+            ? (baseY / pageHeightPx + 1) * pageHeightPx + mTopPx
+            : baseY;
+
+        // Première page (effective) : nombre de lignes tenant dans l'espace restant
+        int firstPageRows = Math.max(1, (effectiveFirstAvailable - headerHeight) / rowHeight);
+        // Pages suivantes : nombre de lignes tenant dans la hauteur complète de contenu
+        int nextPageRows = Math.max(1, (contentHeightPx - headerHeight) / rowHeight);
+
+        if (bloc.has("lignes")) {
+            ArrayNode lignes = (ArrayNode) bloc.get("lignes");
+            int totalRows = lignes.size();
+
+            if (totalRows == 0) {
+                ObjectNode fragment = bloc.deepCopy();
+                fragment.put("y", effectiveBaseY);
+                fragment.put("_tableFragment", true);
+                fragments.add(fragment);
+            } else {
+                // La première ligne est l'en-tête du tableau
+                JsonNode headerRow = lignes.get(0);
+                int currentIndex = 0;
+                boolean isFirstFragment = true;
+                int currentY = effectiveBaseY;
+
+                while (currentIndex < totalRows) {
+                    int maxRows = isFirstFragment ? firstPageRows : nextPageRows;
+                    int end = Math.min(currentIndex + maxRows, totalRows);
+
+                    ObjectNode fragment = bloc.deepCopy();
+                    fragment.put("y", currentY);
+                    fragment.put("_tableFragment", true);
+                    fragment.put("_isFirstFragment", isFirstFragment);
+                    ArrayNode subArray = fragment.putArray("lignes");
+
+                    if (isFirstFragment) {
+                        // Premier fragment : on inclut les lignes telles quelles (header inclus)
+                        for (int i = currentIndex; i < end; i++) subArray.add(lignes.get(i));
+                    } else {
+                        // Fragments suivants : on répète l'en-tête en première ligne
+                        subArray.add(headerRow);
+                        for (int i = currentIndex; i < end; i++) subArray.add(lignes.get(i));
+                    }
+                    fragments.add(fragment);
+
+                    currentIndex = end;
+                    isFirstFragment = false;
+
+                    // Calculer la position Y du fragment suivant :
+                    // on passe au début de la zone de contenu de la page suivante
+                    int currentPageIndex = currentY / pageHeightPx;
+                    currentY = (currentPageIndex + 1) * pageHeightPx + mTopPx;
+                }
+            }
+        } else {
+            String source = stripBraces(bloc.path("source").asText(""));
+            Object rowsObj = data.get(source);
+
+            if (rowsObj instanceof List<?> rows) {
+                int totalRows = rows.size();
+
+                if (totalRows == 0) {
+                    ObjectNode fragment = bloc.deepCopy();
+                    fragment.put("y", effectiveBaseY);
+                    fragment.put("_tableFragment", true);
+                    fragments.add(fragment);
+                } else {
+                    int currentIndex = 0;
+                    boolean isFirstFragment = true;
+                    int currentY = effectiveBaseY;
+
+                    while (currentIndex < totalRows) {
+                        int maxRows = isFirstFragment ? firstPageRows : nextPageRows;
+                        int end = Math.min(currentIndex + maxRows, totalRows);
+
+                        ObjectNode fragment = bloc.deepCopy();
+                        fragment.put("y", currentY);
+                        fragment.put("_tableFragment", true);
+                        fragment.put("_data_start", currentIndex);
+                        fragment.put("_data_end", end);
+                        fragments.add(fragment);
+
+                        currentIndex = end;
+                        isFirstFragment = false;
+
+                        // Calculer la position Y du fragment suivant :
+                        // on passe au début de la zone de contenu de la page suivante
+                        int currentPageIndex = currentY / pageHeightPx;
+                        currentY = (currentPageIndex + 1) * pageHeightPx + mTopPx;
+                    }
+                }
+            } else {
+                ObjectNode fragment = bloc.deepCopy();
+                fragment.put("y", effectiveBaseY);
+                fragment.put("_tableFragment", true);
+                fragments.add(fragment);
+            }
+        }
+        return fragments;
+    }
+
+    /**
+     * Ajuste la coordonnée Y d'un bloc (en pixels) pour qu'il soit positionné
+     * dans la page courante (0 en haut).
+     */
+    private JsonNode adjustBlockY(JsonNode bloc, int newY) {
+        ObjectNode adjusted = bloc.deepCopy();
+        adjusted.put("y", newY);
+        return adjusted;
+    }
+
+    // ============================================================
+    // RENDU D'UNE PAGE
+    // ============================================================
 
     private static final Map<String, int[]> DEFAULT_DIMENSIONS = Map.ofEntries(
         Map.entry("titre", new int[]{400, 40}),
@@ -92,18 +471,38 @@ public class TemplateHtmlBuilder {
         Map.entry("graphique", new int[]{300, 180})
     );
 
-    private String renderPage(JsonNode blocs, Map<String, Object> data, int pageWidthPx, int pageHeightPx) {
+    /**
+     * Rend une page HTML avec des dimensions en mm.
+     * Le conteneur fait la taille de la zone de contenu ;
+     * les marges sont gérées par @page dans le CSS global.
+     * Les positions de blocs sont converties de px (96 DPI) vers mm
+     * puis décalées pour être relatives à la zone de contenu.
+     */
+    private String renderPage(List<JsonNode> blocs, PageContext ctx, boolean isLastPage) {
+        String breakStyle = isLastPage ? "page-break-after:auto;" : "page-break-after:always;";
         StringBuilder page = new StringBuilder(
-            "<div class='page' style='position:relative;width:" + pageWidthPx + "px;height:" + pageHeightPx + "px;background:white;overflow:hidden;box-sizing:border-box;'>"
+            "<div class='page' style='position:relative;width:"
+            + ctx.contentWidthMm + "mm;height:" + ctx.contentHeightMm
+            + "mm;background:white;overflow:hidden;box-sizing:border-box;" + breakStyle + "'>"
         );
+
         for (JsonNode bloc : blocs) {
-            int x = bloc.path("x").asInt(0);
-            int y = bloc.path("y").asInt(0);
+            if (bloc.has("visible") && !bloc.path("visible").asBoolean(true)) {
+                continue;
+            }
+            int xPx = bloc.path("x").asInt(0);
+            int yPx = bloc.path("y").asInt(0);
             String type = bloc.path("type").asText();
 
             int[] fallback = DEFAULT_DIMENSIONS.getOrDefault(type, new int[]{200, 50});
-            int width = bloc.path("largeurBox").asInt(fallback[0]);
-            int height = bloc.path("hauteurBox").asInt(fallback[1]);
+            int widthPx  = bloc.path("largeurBox").asInt(fallback[0]);
+            int heightPx = bloc.path("hauteurBox").asInt(fallback[1]);
+
+            // Conversion px → mm, avec décalage pour être relatif à la zone de contenu
+            double xMm = pxToMm(xPx) - ctx.mLeftMm;
+            double yMm = pxToMm(yPx) - ctx.mTopMm;
+            double wMm = pxToMm(widthPx);
+            double hMm = pxToMm(heightPx);
 
             int rotation = bloc.path("rotation").asInt(0);
             double opacite = bloc.path("opacite").asDouble(100);
@@ -115,15 +514,35 @@ public class TemplateHtmlBuilder {
                 transformParts.append("opacity:").append(opacite / 100).append(";");
             }
 
-            page.append("<div style='position:absolute;left:").append(x)
-                .append("px;top:").append(y)
-                .append("px;width:").append(width).append("px;height:").append(height)
-                .append("px;overflow:hidden;box-sizing:border-box;")
-                .append(transformParts).append("'>");
-            page.append(renderBloc(bloc, data));
+            boolean isDynamicTable = "tableau".equals(type) && !bloc.has("lignes");
+            boolean isTableFragment = "tableau".equals(type) && bloc.path("_tableFragment").asBoolean(false);
+            page.append("<div style='position:absolute;left:").append(fmt(xMm))
+                .append("mm;top:").append(fmt(yMm))
+                .append("mm;width:").append(fmt(wMm)).append("mm;");
+
+            if (isDynamicTable || isTableFragment) {
+                page.append("height:auto;overflow:visible;");
+            } else {
+                page.append("height:").append(fmt(hMm)).append("mm;overflow:hidden;");
+            }
+
+            page.append("box-sizing:border-box;")
+                .append(transformParts)
+                .append("'>");
+
+            page.append(renderBloc(bloc, ctx.data));
             page.append("</div>");
         }
         return page.append("</div>").toString();
+    }
+
+    // Surcharge pour compatibilité : renderPage(JsonNode, ...) redirige vers List
+    private String renderPage(JsonNode blocs, PageContext ctx) {
+        List<JsonNode> list = new ArrayList<>();
+        if (blocs != null && blocs.isArray()) {
+            blocs.forEach(list::add);
+        }
+        return renderPage(list, ctx, false);
     }
 
     private String renderBloc(JsonNode bloc, Map<String, Object> data) {
@@ -134,7 +553,11 @@ public class TemplateHtmlBuilder {
             case "texte":
                 return "<p style='" + buildStyle(bloc) + "'>" + replaceVars(bloc.path("contenu").asText(""), data) + "</p>";
             case "tableau":
-                return bloc.has("lignes") ? renderStaticTable(bloc, data) : renderTableau(bloc, data);
+                if (bloc.has("lignes")) {
+                    return renderStaticTable(bloc, data);
+                } else {
+                    return renderDynamicTable(bloc, data);
+                }
             case "ligne": {
                 int epaisseur = bloc.path("style").path("epaisseur").asInt(1);
                 String couleur = bloc.path("style").path("couleur").asText("#000000");
@@ -166,6 +589,98 @@ public class TemplateHtmlBuilder {
                 return "";
         }
     }
+
+    // ============================================================
+    // TABLEAUX (RENDU FINAL)
+    // ============================================================
+
+    private String renderStaticTable(JsonNode bloc, Map<String, Object> data) {
+        String bordure = bloc.path("style").path("bordureCouleur").asText("#d9d9d9");
+        String texteDefaut = bloc.path("style").path("texteCouleurDefaut").asText("#000000");
+        boolean isTableFragment = bloc.path("_tableFragment").asBoolean(false);
+
+        StringBuilder table = new StringBuilder(
+            "<table style='border-collapse:collapse;width:100%;font-family:Arial, sans-serif;font-size:14px;'>"
+        );
+        int rowIndex = 0;
+        for (JsonNode row : bloc.path("lignes")) {
+            // Dans un tableau fragmenté, la première ligne est l'en-tête (fond gris, gras)
+            boolean isHeaderRow = isTableFragment && rowIndex == 0;
+            table.append("<tr>");
+            for (JsonNode cell : row) {
+                if (cell.path("hidden").asBoolean(false)) continue;
+                String value = cell.path("value").asText("");
+                String bgColor = cell.has("bgColor") && !cell.path("bgColor").isNull() ? cell.path("bgColor").asText() : null;
+                String textColor = cell.has("textColor") && !cell.path("textColor").isNull() ? cell.path("textColor").asText() : texteDefaut;
+                int colSpan = cell.path("colSpan").asInt(1);
+                int rowSpan = cell.path("rowSpan").asInt(1);
+
+                String style = "border:1px solid " + escape(bordure) + ";padding:3px 5px;min-width:90px;color:" + escape(textColor) + ";";
+                if (isHeaderRow) {
+                    style += "background:#f5f5f5;font-weight:600;";
+                } else if (bgColor != null) {
+                    style += "background:" + escape(bgColor) + ";";
+                }
+
+                String tag = isHeaderRow ? "th" : "td";
+                table.append("<").append(tag);
+                if (colSpan > 1) table.append(" colspan='").append(colSpan).append("'");
+                if (rowSpan > 1) table.append(" rowspan='").append(rowSpan).append("'");
+                table.append(" style='").append(style).append("'>")
+                    .append(escape(replaceVars(value, data))).append("</").append(tag).append(">");
+            }
+            table.append("</tr>");
+            rowIndex++;
+        }
+        return table.append("</table>").toString();
+    }
+
+    private String renderDynamicTable(JsonNode bloc, Map<String, Object> data) {
+        String source = stripBraces(bloc.path("source").asText(""));
+        Object rowsObj = data.get(source);
+        String bordure = bloc.path("style").path("bordureCouleur").asText("#d9d9d9");
+        String texteDefaut = bloc.path("style").path("texteCouleurDefaut").asText("#000000");
+
+        StringBuilder table = new StringBuilder(
+            "<table style='border-collapse:collapse;width:100%;font-family:Arial, sans-serif;"
+            + "font-size:14px;color:" + escape(texteDefaut) + ";font-weight:400;'>"
+        );
+        String cellStyle = "border:1px solid " + escape(bordure) + ";padding:3px 5px;min-width:90px;text-align:left;";
+        String headerStyle = cellStyle + "background:#f5f5f5;font-weight:600;";
+
+        table.append("<tr>");
+        for (JsonNode col : bloc.path("colonnes")) {
+            table.append("<th style='").append(headerStyle).append("'>")
+                .append(escape(col.path("titre").asText(""))).append("</th>");
+        }
+        table.append("</tr>");
+
+        // Gestion des fragments : si bloc contient _data_start/_data_end, on ne rend qu'une partie
+        if (rowsObj instanceof List<?> rows) {
+            int start = bloc.has("_data_start") ? bloc.path("_data_start").asInt(0) : 0;
+            int end = bloc.has("_data_end") ? bloc.path("_data_end").asInt(rows.size()) : rows.size();
+            for (int i = start; i < end && i < rows.size(); i++) {
+                Object rowObj = rows.get(i);
+                if (!(rowObj instanceof Map<?, ?> row)) continue;
+                @SuppressWarnings("unchecked")
+                Map<String, Object> rowMap = (Map<String, Object>) row;
+                table.append("<tr>");
+                for (JsonNode col : bloc.path("colonnes")) {
+                    String varName = col.path("variable").asText();
+                    Object cellValue = rowMap.get(varName);
+                    String cellValueStr = cellValue != null ? String.valueOf(cellValue) : "";
+                    table.append("<td style='").append(cellStyle).append("'>")
+                        .append(escape(cellValueStr)).append("</td>");
+                }
+                table.append("</tr>");
+            }
+        }
+        return table.append("</table>").toString();
+    }
+
+    // ============================================================
+    // AUTRES MÉTHODES EXISTANTES (renderShape, renderQrCode, etc.)
+    // ============================================================
 
     private String renderShape(JsonNode bloc, boolean isCircle) {
         int largeur = bloc.path("largeurBox").asInt(150);
@@ -263,7 +778,6 @@ public class TemplateHtmlBuilder {
                 + escape(label) + "</div>";
     }
 
-    
     private String buildStyle(JsonNode bloc) {
         JsonNode style = bloc.path("style");
         StringBuilder sb = new StringBuilder("margin:0;box-sizing:border-box;width:100%;");
@@ -275,77 +789,6 @@ public class TemplateHtmlBuilder {
         if (style.has("color")) sb.append("color:").append(escape(style.get("color").asText())).append(";");
         if (style.has("fontFamily")) sb.append("font-family:").append(escape(style.get("fontFamily").asText())).append(";");
         return sb.toString();
-    }
-
-
-    private String renderStaticTable(JsonNode bloc, Map<String, Object> data) {
-        String bordure = bloc.path("style").path("bordureCouleur").asText("#d9d9d9");
-        String texteDefaut = bloc.path("style").path("texteCouleurDefaut").asText("#000000");
-
-        StringBuilder table = new StringBuilder(
-            "<table style='border-collapse:collapse;width:100%;font-family:Arial, sans-serif;font-size:14px;'>"
-        );
-        for (JsonNode row : bloc.path("lignes")) {
-            table.append("<tr>");
-            for (JsonNode cell : row) {
-                if (cell.path("hidden").asBoolean(false)) continue;
-                String value = cell.path("value").asText("");
-                String bgColor = cell.has("bgColor") && !cell.path("bgColor").isNull() ? cell.path("bgColor").asText() : null;
-                String textColor = cell.has("textColor") && !cell.path("textColor").isNull() ? cell.path("textColor").asText() : texteDefaut;
-                int colSpan = cell.path("colSpan").asInt(1);
-                int rowSpan = cell.path("rowSpan").asInt(1);
-
-                String style = "border:1px solid " + escape(bordure) + ";padding:3px 5px;min-width:90px;color:" + escape(textColor) + ";";
-                if (bgColor != null) style += "background:" + escape(bgColor) + ";";
-
-                table.append("<td");
-                if (colSpan > 1) table.append(" colspan='").append(colSpan).append("'");
-                if (rowSpan > 1) table.append(" rowspan='").append(rowSpan).append("'");
-                table.append(" style='").append(style).append("'>")
-                    .append(escape(replaceVars(value, data))).append("</td>");
-            }
-            table.append("</tr>");
-        }
-        return table.append("</table>").toString();
-    }
-
-    private String renderTableau(JsonNode bloc, Map<String, Object> data) {
-        String source = stripBraces(bloc.path("source").asText(""));
-        Object rowsObj = data.get(source);
-        String bordure = bloc.path("style").path("bordureCouleur").asText("#d9d9d9");
-        String texteDefaut = bloc.path("style").path("texteCouleurDefaut").asText("#000000");
-
-        StringBuilder table = new StringBuilder(
-            "<table style='border-collapse:collapse;width:100%;font-family:Arial, sans-serif;"
-            + "font-size:14px;color:" + escape(texteDefaut) + ";font-weight:400;'>"
-        );
-        String cellStyle = "border:1px solid " + escape(bordure) + ";padding:3px 5px;min-width:90px;text-align:left;";
-        String headerStyle = cellStyle + "background:#f5f5f5;font-weight:600;";
-
-        table.append("<tr>");
-        for (JsonNode col : bloc.path("colonnes")) {
-            table.append("<th style='").append(headerStyle).append("'>")
-                .append(escape(col.path("titre").asText(""))).append("</th>");
-        }
-        table.append("</tr>");
-
-        if (rowsObj instanceof List<?> rows) {
-            for (Object rowObj : rows) {
-                if (!(rowObj instanceof Map<?, ?> row)) continue;
-                @SuppressWarnings("unchecked")
-                Map<String, Object> rowMap = (Map<String, Object>) row;
-                table.append("<tr>");
-                for (JsonNode col : bloc.path("colonnes")) {
-                    String varName = col.path("variable").asText();
-                    Object cellValue = rowMap.get(varName);
-                    String cellValueStr = cellValue != null ? String.valueOf(cellValue) : "";
-                    table.append("<td style='").append(cellStyle).append("'>")
-                        .append(escape(cellValueStr)).append("</td>");
-                }
-                table.append("</tr>");
-            }
-        }
-        return table.append("</table>").toString();
     }
 
     private String replaceVars(String content, Map<String, Object> data) {
@@ -361,7 +804,6 @@ public class TemplateHtmlBuilder {
         return result.toString();
     }
 
-    /** Comme replaceVars, mais sans échapper le résultat (utile pour QR/code-barres/URL brutes). */
     private String replaceVarsRaw(String content, Map<String, Object> data) {
         Matcher matcher = VAR_PATTERN.matcher(content);
         StringBuilder result = new StringBuilder();

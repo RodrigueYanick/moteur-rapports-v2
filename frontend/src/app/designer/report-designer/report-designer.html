@@ -74,12 +74,7 @@
       </div>
 
       <div class="paper-select">
-        <select [(ngModel)]="paperFormat" (change)="onPaperFormatChange()">
-          <option value="A4">A4 Portrait</option>
-          <option value="A5">A5 Portrait</option>
-          <option value="Letter">Letter</option>
-          <option value="Legal">Legal</option>
-        </select>
+        <span class="paper-label">{{ formatPapier }}</span>
       </div>
     </div>
 
@@ -116,14 +111,14 @@
 
   <ng-template #fillingPanel>
     <app-template-filler
-      [templateId]="templateId"
+      [templateId]="templateId"  
       [selectedBlock]="selectedBlock"
       (generatePdfRequest)="onFillerGenerate($event)"
     >
     </app-template-filler>
   </ng-template>
 
-  <div class="page-tabs">
+  <div class="page-tabs" *ngIf="!isAutoPagination">
     <button *ngFor="let page of pages; let i = index"
             class="page-tab"
             [class.active]="i === activePageIndex"
@@ -162,12 +157,17 @@
         [blocks]="blocks"
         [zoom]="zoomPercent"
         [canvasWidth]="canvasWidth"
-        [canvasHeight]="canvasHeight"
+        [canvasHeight]="virtualCanvasHeight"
         [showGrid]="showGrid"
         [snapEnabled]="snapEnabled"
         [showGuides]="showGuides"
         [locked]="isLocked"
+        [margeHautPx]="margeHautPx"
+        [margeBasPx]="margeBasPx"
+        [margeGauchePx]="margeGauchePx"
+        [margeDroitePx]="margeDroitePx"
         (lockedInteraction)="showLockedMessage()"
+        (blocksPreviewChange)="onCanvasPreviewChange($event)"
         (blocksChange)="onCanvasBlocksChange($event)"
         (blockSelected)="selectBlock($event)">
       </app-design-canvas>
@@ -180,10 +180,26 @@
           [block]="selectedBlock"
           [allBlocks]="allBlocksFlat"
           [explicitVariables]="explicitVariables"
+          [margeGauchePx]="margeGauchePx"
+          [margeHautPx]="margeHautPx"
+          [margeDroitePx]="margeDroitePx"
+          [margeBasPx]="margeBasPx"
+          [canvasWidth]="canvasWidth"
+          [canvasHeight]="canvasHeight"
           (updated)="updateBlock($event)"
           (closed)="selectedBlock = null">
         </app-block-editor>
-        <app-block-preview [pages]="pages"></app-block-preview>
+        <app-block-preview
+          [pages]="pages"
+          [canvasWidth]="canvasWidth"
+          [canvasHeight]="canvasHeight"
+          [modePagination]="modePagination"
+          [templateId]="templateId"
+          [margeHautPx]="margeHautPx"
+          [margeBasPx]="margeBasPx"
+          [margeGauchePx]="margeGauchePx"
+          [margeDroitePx]="margeDroitePx">
+        </app-block-preview>
       </ng-container>
       <ng-template #fillingPanel>
         <app-template-filler [templateId]="templateId"></app-template-filler>
