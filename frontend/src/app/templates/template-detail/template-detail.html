@@ -20,6 +20,10 @@
       <dd>{{ template.categorie || 'AUTRES' }}</dd>
       <dt>Format</dt>
       <dd>{{ template.formatPapier || 'A4' }}</dd>
+      <dt>Mode de pagination</dt>
+      <dd>{{ template.modePagination === 'AUTO' ? 'Automatique (Flux continu)' : 'Fixe (Multi-pages)' }}</dd>
+      <dt>Marges (H / B / G / D)</dt>
+      <dd>{{ template.margeHautMm ?? 10 }}mm / {{ template.margeBasMm ?? 10 }}mm / {{ template.margeGaucheMm ?? 10 }}mm / {{ template.margeDroiteMm ?? 10 }}mm</dd>
     </dl>
     <button
       *ngIf="template.statut === 'BROUILLON'"
@@ -68,6 +72,7 @@
       [savingStatus]="savingStatus"
       (exportRequest)="onExportRequest($event)"
       (pagesChange)="onPagesChange($event)"
+      (pageSettingsChange)="onPageSettingsChange($event)"
       (publishRequest)="publish()"
       (duplicateRequest)="duplicateAndNavigate()"
       (manualSaveRequest)="saveNow()"

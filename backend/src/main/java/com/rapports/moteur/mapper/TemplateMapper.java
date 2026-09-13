@@ -29,6 +29,7 @@ public class TemplateMapper {
                 .margeDroiteMm(entity.getMargeDroiteMm())
                 .margeHautMm(entity.getMargeHautMm())
                 .margeBasMm(entity.getMargeBasMm())
+                .parentTemplateId(entity.getParentTemplate() != null ? entity.getParentTemplate().getId() : null)
                 .build();
     }
 
@@ -42,10 +43,10 @@ public class TemplateMapper {
         template.setLargeurMm(create.getLargeurMm());
         template.setHauteurMm(create.getHauteurMm());
         template.setModePagination(create.getModePagination() != null ? create.getModePagination() : PaginationMode.FIXED);
-        template.setMargeGaucheMm(create.getMargeGaucheMm() != null ? create.getMargeGaucheMm() : 0);
-        template.setMargeDroiteMm(create.getMargeDroiteMm() != null ? create.getMargeDroiteMm() : 0);
-        template.setMargeHautMm(create.getMargeHautMm() != null ? create.getMargeHautMm() : 0);
-        template.setMargeBasMm(create.getMargeBasMm() != null ? create.getMargeBasMm() : 0);
+        template.setMargeGaucheMm(create.getMargeGaucheMm() != null ? create.getMargeGaucheMm() : 10);
+        template.setMargeDroiteMm(create.getMargeDroiteMm() != null ? create.getMargeDroiteMm() : 10);
+        template.setMargeHautMm(create.getMargeHautMm() != null ? create.getMargeHautMm() : 10);
+        template.setMargeBasMm(create.getMargeBasMm() != null ? create.getMargeBasMm() : 10);
         return template;
     }
 }

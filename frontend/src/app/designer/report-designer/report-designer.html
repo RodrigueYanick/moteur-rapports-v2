@@ -73,8 +73,11 @@
         </button>
       </div>
 
-      <div class="paper-select">
-        <span class="paper-label">{{ formatPapier }}</span>
+      <div class="paper-select" (click)="openPageSettings()" title="Paramètres de page et marges">
+        <button class="secondary-btn" style="height:32px;padding:0 8px;">
+          <lucide-icon [img]="icons.settings" [size]="14"></lucide-icon>
+          <span>{{ formatPapier }} ({{ effectiveMargeHautMm }}mm)</span>
+        </button>
       </div>
     </div>
 
@@ -237,4 +240,58 @@
   <lucide-icon [img]="icons.lock" [size]="16"></lucide-icon>
   {{ lockedMessage }}
   <button (click)="requestDuplicate()">Dupliquer</button>
+</div>
+
+<!-- Modal Paramètres de mise en page -->
+<div class="modal-overlay" *ngIf="showPageSettingsModal" (click)="closePageSettings()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Paramètres de mise en page</h3>
+      <button class="icon-btn" (click)="closePageSettings()">
+        <lucide-icon [img]="icons.close" [size]="16"></lucide-icon>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Format Papier</label>
+        <select [(ngModel)]="editingSettings.formatPapier" [disabled]="isLocked">
+          <option value="A4">A4 (210 × 297 mm)</option>
+          <option value="A3">A3 (297 × 420 mm)</option>
+          <option value="A5">A5 (148 × 210 mm)</option>
+          <option value="Letter">Letter (216 × 279 mm)</option>
+          <option value="Legal">Legal (216 × 356 mm)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Mode de Pagination</label>
+        <select [(ngModel)]="editingSettings.modePagination" [disabled]="isLocked">
+          <option value="FIXED">Fixe (Multi-pages)</option>
+          <option value="AUTO">Automatique (Flux continu)</option>
+        </select>
+      </div>
+      <h4 style="margin: 12px 0 8px; font-size: 13px; color: #9498a8;">Marges du document (mm)</h4>
+      <div class="margins-grid">
+        <div class="form-group">
+          <label>Haut (mm)</label>
+          <input type="number" min="0" max="100" [(ngModel)]="editingSettings.margeHautMm" [disabled]="isLocked" />
+        </div>
+        <div class="form-group">
+          <label>Bas (mm)</label>
+          <input type="number" min="0" max="100" [(ngModel)]="editingSettings.margeBasMm" [disabled]="isLocked" />
+        </div>
+        <div class="form-group">
+          <label>Gauche (mm)</label>
+          <input type="number" min="0" max="100" [(ngModel)]="editingSettings.margeGaucheMm" [disabled]="isLocked" />
+        </div>
+        <div class="form-group">
+          <label>Droite (mm)</label>
+          <input type="number" min="0" max="100" [(ngModel)]="editingSettings.margeDroiteMm" [disabled]="isLocked" />
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="secondary-btn" (click)="closePageSettings()">Annuler</button>
+      <button class="primary-btn" *ngIf="!isLocked" (click)="savePageSettings()">Appliquer</button>
+    </div>
+  </div>
 </div>

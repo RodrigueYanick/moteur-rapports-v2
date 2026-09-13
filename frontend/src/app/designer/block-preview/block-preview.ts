@@ -26,6 +26,13 @@ export class BlockPreview implements AfterViewInit, OnChanges, OnInit, OnDestroy
   @Input() margeGauchePx: number = 0;
   @Input() margeDroitePx: number = 0;
 
+  private readonly defaultMarginPx = Math.round(10 * 96 / 25.4); // ~38px
+
+  get safeMargeHautPx(): number { return (this.margeHautPx != null && this.margeHautPx > 0) ? this.margeHautPx : this.defaultMarginPx; }
+  get safeMargeBasPx(): number { return (this.margeBasPx != null && this.margeBasPx > 0) ? this.margeBasPx : this.defaultMarginPx; }
+  get safeMargeGauchePx(): number { return (this.margeGauchePx != null && this.margeGauchePx > 0) ? this.margeGauchePx : this.defaultMarginPx; }
+  get safeMargeDroitePx(): number { return (this.margeDroitePx != null && this.margeDroitePx > 0) ? this.margeDroitePx : this.defaultMarginPx; }
+
   @ViewChild('previewViewport') private previewViewport?: ElementRef<HTMLElement>;
 
   public previewHtml: string | null = null;
@@ -108,7 +115,7 @@ export class BlockPreview implements AfterViewInit, OnChanges, OnInit, OnDestroy
     const realValues = this.fillerdata.getValues();
     const mergedData = { ...mockData, ...realValues };
 
-    const contentH = this.canvasHeight - this.margeHautPx - this.margeBasPx;
+    const contentH = this.canvasHeight - this.safeMargeHautPx - this.safeMargeBasPx;
 
     // Étape 1 : générer les fragments de blocs (un bloc tableau peut produire plusieurs fragments)
     const generatedPages: { nom: string; blocks: DesignBlock[] }[] = [];
@@ -124,8 +131,11 @@ export class BlockPreview implements AfterViewInit, OnChanges, OnInit, OnDestroy
           // Blocs non-tableau : comportement classique
           const height = block.hauteurBox ?? this.defaultDimensions(block.type).h;
           const pageOffset = Math.max(0, Math.floor((top + height - 1) / this.canvasHeight));
+          const adjustedY = pageOffset === 0
+            ? top
+            : Math.max(this.safeMargeHautPx, top - pageOffset * this.canvasHeight);
           pageFragments.push({
-            block: { ...block, y: Math.max(0, top - pageOffset * this.canvasHeight) },
+            block: { ...block, y: adjustedY },
             pageOffset
           });
         }
@@ -157,8 +167,8 @@ export class BlockPreview implements AfterViewInit, OnChanges, OnInit, OnDestroy
     }
 
     this.safePreviewPages = generatedPages.map(page => {
-      const contentW = this.canvasWidth - this.margeGauchePx - this.margeDroitePx;
-      const contentH = this.canvasHeight - this.margeHautPx - this.margeBasPx;
+      const contentW = this.canvasWidth - this.safeMargeGauchePx - this.safeMargeDroitePx;
+      const contentH = this.canvasHeight - this.safeMargeHautPx - this.safeMargeBasPx;
       let html = `<div style="position:relative;width:${this.canvasWidth}px;height:${this.canvasHeight}px;background:white;overflow:hidden;margin:0 auto;">`;
 
       // Zones de marges interdites (hachures + fond semi-transparent)
@@ -166,16 +176,16 @@ export class BlockPreview implements AfterViewInit, OnChanges, OnInit, OnDestroy
       const marginOverlay = 'rgba(239,68,68,0.06)';
       const borderInner = '1px solid rgba(239,68,68,0.15)';
       // Marge haute
-      html += `<div style="position:absolute;left:0;top:0;width:${this.canvasWidth}px;height:${this.margeHautPx}px;background:${marginBg},${marginOverlay};pointer-events:none;border-bottom:${borderInner};"></div>`;
+      html += `<div style="position:absolute;left:0;top:0;width:${this.canvasWidth}px;height:${this.safeMargeHautPx}px;background:${marginBg},${marginOverlay};pointer-events:none;border-bottom:${borderInner};"></div>`;
       // Marge basse
-      html += `<div style="position:absolute;left:0;bottom:0;width:${this.canvasWidth}px;height:${this.margeBasPx}px;background:${marginBg},${marginOverlay};pointer-events:none;border-top:${borderInner};"></div>`;
+      html += `<div style="position:absolute;left:0;bottom:0;width:${this.canvasWidth}px;height:${this.safeMargeBasPx}px;background:${marginBg},${marginOverlay};pointer-events:none;border-top:${borderInner};"></div>`;
       // Marge gauche
-      html += `<div style="position:absolute;left:0;top:${this.margeHautPx}px;width:${this.margeGauchePx}px;height:${contentH}px;background:${marginBg},${marginOverlay};pointer-events:none;border-right:${borderInner};"></div>`;
+      html += `<div style="position:absolute;left:0;top:${this.safeMargeHautPx}px;width:${this.safeMargeGauchePx}px;height:${contentH}px;background:${marginBg},${marginOverlay};pointer-events:none;border-right:${borderInner};"></div>`;
       // Marge droite
-      html += `<div style="position:absolute;right:0;top:${this.margeHautPx}px;width:${this.margeDroitePx}px;height:${contentH}px;background:${marginBg},${marginOverlay};pointer-events:none;border-left:${borderInner};"></div>`;
+      html += `<div style="position:absolute;right:0;top:${this.safeMargeHautPx}px;width:${this.safeMargeDroitePx}px;height:${contentH}px;background:${marginBg},${marginOverlay};pointer-events:none;border-left:${borderInner};"></div>`;
 
       // Zone de contenu utilisable (bordure délimitant la zone autorisée)
-      html += `<div style="position:absolute;left:${this.margeGauchePx}px;top:${this.margeHautPx}px;width:${contentW}px;height:${contentH}px;border:1px dashed rgba(109,94,252,0.25);pointer-events:none;"></div>`;
+      html += `<div style="position:absolute;left:${this.safeMargeGauchePx}px;top:${this.safeMargeHautPx}px;width:${contentW}px;height:${contentH}px;border:1px dashed rgba(109,94,252,0.25);pointer-events:none;"></div>`;
       for (const block of page.blocks) {
         if(block.visible === false) continue;
         const left = block.x || 0;
@@ -335,15 +345,17 @@ export class BlockPreview implements AfterViewInit, OnChanges, OnInit, OnDestroy
     if (block.lignes) {
       // La première ligne est l'en-tête, le reste sont des données
       const dataRowCount = Math.max(0, block.lignes.length - 1);
-      const headerHeight = 28;
-      const rowHeight = 26;
+      // Hauteur réelle d'une ligne CSS : font-size:14px ≈ 17px + padding 3+3px + border 1px ≈ 24px
+      // On utilise 25px pour inclure une marge de sécurité d'1px
+      const headerHeight = 25;
+      const rowHeight = 25;
       return { totalRows: dataRowCount, headerHeight, rowHeight, totalHeight: headerHeight + dataRowCount * rowHeight };
     }
     const source = (block.source || '').replace('{{', '').replace('}}', '').trim();
     const rows: any[] = mockData[source] || [];
     const totalRows = rows.length;
-    const headerHeight = 28;
-    const rowHeight = 26;
+    const headerHeight = 25;
+    const rowHeight = 25;
     return { totalRows, headerHeight, rowHeight, totalHeight: headerHeight + totalRows * rowHeight };
   }
 
@@ -354,11 +366,11 @@ export class BlockPreview implements AfterViewInit, OnChanges, OnInit, OnDestroy
     mockData: Record<string, any>
   ): void {
     const tableInfo = this.getTableRowInfo(block, mockData);
-    const availableTop = Math.max(0, contentH - (top - this.margeHautPx));
+    const availableTop = Math.max(0, contentH - (top - this.safeMargeHautPx));
 
     if (availableTop <= 0 || tableInfo.totalRows === 0) {
       // Pas de place ou tableau vide — sur la page suivante entière
-      pageFragments.push({ block: { ...block, y: this.margeHautPx }, pageOffset: 1 });
+      pageFragments.push({ block: { ...block, y: this.safeMargeHautPx }, pageOffset: 1 });
       return;
     }
 
@@ -371,7 +383,7 @@ export class BlockPreview implements AfterViewInit, OnChanges, OnInit, OnDestroy
     // Le tableau déborde — calculer combien de lignes tiennent
     const headerH = tableInfo.headerHeight;
     const rowH = tableInfo.rowHeight;
-    const rowsThatFit = Math.max(1, Math.floor((availableTop - headerH) / rowH));
+    const rowsThatFit = Math.floor((availableTop - headerH) / rowH);
 
     if (rowsThatFit <= 0) {
       // Pas de place même pour 1 ligne de données — page suivante
@@ -397,7 +409,7 @@ export class BlockPreview implements AfterViewInit, OnChanges, OnInit, OnDestroy
     startRow: number,
     pageFragments: { block: DesignBlock; pageOffset: number; tableSlice?: { startRow: number; endRow: number } }[]
   ): void {
-    const contentH = this.canvasHeight - this.margeHautPx - this.margeBasPx;
+    const contentH = this.canvasHeight - this.safeMargeHautPx - this.safeMargeBasPx;
     let currentRow = startRow;
     let currentPageOffset = pageFragments.length > 0
       ? Math.max(0, ...pageFragments.map(f => f.pageOffset)) + 1
@@ -408,7 +420,7 @@ export class BlockPreview implements AfterViewInit, OnChanges, OnInit, OnDestroy
       const endRow = Math.min(currentRow + rowsThatFit, tableInfo.totalRows);
 
       pageFragments.push({
-        block: { ...block, y: this.margeHautPx },
+        block: { ...block, y: this.safeMargeHautPx },
         pageOffset: currentPageOffset,
         tableSlice: { startRow: currentRow, endRow }
       });

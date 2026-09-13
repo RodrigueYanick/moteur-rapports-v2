@@ -39,6 +39,13 @@ export class DesignCanvas implements OnInit, OnDestroy {
   @Input() margeGauchePx: number = 0;
   @Input() margeDroitePx: number = 0;
 
+  private readonly defaultMarginPx = Math.round(10 * 96 / 25.4); // ~38px
+
+  get safeMargeHautPx(): number { return (this.margeHautPx != null && this.margeHautPx > 0) ? this.margeHautPx : this.defaultMarginPx; }
+  get safeMargeBasPx(): number { return (this.margeBasPx != null && this.margeBasPx > 0) ? this.margeBasPx : this.defaultMarginPx; }
+  get safeMargeGauchePx(): number { return (this.margeGauchePx != null && this.margeGauchePx > 0) ? this.margeGauchePx : this.defaultMarginPx; }
+  get safeMargeDroitePx(): number { return (this.margeDroitePx != null && this.margeDroitePx > 0) ? this.margeDroitePx : this.defaultMarginPx; }
+
   @Output() lockedInteraction = new EventEmitter<void>();
   @Output() blocksPreviewChange = new EventEmitter<DesignBlock[]>();
   @Output() blocksChange = new EventEmitter<DesignBlock[]>();
@@ -69,18 +76,18 @@ export class DesignCanvas implements OnInit, OnDestroy {
   /** Retourne les bornes de la zone utilisable en pixels */
   get usableArea(): { minX: number; minY: number; maxX: number; maxY: number } {
     return {
-      minX: this.margeGauchePx,
-      minY: this.margeHautPx,
-      maxX: this.canvasWidth - this.margeDroitePx,
-      maxY: this.canvasHeight - this.margeBasPx,
+      minX: this.safeMargeGauchePx,
+      minY: this.safeMargeHautPx,
+      maxX: this.canvasWidth - this.safeMargeDroitePx,
+      maxY: this.canvasHeight - this.safeMargeBasPx,
     };
   }
 
   get contentAreaStyle(): { [key: string]: string } {
-    const left = this.margeGauchePx;
-    const top = this.margeHautPx;
-    const width = this.canvasWidth - this.margeGauchePx - this.margeDroitePx;
-    const height = this.canvasHeight - this.margeHautPx - this.margeBasPx;
+    const left = this.safeMargeGauchePx;
+    const top = this.safeMargeHautPx;
+    const width = this.canvasWidth - this.safeMargeGauchePx - this.safeMargeDroitePx;
+    const height = this.canvasHeight - this.safeMargeHautPx - this.safeMargeBasPx;
     return {
       'left': `${left}px`,
       'top': `${top}px`,
@@ -94,7 +101,7 @@ export class DesignCanvas implements OnInit, OnDestroy {
       'left': '0',
       'top': '0',
       'width': `${this.canvasWidth}px`,
-      'height': `${this.margeHautPx}px`,
+      'height': `${this.safeMargeHautPx}px`,
     };
   }
 
@@ -103,28 +110,28 @@ export class DesignCanvas implements OnInit, OnDestroy {
       'left': '0',
       'bottom': '0',
       'width': `${this.canvasWidth}px`,
-      'height': `${this.margeBasPx}px`,
+      'height': `${this.safeMargeBasPx}px`,
     };
   }
 
   get marginLeftStyle(): { [key: string]: string } {
-    const topOffset = this.margeHautPx;
-    const height = this.canvasHeight - this.margeHautPx - this.margeBasPx;
+    const topOffset = this.safeMargeHautPx;
+    const height = this.canvasHeight - this.safeMargeHautPx - this.safeMargeBasPx;
     return {
       'left': '0',
       'top': `${topOffset}px`,
-      'width': `${this.margeGauchePx}px`,
+      'width': `${this.safeMargeGauchePx}px`,
       'height': `${Math.max(0, height)}px`,
     };
   }
 
   get marginRightStyle(): { [key: string]: string } {
-    const topOffset = this.margeHautPx;
-    const height = this.canvasHeight - this.margeHautPx - this.margeBasPx;
+    const topOffset = this.safeMargeHautPx;
+    const height = this.canvasHeight - this.safeMargeHautPx - this.safeMargeBasPx;
     return {
       'right': '0',
       'top': `${topOffset}px`,
-      'width': `${this.margeDroitePx}px`,
+      'width': `${this.safeMargeDroitePx}px`,
       'height': `${Math.max(0, height)}px`,
     };
   }
@@ -155,9 +162,17 @@ export class DesignCanvas implements OnInit, OnDestroy {
     const effectiveW = block.largeurBox || fallback.w;
     const effectiveH = block.hauteurBox || fallback.h;
 
-    // Contraint la position : le bloc doit rester dans [minX, maxX] et [minY, maxY]
+    // Contraint la position horizontale
     const clampedX = Math.max(area.minX, Math.min(block.x || 0, area.maxX - effectiveW));
-    const clampedY = Math.max(area.minY, Math.min(block.y || 0, area.maxY - effectiveH));
+
+    // Pour les tableaux, on ne contraint que le haut (y >= minY)
+    // car ils peuvent s'étendre sur plusieurs pages.
+    let clampedY: number;
+    if (block.type === 'tableau') {
+      clampedY = Math.max(area.minY, block.y || 0);
+    } else {
+      clampedY = Math.max(area.minY, Math.min(block.y || 0, area.maxY - effectiveH));
+    }
 
     block.x = clampedX;
     block.y = clampedY;

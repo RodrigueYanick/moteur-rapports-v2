@@ -1,27 +1,28 @@
-# syntax=docker/dockerfile:1
-
-FROM maven:3.9.9-eclipse-temurin-25 AS builder
+# Étape de build
+FROM maven:3.9.9-eclipse-temurin-17 AS builder
 WORKDIR /workspace
 
-COPY backend/pom.xml ./backend/pom.xml
-RUN mvn -f backend/pom.xml dependency:go-offline
+# Copier le pom.xml pour mettre en cache les dépendances
+COPY pom.xml ./pom.xml
+RUN mvn dependency:go-offline -B
 
-COPY backend/src ./backend/src
-COPY backend/src/main/resources/application.yml ./backend/src/main/resources/application.yml
-COPY backend/src/main/resources/db/migration ./backend/src/main/resources/db/migration
+# Copier le code source
+COPY src ./src
 
-RUN mvn -f backend/pom.xml clean package -DskipTests
+# Builder le jar
+RUN mvn clean package -DskipTests
 
-FROM eclipse-temurin:25-jre-jammy
+# Étape d'exécution
+FROM eclipse-temurin:17-jre
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /workspace/backend/target/*.jar /app/app.jar
+COPY --from=builder /workspace/target/*.jar app.jar
 
-EXPOSE 8080
+EXPOSE 8082
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD curl -f http://localhost:8080/api/v1/health || exit 1
+  CMD curl -f http://localhost:8082/api/health || exit 1
 
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+ENTRYPOINT ["java", "-jar", "app.jar"]

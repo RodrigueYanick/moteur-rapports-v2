@@ -87,11 +87,11 @@ public class TemplateHtmlBuilder {
             heightMm = dims[1];
         }
 
-        // Marges (par défaut 0 pour compatibilité ascendante)
-        int mLeft   = margeGaucheMm  != null ? margeGaucheMm  : 0;
-        int mRight  = margeDroiteMm  != null ? margeDroiteMm  : 0;
-        int mTop    = margeHautMm    != null ? margeHautMm    : 0;
-        int mBottom = margeBasMm     != null ? margeBasMm     : 0;
+        // Marges (par défaut 10mm)
+        int mLeft   = (margeGaucheMm != null && margeGaucheMm > 0) ? margeGaucheMm : 10;
+        int mRight  = (margeDroiteMm != null && margeDroiteMm > 0) ? margeDroiteMm : 10;
+        int mTop    = (margeHautMm != null && margeHautMm > 0) ? margeHautMm : 10;
+        int mBottom = (margeBasMm != null && margeBasMm > 0) ? margeBasMm : 10;
 
         // Dimensions de la zone de contenu (mm)
         int contentWidthMm  = widthMm  - mLeft - mRight;
@@ -101,13 +101,13 @@ public class TemplateHtmlBuilder {
         int widthPx  = (int) Math.round(widthMm  * 96.0 / 25.4);
         int heightPx = (int) Math.round(heightMm * 96.0 / 25.4);
 
-        // CSS @page : taille physique + marges
+        // CSS @page : taille physique de la page, marges CSS à 0
+        // (les marges sont garanties par le positionnement absolu millimétrique de chaque bloc)
         String pageSizeCss = "size: " + widthMm + "mm " + heightMm + "mm;";
-        String pageMarginCss = "margin: " + mTop + "mm " + mRight + "mm " + mBottom + "mm " + mLeft + "mm;";
 
         StringBuilder html = new StringBuilder(
             "<html><head><meta charset='UTF-8'/><style>"
-            + "@page{" + pageSizeCss + pageMarginCss + "}"
+            + "@page{" + pageSizeCss + "margin:0;}"
             + " html,body{margin:0;padding:0;}"
             + "</style></head><body>"
         );
@@ -139,25 +139,25 @@ public class TemplateHtmlBuilder {
                     html.append(renderAutoPages(blocs, ctx));
                 }
             } else {
-                // Mode FIXED : même logique de pagination que AUTO
-                if (root.has("pages") && root.path("pages").isArray()) {
-                    ArrayNode fixedBlocs = objectMapper.createArrayNode();
-                    int pageIndex = 0;
-                    for (JsonNode page : root.path("pages")) {
-                        JsonNode pageBlocs = page.path("blocs");
-                        if (pageBlocs.isArray()) {
-                            for (JsonNode bloc : pageBlocs) {
-                                ObjectNode positioned = bloc.deepCopy();
-                                int originalY = bloc.path("y").asInt(0);
-                                positioned.put("y", originalY + pageIndex * heightPx);
-                                fixedBlocs.add(positioned);
-                            }
-                        }
-                        pageIndex++;
+                // Mode FIXED : chaque page de conception est traitée de façon autonome et séquentielle,
+                // exactement comme dans l'aperçu du designer. Si un tableau déborde, il génère des
+                // pages de continuation avec respect absolu de margeHautMm avant de passer à la page conçue suivante.
+                List<List<JsonNode>> allRenderedPages = new ArrayList<>();
+                if (root.has("pages") && root.path("pages").isArray() && root.path("pages").size() > 0) {
+                    for (JsonNode pageNode : root.path("pages")) {
+                        JsonNode pageBlocs = pageNode.path("blocs");
+                        allRenderedPages.addAll(paginateSinglePage(pageBlocs, ctx));
                     }
-                    html.append(renderSmartPages(fixedBlocs, ctx));
                 } else if (root.has("blocs")) {
-                    html.append(renderSmartPages(root.path("blocs"), ctx));
+                    allRenderedPages.addAll(paginateSinglePage(root.path("blocs"), ctx));
+                }
+
+                if (allRenderedPages.isEmpty()) {
+                    allRenderedPages.add(new ArrayList<>());
+                }
+
+                for (int i = 0; i < allRenderedPages.size(); i++) {
+                    html.append(renderPage(allRenderedPages.get(i), ctx, i == allRenderedPages.size() - 1));
                 }
             }
         } catch (Exception e) {
@@ -279,12 +279,71 @@ public class TemplateHtmlBuilder {
     // PAGINATION INTELLIGENTE (MODE FIXED)
     // ============================================================
 
-    /**
-     * Mode FIXED : même logique de pagination qu'AUTO, mais appliquée
-     * aux blocs déjà positionnés par l'utilisateur sur des pages fixes.
-     * Les blocs qui dépassent la zone de contenu sont automatiquement
-     * déplacés vers la page suivante.
-     */
+    private List<List<JsonNode>> paginateSinglePage(JsonNode blocs, PageContext ctx) {
+        List<JsonNode> sortedBlocks = new ArrayList<>();
+        if (blocs != null && blocs.isArray()) {
+            blocs.forEach(bloc -> {
+                if (!bloc.has("visible") || bloc.path("visible").asBoolean(true)) {
+                    sortedBlocks.add(bloc);
+                }
+            });
+        }
+        sortedBlocks.sort(Comparator.comparingInt(b -> b.path("y").asInt(0)));
+
+        int contentHeightPx = ctx.contentHeightPx();
+        int pageHeightPx = ctx.heightPx;
+        int mTopPx    = (int) Math.round(ctx.mTopMm    * 96.0 / 25.4);
+        int mBottomPx = (int) Math.round(ctx.mBottomMm * 96.0 / 25.4);
+        int contentBottomPx = pageHeightPx - mBottomPx;
+
+        if (sortedBlocks.isEmpty()) {
+            List<List<JsonNode>> empty = new ArrayList<>();
+            empty.add(new ArrayList<>());
+            return empty;
+        }
+
+        List<PageFragmentEntry> entries = new ArrayList<>();
+        for (JsonNode bloc : sortedBlocks) {
+            if (isTableau(bloc)) {
+                int baseY = Math.max(mTopPx, bloc.path("y").asInt(0));
+                int firstPageAvailable = Math.max(0, contentBottomPx - baseY);
+                List<JsonNode> tableFragments = splitTableIntoFragments(bloc, ctx.data, contentHeightPx, firstPageAvailable, pageHeightPx, mTopPx);
+                for (int i = 0; i < tableFragments.size(); i++) {
+                    JsonNode frag = tableFragments.get(i);
+                    int localY = (i == 0) ? baseY : mTopPx;
+                    entries.add(new PageFragmentEntry(adjustBlockY(frag, localY), i));
+                }
+            } else {
+                int y = Math.max(mTopPx, bloc.path("y").asInt(0));
+                int height = Math.max(1, getEstimatedBlocHeight(bloc, ctx.data, contentHeightPx));
+                if (y > mTopPx && y + height > contentBottomPx) {
+                    entries.add(new PageFragmentEntry(adjustBlockY(bloc, mTopPx), 1));
+                } else {
+                    entries.add(new PageFragmentEntry(adjustBlockY(bloc, y), 0));
+                }
+            }
+        }
+
+        int maxOffset = entries.stream().mapToInt(e -> e.pageOffset).max().orElse(0);
+        List<List<JsonNode>> pages = new ArrayList<>();
+        for (int p = 0; p <= maxOffset; p++) {
+            pages.add(new ArrayList<>());
+        }
+        for (PageFragmentEntry e : entries) {
+            pages.get(e.pageOffset).add(e.block);
+        }
+        return pages;
+    }
+
+    private static class PageFragmentEntry {
+        final JsonNode block;
+        final int pageOffset;
+        PageFragmentEntry(JsonNode block, int pageOffset) {
+            this.block = block;
+            this.pageOffset = pageOffset;
+        }
+    }
+
     private String renderSmartPages(JsonNode blocs, PageContext ctx) {
         return renderAutoPages(blocs, ctx);
     }
@@ -301,8 +360,10 @@ public class TemplateHtmlBuilder {
     private int getEstimatedBlocHeight(JsonNode bloc, Map<String, Object> data, int pageHeightPx) {
         String type = bloc.path("type").asText();
         if ("tableau".equals(type)) {
-            int rowHeight = 30;
-            int headerHeight = 40;
+            // Hauteur réelle d'une ligne CSS : font-size:14px ≈ 17px + padding 3+3px + border 1px ≈ 24px
+            // On utilise 25px pour inclure une marge de sécurité d'1px
+            int rowHeight = 25;
+            int headerHeight = 25;
             if (bloc.has("lignes")) {
                 int rows = bloc.path("lignes").size();
                 return rows * rowHeight + headerHeight;
@@ -332,8 +393,10 @@ public class TemplateHtmlBuilder {
                                                     int contentHeightPx, int firstPageAvailable,
                                                     int pageHeightPx, int mTopPx) {
         List<JsonNode> fragments = new ArrayList<>();
-        int rowHeight = 30;
-        int headerHeight = 40;
+        // Hauteur réelle d'une ligne CSS : font-size:14px ≈ 17px + padding 3+3px + border 1px ≈ 24px
+        // On utilise 25px pour inclure une marge de sécurité d'1px
+        int rowHeight = 25;
+        int headerHeight = 25;
         int baseY = Math.max(0, bloc.path("y").asInt(0));
 
         // Si l'espace sur la première page est insuffisant pour l'en-tête + 1 ligne,
@@ -473,17 +536,20 @@ public class TemplateHtmlBuilder {
 
     /**
      * Rend une page HTML avec des dimensions en mm.
-     * Le conteneur fait la taille de la zone de contenu ;
-     * les marges sont gérées par @page dans le CSS global.
+     * Le conteneur fait la taille physique complète de la page avec un padding
+     * correspondant aux marges. Les blocs position:absolute sont relatifs au
+     * padding edge du conteneur, ce qui garantit le respect des marges sur
+     * TOUTES les pages (y compris continuation) — compatible Flying Saucer.
      * Les positions de blocs sont converties de px (96 DPI) vers mm
-     * puis décalées pour être relatives à la zone de contenu.
+     * puis décalées pour être relatives au padding edge (zone de contenu).
      */
     private String renderPage(List<JsonNode> blocs, PageContext ctx, boolean isLastPage) {
         String breakStyle = isLastPage ? "page-break-after:auto;" : "page-break-after:always;";
         StringBuilder page = new StringBuilder(
             "<div class='page' style='position:relative;width:"
-            + ctx.contentWidthMm + "mm;height:" + ctx.contentHeightMm
-            + "mm;background:white;overflow:hidden;box-sizing:border-box;" + breakStyle + "'>"
+            + ctx.widthMm + "mm;height:" + ctx.heightMm
+            + "mm;background:white;overflow:hidden;box-sizing:border-box;margin:0;padding:0;"
+            + breakStyle + "'>"
         );
 
         for (JsonNode bloc : blocs) {
@@ -498,9 +564,9 @@ public class TemplateHtmlBuilder {
             int widthPx  = bloc.path("largeurBox").asInt(fallback[0]);
             int heightPx = bloc.path("hauteurBox").asInt(fallback[1]);
 
-            // Conversion px → mm, avec décalage pour être relatif à la zone de contenu
-            double xMm = pxToMm(xPx) - ctx.mLeftMm;
-            double yMm = pxToMm(yPx) - ctx.mTopMm;
+            // Conversion directe px (96 DPI) → mm : identique à l'aperçu et fidèle sur toutes les pages
+            double xMm = pxToMm(xPx);
+            double yMm = pxToMm(yPx);
             double wMm = pxToMm(widthPx);
             double hMm = pxToMm(heightPx);
 

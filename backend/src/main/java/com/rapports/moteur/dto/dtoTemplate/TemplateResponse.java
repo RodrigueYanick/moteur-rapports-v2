@@ -67,4 +67,7 @@ public class TemplateResponse {
 
     @Schema(description = "Marge basse en mm", example = "5")
     private Integer margeBasMm;
+
+    @Schema(description = "Identifiant du modèle parent (pour les versions)", example = "3fa85f64-5717-4562-b3fc-2c963f66afa6")
+    private UUID parentTemplateId;
 }

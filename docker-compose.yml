@@ -5,13 +5,53 @@ services:
     image: postgres:15-alpine
     container_name: report-postgres
     environment:
-      POSTGRES_DB: moteur_rapports
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 20040
+      POSTGRES_DB: moteur_rapports_test
+      POSTGRES_USER: reportuser
+      POSTGRES_PASSWORD: rodrigue
     ports:
-      - "5432:5432"
+      - "5454:5432"   # hôte:conteneur
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U reportuser -d moteur_rapports_test"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: report-backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/moteur_rapports_test
+      SPRING_DATASOURCE_USERNAME: reportuser
+      SPRING_DATASOURCE_PASSWORD: rodrigue
+      APP_STORAGE_PATH: /app/data/reports
+    ports:
+      - "8082:8082"
+    volumes:
+      - reports-data:/app/data/reports
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: report-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
 
 volumes:
   pgdata:
+  reports-data:

@@ -546,7 +546,13 @@ export class BlockEditor implements OnChanges, DoCheck {
     let clampedX = val.posX || 0;
     let clampedY = val.posY || 0;
     clampedX = Math.max(area.minX, Math.min(clampedX, area.maxX - clampedLargeur));
-    clampedY = Math.max(area.minY, Math.min(clampedY, area.maxY - clampedHauteur));
+    // Pour les tableaux, on ne contraint que le haut (y >= minY)
+    // car ils peuvent s'étendre sur plusieurs pages — pas de drift vertical.
+    if (this.block.type === 'tableau') {
+      clampedY = Math.max(area.minY, clampedY);
+    } else {
+      clampedY = Math.max(area.minY, Math.min(clampedY, area.maxY - clampedHauteur));
+    }
 
     let updatedBlock: DesignBlock = {
       ...this.block,

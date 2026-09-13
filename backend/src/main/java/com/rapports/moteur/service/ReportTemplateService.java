@@ -142,6 +142,10 @@ public class ReportTemplateService {
 
         if (entity.getCategorie() == null) entity.setCategorie(Categorie.AUTRES);
         if (entity.getFormatPapier() == null) entity.setFormatPapier("A4");
+        if (entity.getMargeGaucheMm() == null) entity.setMargeGaucheMm(10);
+        if (entity.getMargeDroiteMm() == null) entity.setMargeDroiteMm(10);
+        if (entity.getMargeHautMm() == null) entity.setMargeHautMm(10);
+        if (entity.getMargeBasMm() == null) entity.setMargeBasMm(10);
         validateFormat(entity);
 
         if (entity.getContenuDesign() == null || entity.getContenuDesign().isBlank()) {
@@ -236,17 +240,17 @@ public class ReportTemplateService {
             throw new ValidationException("Seul un template en brouillon peut être modifié");
         }
 
-        entity.setNom(request.getNom());
-        entity.setDescription(request.getDescription());
-        entity.setContenuDesign(request.getContenuDesign());
-        entity.setFormatPapier(request.getFormatPapier());
-        entity.setLargeurMm(request.getLargeurMm());
-        entity.setHauteurMm(request.getHauteurMm());
-        entity.setModePagination(request.getModePagination() != null ? request.getModePagination() : PaginationMode.FIXED);
-        entity.setMargeGaucheMm(request.getMargeGaucheMm() != null ? request.getMargeGaucheMm() : 0);
-        entity.setMargeDroiteMm(request.getMargeDroiteMm() != null ? request.getMargeDroiteMm() : 0);
-        entity.setMargeHautMm(request.getMargeHautMm() != null ? request.getMargeHautMm() : 0);
-        entity.setMargeBasMm(request.getMargeBasMm() != null ? request.getMargeBasMm() : 0);
+        if (request.getNom() != null) entity.setNom(request.getNom());
+        if (request.getDescription() != null) entity.setDescription(request.getDescription());
+        if (request.getContenuDesign() != null) entity.setContenuDesign(request.getContenuDesign());
+        if (request.getFormatPapier() != null) entity.setFormatPapier(request.getFormatPapier());
+        if (request.getLargeurMm() != null) entity.setLargeurMm(request.getLargeurMm());
+        if (request.getHauteurMm() != null) entity.setHauteurMm(request.getHauteurMm());
+        if (request.getModePagination() != null) entity.setModePagination(request.getModePagination());
+        if (request.getMargeGaucheMm() != null) entity.setMargeGaucheMm(request.getMargeGaucheMm());
+        if (request.getMargeDroiteMm() != null) entity.setMargeDroiteMm(request.getMargeDroiteMm());
+        if (request.getMargeHautMm() != null) entity.setMargeHautMm(request.getMargeHautMm());
+        if (request.getMargeBasMm() != null) entity.setMargeBasMm(request.getMargeBasMm());
         validateFormat(entity);
 
         repository.save(entity);
@@ -266,11 +270,11 @@ public class ReportTemplateService {
         copy.setLargeurMm(original.getLargeurMm());
         copy.setHauteurMm(original.getHauteurMm());
         copy.setCodeEntreprise(original.getCodeEntreprise());
-        copy.setModePagination(original.getModePagination());
-        copy.setMargeGaucheMm(original.getMargeGaucheMm());
-        copy.setMargeDroiteMm(original.getMargeDroiteMm());
-        copy.setMargeHautMm(original.getMargeHautMm());
-        copy.setMargeBasMm(original.getMargeBasMm());
+        copy.setModePagination(original.getModePagination() != null ? original.getModePagination() : PaginationMode.FIXED);
+        copy.setMargeGaucheMm(original.getMargeGaucheMm() != null && original.getMargeGaucheMm() > 0 ? original.getMargeGaucheMm() : 10);
+        copy.setMargeDroiteMm(original.getMargeDroiteMm() != null && original.getMargeDroiteMm() > 0 ? original.getMargeDroiteMm() : 10);
+        copy.setMargeHautMm(original.getMargeHautMm() != null && original.getMargeHautMm() > 0 ? original.getMargeHautMm() : 10);
+        copy.setMargeBasMm(original.getMargeBasMm() != null && original.getMargeBasMm() > 0 ? original.getMargeBasMm() : 10);
         copy.setStatut(TemplateStatus.BROUILLON);
         copy.setVersion(1);
 
@@ -322,11 +326,11 @@ public class ReportTemplateService {
         newVersion.setLargeurMm(original.getLargeurMm());
         newVersion.setHauteurMm(original.getHauteurMm());
         newVersion.setCodeEntreprise(original.getCodeEntreprise());
-        newVersion.setModePagination(original.getModePagination());
-        newVersion.setMargeGaucheMm(original.getMargeGaucheMm());
-        newVersion.setMargeDroiteMm(original.getMargeDroiteMm());
-        newVersion.setMargeHautMm(original.getMargeHautMm());
-        newVersion.setMargeBasMm(original.getMargeBasMm());
+        newVersion.setModePagination(original.getModePagination() != null ? original.getModePagination() : PaginationMode.FIXED);
+        newVersion.setMargeGaucheMm(original.getMargeGaucheMm() != null && original.getMargeGaucheMm() > 0 ? original.getMargeGaucheMm() : 10);
+        newVersion.setMargeDroiteMm(original.getMargeDroiteMm() != null && original.getMargeDroiteMm() > 0 ? original.getMargeDroiteMm() : 10);
+        newVersion.setMargeHautMm(original.getMargeHautMm() != null && original.getMargeHautMm() > 0 ? original.getMargeHautMm() : 10);
+        newVersion.setMargeBasMm(original.getMargeBasMm() != null && original.getMargeBasMm() > 0 ? original.getMargeBasMm() : 10);
         newVersion.setStatut(TemplateStatus.BROUILLON);
         newVersion.setVersion(original.getVersion() + 1);
         newVersion.setParentTemplate(original);

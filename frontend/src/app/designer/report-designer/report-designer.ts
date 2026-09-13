@@ -10,7 +10,7 @@ import { FormsModule } from '@angular/forms';
 import {
   LucideAngularModule, Undo2, Redo2, Grid3x3, Magnet, Ruler, Minus, Plus, Eye,
   Download, Rocket, Share2, Save, FileText, Check, Loader2, Ruler as RulerIcon,
-  Edit, X, Lock, Copy
+  Edit, X, Lock, Copy, Settings
 } from 'lucide-angular';
 import { Variable } from '../../models/variable.model';
 import { TemplateFiller } from "../template-filler/template-filler";
@@ -44,6 +44,14 @@ export class ReportDesigner implements OnInit {
   @Input() margeDroiteMm: number = 10;
 
   @Output() pagesChange = new EventEmitter<DesignPage[]>();
+  @Output() pageSettingsChange = new EventEmitter<{
+    formatPapier?: string;
+    modePagination?: 'FIXED' | 'AUTO';
+    margeHautMm?: number;
+    margeBasMm?: number;
+    margeGaucheMm?: number;
+    margeDroiteMm?: number;
+  }>();
   @Output() publishRequest = new EventEmitter<void>();
   @Output() exportRequest = new EventEmitter<Record<string, any> | undefined>();
   @Output() previewRequest = new EventEmitter<void>();
@@ -63,6 +71,16 @@ export class ReportDesigner implements OnInit {
   paperFormat = 'A4';
   fillingMode = false;
 
+  showPageSettingsModal = false;
+  editingSettings = {
+    formatPapier: 'A4',
+    modePagination: 'FIXED' as 'FIXED' | 'AUTO',
+    margeHautMm: 10,
+    margeBasMm: 10,
+    margeGaucheMm: 10,
+    margeDroiteMm: 10
+  };
+
   lockedMessage: string | null = null;
   private lockedMessageTimer: any;
 
@@ -77,18 +95,12 @@ export class ReportDesigner implements OnInit {
     private mockDataService: MockDataService
   ) {}
 
-  // private paperDimensions: Record<string, { width: number; height: number }> = {
-  //   'A4': { width: 794, height: 1123 },
-  //   'A5': { width: 559, height: 794 },
-  //   'Letter': { width: 816, height: 1056 },
-  //   'Legal': { width: 816, height: 1344 }
-  // };
-
   readonly icons = {
     undo: Undo2, redo: Redo2, grid: Grid3x3, snap: Magnet, guides: Ruler,
     zoomOut: Minus, zoomIn: Plus, preview: Eye, export: Download, publish: Rocket,
     share: Share2, save: Save, file: FileText, check: Check, loader: Loader2,
-    Ruler: RulerIcon, edit: Edit, fileText: FileText, close: X, lock: Lock, copy: Copy
+    Ruler: RulerIcon, edit: Edit, fileText: FileText, close: X, lock: Lock, copy: Copy,
+    settings: Settings
   };
 
   private variableCounters: Record<string, number> = {};
@@ -152,10 +164,55 @@ export class ReportDesigner implements OnInit {
 
   private readonly pxPerMm = 96 / 25.4;
 
-  get margeHautPx(): number { return Math.round(this.margeHautMm * this.pxPerMm); }
-  get margeBasPx(): number { return Math.round(this.margeBasMm * this.pxPerMm); }
-  get margeGauchePx(): number { return Math.round(this.margeGaucheMm * this.pxPerMm); }
-  get margeDroitePx(): number { return Math.round(this.margeDroiteMm * this.pxPerMm); }
+  get effectiveMargeHautMm(): number { return (this.margeHautMm != null && this.margeHautMm > 0) ? this.margeHautMm : 10; }
+  get effectiveMargeBasMm(): number { return (this.margeBasMm != null && this.margeBasMm > 0) ? this.margeBasMm : 10; }
+  get effectiveMargeGaucheMm(): number { return (this.margeGaucheMm != null && this.margeGaucheMm > 0) ? this.margeGaucheMm : 10; }
+  get effectiveMargeDroiteMm(): number { return (this.margeDroiteMm != null && this.margeDroiteMm > 0) ? this.margeDroiteMm : 10; }
+
+  get margeHautPx(): number { return Math.round(this.effectiveMargeHautMm * this.pxPerMm); }
+  get margeBasPx(): number { return Math.round(this.effectiveMargeBasMm * this.pxPerMm); }
+  get margeGauchePx(): number { return Math.round(this.effectiveMargeGaucheMm * this.pxPerMm); }
+  get margeDroitePx(): number { return Math.round(this.effectiveMargeDroiteMm * this.pxPerMm); }
+
+  openPageSettings(): void {
+    this.editingSettings = {
+      formatPapier: this.formatPapier || 'A4',
+      modePagination: this.modePagination || 'FIXED',
+      margeHautMm: this.effectiveMargeHautMm,
+      margeBasMm: this.effectiveMargeBasMm,
+      margeGaucheMm: this.effectiveMargeGaucheMm,
+      margeDroiteMm: this.effectiveMargeDroiteMm,
+    };
+    this.showPageSettingsModal = true;
+  }
+
+  closePageSettings(): void {
+    this.showPageSettingsModal = false;
+  }
+
+  savePageSettings(): void {
+    if (this.isLocked) {
+      this.showLockedMessage();
+      this.closePageSettings();
+      return;
+    }
+    this.formatPapier = this.editingSettings.formatPapier;
+    this.modePagination = this.editingSettings.modePagination;
+    this.margeHautMm = Number(this.editingSettings.margeHautMm) || 10;
+    this.margeBasMm = Number(this.editingSettings.margeBasMm) || 10;
+    this.margeGaucheMm = Number(this.editingSettings.margeGaucheMm) || 10;
+    this.margeDroiteMm = Number(this.editingSettings.margeDroiteMm) || 10;
+
+    this.pageSettingsChange.emit({
+      formatPapier: this.formatPapier,
+      modePagination: this.modePagination,
+      margeHautMm: this.margeHautMm,
+      margeBasMm: this.margeBasMm,
+      margeGaucheMm: this.margeGaucheMm,
+      margeDroiteMm: this.margeDroiteMm,
+    });
+    this.closePageSettings();
+  }
 
   /** Zone utilisable en pixels (hors marges) */
   get usableAreaPx(): { minX: number; minY: number; maxX: number; maxY: number; width: number; height: number } {
@@ -189,9 +246,17 @@ export class ReportDesigner implements OnInit {
     const effectiveW = block.largeurBox || fallback.w;
     const effectiveH = block.hauteurBox || fallback.h;
 
-    // Contraint la position
+    // Contraint la position horizontale
     block.x = Math.max(area.minX, Math.min(block.x || 0, area.maxX - effectiveW));
-    block.y = Math.max(area.minY, Math.min(block.y || 0, area.maxY - effectiveH));
+
+    // Pour les tableaux, on ne contraint que le haut (y >= margeHaut)
+    // car ils peuvent s'étendre sur plusieurs pages.
+    // On ne pousse PAS le bloc vers le haut en fonction de hauteurBox.
+    if (block.type === 'tableau') {
+      block.y = Math.max(area.minY, block.y || 0);
+    } else {
+      block.y = Math.max(area.minY, Math.min(block.y || 0, area.maxY - effectiveH));
+    }
   }
 
   private getPaperDimensions(format: string, largeurMm?: number | null, hauteurMm?: number | null): { width: number; height: number } {

@@ -173,8 +173,12 @@ export class TemplateDetail implements OnInit {
     this.pages = [];
     this.api.getTemplate(templateId).subscribe({
       next: (template) => {
+        template.margeHautMm = (template.margeHautMm != null && template.margeHautMm > 0) ? template.margeHautMm : 10;
+        template.margeBasMm = (template.margeBasMm != null && template.margeBasMm > 0) ? template.margeBasMm : 10;
+        template.margeGaucheMm = (template.margeGaucheMm != null && template.margeGaucheMm > 0) ? template.margeGaucheMm : 10;
+        template.margeDroiteMm = (template.margeDroiteMm != null && template.margeDroiteMm > 0) ? template.margeDroiteMm : 10;
         this.template = template;
-        this.modePagination = template.modePagination || 'FIXED'
+        this.modePagination = template.modePagination || 'FIXED';
         this.loading = false;
         this.loadDesign();
         this.cdr.detectChanges();
@@ -188,26 +192,42 @@ export class TemplateDetail implements OnInit {
     });
   }
 
+  private buildSavePayload(): any {
+    if (!this.template) return null;
+    const contenuDesign = this.serializer.serialize(this.pages);
+    const updateData: any = {
+      nom: this.template.nom,
+      description: this.template.description,
+      contenuDesign: contenuDesign,
+      categorie: (this.template as any).categorie || 'AUTRES',
+      formatPapier: (this.template as any).formatPapier || 'A4',
+      modePagination: this.template.modePagination || 'FIXED',
+      margeHautMm: (this.template.margeHautMm != null && this.template.margeHautMm > 0) ? this.template.margeHautMm : 10,
+      margeBasMm: (this.template.margeBasMm != null && this.template.margeBasMm > 0) ? this.template.margeBasMm : 10,
+      margeGaucheMm: (this.template.margeGaucheMm != null && this.template.margeGaucheMm > 0) ? this.template.margeGaucheMm : 10,
+      margeDroiteMm: (this.template.margeDroiteMm != null && this.template.margeDroiteMm > 0) ? this.template.margeDroiteMm : 10,
+    };
+    if (this.template.formatPapier === 'CUSTOM') {
+      updateData.largeurMm = this.template.largeurMm;
+      updateData.hauteurMm = this.template.hauteurMm;
+    }
+    return updateData;
+  }
+
   publish(): void {
     if (!this.template || this.publishing) return;
-      const contenuDesign = this.serializer.serialize(this.pages);
-      const updateData: any = {
-        nom: this.template.nom,
-        description: this.template.description,
-        contenuDesign: contenuDesign,
-        categorie: (this.template as any).categorie || 'AUTRES',
-        formatPapier: (this.template as any).formatPapier || 'A4',
-        modePagination: this.template.modePagination || 'FIXED',   // ← ajouté
-      };
-      if (this.template.formatPapier === 'CUSTOM') {
-        updateData.largeurMm = this.template.largeurMm;
-        updateData.hauteurMm = this.template.hauteurMm;
-      }
-      this.api.updateTemplate(this.template.id, updateData).subscribe({
+    const updateData = this.buildSavePayload();
+    if (!updateData) return;
+
+    this.api.updateTemplate(this.template.id, updateData).subscribe({
       next: () => {
         this.publishing = true;
         this.api.publishTemplate(this.template!.id).subscribe({
           next: (updated) => {
+            updated.margeHautMm = (updated.margeHautMm != null && updated.margeHautMm > 0) ? updated.margeHautMm : 10;
+            updated.margeBasMm = (updated.margeBasMm != null && updated.margeBasMm > 0) ? updated.margeBasMm : 10;
+            updated.margeGaucheMm = (updated.margeGaucheMm != null && updated.margeGaucheMm > 0) ? updated.margeGaucheMm : 10;
+            updated.margeDroiteMm = (updated.margeDroiteMm != null && updated.margeDroiteMm > 0) ? updated.margeDroiteMm : 10;
             this.template = updated;
             this.publishing = false;
             this.cdr.detectChanges();
@@ -250,25 +270,17 @@ export class TemplateDetail implements OnInit {
       this.savingStatus = 'idle';
       return;
     }
-    const contenuDesign = this.serializer.serialize(this.pages);
-    const updateData: any = {
-      nom: this.template.nom,
-      description: this.template.description,
-      contenuDesign: contenuDesign,
-      categorie: (this.template as any).categorie || 'AUTRES',
-      formatPapier: (this.template as any).formatPapier || 'A4',
-      modePagination: this.template.modePagination || 'FIXED',
-      margeHautMm: this.template.margeHautMm ?? 10,
-      margeBasMm: this.template.margeBasMm ?? 10,
-      margeGaucheMm: this.template.margeGaucheMm ?? 10,
-      margeDroiteMm: this.template.margeDroiteMm ?? 10,
-    };
-    if (this.template.formatPapier === 'CUSTOM') {
-      updateData.largeurMm = this.template.largeurMm;
-      updateData.hauteurMm = this.template.hauteurMm;
+    const updateData = this.buildSavePayload();
+    if (!updateData) {
+      this.savingStatus = 'idle';
+      return;
     }
     this.api.updateTemplate(this.template.id, updateData).subscribe({
       next: (updated) => {
+        updated.margeHautMm = (updated.margeHautMm != null && updated.margeHautMm > 0) ? updated.margeHautMm : 10;
+        updated.margeBasMm = (updated.margeBasMm != null && updated.margeBasMm > 0) ? updated.margeBasMm : 10;
+        updated.margeGaucheMm = (updated.margeGaucheMm != null && updated.margeGaucheMm > 0) ? updated.margeGaucheMm : 10;
+        updated.margeDroiteMm = (updated.margeDroiteMm != null && updated.margeDroiteMm > 0) ? updated.margeDroiteMm : 10;
         this.template = updated;
         this.savingStatus = 'saved';
         this.cdr.detectChanges();
@@ -279,6 +291,31 @@ export class TemplateDetail implements OnInit {
         this.cdr.detectChanges();
       },
     });
+  }
+
+  onPageSettingsChange(settings: {
+    formatPapier?: string;
+    modePagination?: 'FIXED' | 'AUTO';
+    margeHautMm?: number;
+    margeBasMm?: number;
+    margeGaucheMm?: number;
+    margeDroiteMm?: number;
+    largeurMm?: number;
+    hauteurMm?: number;
+  }): void {
+    if (!this.template) return;
+    if (settings.formatPapier) this.template.formatPapier = settings.formatPapier;
+    if (settings.modePagination) {
+      this.template.modePagination = settings.modePagination;
+      this.modePagination = settings.modePagination;
+    }
+    if (settings.margeHautMm !== undefined) this.template.margeHautMm = settings.margeHautMm;
+    if (settings.margeBasMm !== undefined) this.template.margeBasMm = settings.margeBasMm;
+    if (settings.margeGaucheMm !== undefined) this.template.margeGaucheMm = settings.margeGaucheMm;
+    if (settings.margeDroiteMm !== undefined) this.template.margeDroiteMm = settings.margeDroiteMm;
+    if (settings.largeurMm !== undefined) this.template.largeurMm = settings.largeurMm;
+    if (settings.hauteurMm !== undefined) this.template.hauteurMm = settings.hauteurMm;
+    this.triggerSave();
   }
 
   onPagesChange(newPages: DesignPage[]): void {
