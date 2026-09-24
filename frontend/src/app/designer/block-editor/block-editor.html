@@ -704,6 +704,156 @@
       </div>
     </div>
 
+    <!-- ==================== NOUVEAU : Formatage Conditionnel ==================== -->
+    <div class="accordion-item">
+      <button
+        type="button"
+        class="section-toggle"
+        (click)="toggleSection('conditionalStyles')"
+      >
+        <span class="toggle-title">🎨 Formatage conditionnel ({{ conditionalStyles.length }})</span>
+        <lucide-icon
+          [img]="sectionsOpen['conditionalStyles'] ? icons.chevronUp : icons.chevronDown"
+          [size]="14"
+        ></lucide-icon>
+      </button>
+      <div class="section-body" *ngIf="sectionsOpen['conditionalStyles']">
+        <div class="field-hint">
+          Modifiez dynamiquement la couleur, le texte ou ajoutez un badge selon la valeur des données à l'exécution.
+        </div>
+
+        <div class="conditional-rules-list">
+          <div *ngFor="let rule of conditionalStyles; let i = index" class="rule-card">
+            <div class="rule-header">
+              <span class="rule-title">Règle {{ i + 1 }}</span>
+              <button type="button" class="btn-remove-rule" (click)="removeConditionalStyle(i)" title="Supprimer la règle">
+                <lucide-icon [img]="icons.close" [size]="14"></lucide-icon>
+              </button>
+            </div>
+
+            <div class="rule-grid">
+              <div class="field">
+                <label>Si le champ</label>
+                <input
+                  type="text"
+                  [(ngModel)]="rule.champ"
+                  [ngModelOptions]="{standalone: true}"
+                  placeholder="ex: montant, statut"
+                  (ngModelChange)="emitConditionalStylesUpdate()"
+                />
+              </div>
+
+              <div class="field">
+                <label>Opérateur</label>
+                <select
+                  [(ngModel)]="rule.operateur"
+                  [ngModelOptions]="{standalone: true}"
+                  (ngModelChange)="emitConditionalStylesUpdate()"
+                >
+                  <option value="EQUALS">Égal à (=)</option>
+                  <option value="NOT_EQUALS">Différent de (!=)</option>
+                  <option value="GREATER_THAN">Supérieur à (&gt;)</option>
+                  <option value="GREATER_OR_EQUAL">Supérieur ou égal (&ge;)</option>
+                  <option value="LESS_THAN">Inférieur à (&lt;)</option>
+                  <option value="LESS_OR_EQUAL">Inférieur ou égal (&le;)</option>
+                  <option value="CONTAINS">Contient</option>
+                  <option value="STARTS_WITH">Commence par</option>
+                  <option value="IS_EMPTY">Est vide / nul</option>
+                  <option value="IS_NOT_EMPTY">N'est pas vide</option>
+                </select>
+              </div>
+
+              <div class="field" *ngIf="rule.operateur !== 'IS_EMPTY' && rule.operateur !== 'IS_NOT_EMPTY'">
+                <label>Valeur cible</label>
+                <input
+                  type="text"
+                  [(ngModel)]="rule.valeur"
+                  [ngModelOptions]="{standalone: true}"
+                  placeholder="ex: 0, PAYE, Urgent"
+                  (ngModelChange)="emitConditionalStylesUpdate()"
+                />
+              </div>
+            </div>
+
+            <div class="rule-effects-section">
+              <label class="subtle-label">Styles à appliquer :</label>
+              <div class="effects-row">
+                <div class="color-picker-item">
+                  <label>Texte</label>
+                  <input
+                    type="color"
+                    [(ngModel)]="rule.effet.color"
+                    [ngModelOptions]="{standalone: true}"
+                    (ngModelChange)="emitConditionalStylesUpdate()"
+                  />
+                </div>
+                <div class="color-picker-item">
+                  <label>Fond</label>
+                  <input
+                    type="color"
+                    [(ngModel)]="rule.effet.backgroundColor"
+                    [ngModelOptions]="{standalone: true}"
+                    (ngModelChange)="emitConditionalStylesUpdate()"
+                  />
+                </div>
+                <label class="checkbox-label">
+                  <input
+                    type="checkbox"
+                    [(ngModel)]="rule.effet.bold"
+                    [ngModelOptions]="{standalone: true}"
+                    (ngModelChange)="emitConditionalStylesUpdate()"
+                  />
+                  Gras
+                </label>
+                <label class="checkbox-label">
+                  <input
+                    type="checkbox"
+                    [(ngModel)]="rule.effet.italic"
+                    [ngModelOptions]="{standalone: true}"
+                    (ngModelChange)="emitConditionalStylesUpdate()"
+                  />
+                  Italique
+                </label>
+                <label class="checkbox-label">
+                  <input
+                    type="checkbox"
+                    [(ngModel)]="rule.effet.underline"
+                    [ngModelOptions]="{standalone: true}"
+                    (ngModelChange)="emitConditionalStylesUpdate()"
+                  />
+                  Souligné
+                </label>
+              </div>
+
+              <div class="field badge-select-field">
+                <label>Afficher sous forme de badge</label>
+                <select
+                  [(ngModel)]="rule.effet.badgeStyle"
+                  [ngModelOptions]="{standalone: true}"
+                  (ngModelChange)="emitConditionalStylesUpdate()"
+                >
+                  <option value="NONE">Aucun badge</option>
+                  <option value="SUCCESS">Badge Vert (Succès / Payé)</option>
+                  <option value="WARNING">Badge Orange (Attention / En attente)</option>
+                  <option value="DANGER">Badge Rouge (Danger / Retard / Rejet)</option>
+                  <option value="INFO">Badge Bleu (Information)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div *ngIf="conditionalStyles.length === 0" class="no-rules-msg">
+            Aucune règle de formatage conditionnel définie.
+          </div>
+
+          <button type="button" class="btn-add-rule" (click)="addConditionalStyle()">
+            <lucide-icon [img]="icons.add" [size]="14"></lucide-icon>
+            Ajouter une règle conditionnelle
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div class="validation-errors" *ngIf="validationMessages.length">
       <div class="validation-title">Impossible d’enregistrer :</div>
       <ul>

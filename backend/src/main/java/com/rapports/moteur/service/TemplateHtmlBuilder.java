@@ -812,11 +812,24 @@ public class TemplateHtmlBuilder {
 
     private String renderBloc(JsonNode bloc, Map<String, Object> data) {
         String type = bloc.path("type").asText();
+        StyleEffect condEffect = resolveConditionalStyles(bloc.path("conditionalStyles"), data, null);
+        String condCss = condEffect != null ? condEffect.toInlineCss() : "";
+
         switch (type) {
-            case "titre":
-                return "<h1 style='" + buildStyle(bloc) + "'>" + replaceVars(bloc.path("contenu").asText(""), data) + "</h1>";
-            case "texte":
-                return "<p style='" + buildStyle(bloc) + "'>" + replaceVars(bloc.path("contenu").asText(""), data) + "</p>";
+            case "titre": {
+                String content = replaceVars(bloc.path("contenu").asText(""), data);
+                if (condEffect != null && condEffect.badgeStyle != null && !"NONE".equalsIgnoreCase(condEffect.badgeStyle)) {
+                    content = wrapWithBadge(content, condEffect.badgeStyle);
+                }
+                return "<h1 style='" + buildStyle(bloc) + condCss + "'>" + content + "</h1>";
+            }
+            case "texte": {
+                String content = replaceVars(bloc.path("contenu").asText(""), data);
+                if (condEffect != null && condEffect.badgeStyle != null && !"NONE".equalsIgnoreCase(condEffect.badgeStyle)) {
+                    content = wrapWithBadge(content, condEffect.badgeStyle);
+                }
+                return "<p style='" + buildStyle(bloc) + condCss + "'>" + content + "</p>";
+            }
             case "tableau":
                 if (bloc.has("lignes")) {
                     return renderStaticTable(bloc, data);
@@ -986,7 +999,14 @@ public class TemplateHtmlBuilder {
 
                     // 2. Lignes de données du groupe
                     for (Map<String, Object> rowMap : groupRows) {
-                        table.append("<tr>");
+                        Map<String, Object> mergedContext = new java.util.HashMap<>(data);
+                        mergedContext.putAll(rowMap);
+
+                        StyleEffect rowEffect = resolveConditionalStyles(bloc.path("conditionalStyles"), mergedContext, null);
+                        String rowStyle = (rowEffect != null && rowEffect.backgroundColor != null)
+                            ? "background-color:" + rowEffect.backgroundColor + ";" : "";
+
+                        table.append("<tr style='").append(rowStyle).append("'>");
                         for (JsonNode col : bloc.path("colonnes")) {
                             String varName = col.path("variable").asText();
                             String formule = col.path("formule").asText("");
@@ -997,8 +1017,19 @@ public class TemplateHtmlBuilder {
                                 cellValue = rowMap.get(varName);
                             }
                             String cellValueStr = cellValue != null ? String.valueOf(cellValue) : "";
-                            table.append("<td style='").append(cellStyle).append("'>")
-                                .append(escape(cellValueStr)).append("</td>");
+
+                            StyleEffect cellEffect = resolveConditionalStyles(col.path("conditionalStyles"), mergedContext, varName);
+                            String customCellCss = cellStyle;
+                            if (cellEffect != null) {
+                                customCellCss += cellEffect.toInlineCss();
+                            }
+                            String renderedContent = escape(cellValueStr);
+                            if (cellEffect != null && cellEffect.badgeStyle != null && !"NONE".equalsIgnoreCase(cellEffect.badgeStyle)) {
+                                renderedContent = wrapWithBadge(renderedContent, cellEffect.badgeStyle);
+                            }
+
+                            table.append("<td style='").append(customCellCss).append("'>")
+                                .append(renderedContent).append("</td>");
                         }
                         table.append("</tr>");
                     }
@@ -1059,7 +1090,14 @@ public class TemplateHtmlBuilder {
             } else {
                 // Rendu standard à plat (sans regroupement)
                 for (Map<String, Object> rowMap : fragmentRows) {
-                    table.append("<tr>");
+                    Map<String, Object> mergedContext = new java.util.HashMap<>(data);
+                    mergedContext.putAll(rowMap);
+
+                    StyleEffect rowEffect = resolveConditionalStyles(bloc.path("conditionalStyles"), mergedContext, null);
+                    String rowStyle = (rowEffect != null && rowEffect.backgroundColor != null)
+                        ? "background-color:" + rowEffect.backgroundColor + ";" : "";
+
+                    table.append("<tr style='").append(rowStyle).append("'>");
                     for (JsonNode col : bloc.path("colonnes")) {
                         String varName = col.path("variable").asText();
                         String formule = col.path("formule").asText("");
@@ -1070,8 +1108,19 @@ public class TemplateHtmlBuilder {
                             cellValue = rowMap.get(varName);
                         }
                         String cellValueStr = cellValue != null ? String.valueOf(cellValue) : "";
-                        table.append("<td style='").append(cellStyle).append("'>")
-                            .append(escape(cellValueStr)).append("</td>");
+
+                        StyleEffect cellEffect = resolveConditionalStyles(col.path("conditionalStyles"), mergedContext, varName);
+                        String customCellCss = cellStyle;
+                        if (cellEffect != null) {
+                            customCellCss += cellEffect.toInlineCss();
+                        }
+                        String renderedContent = escape(cellValueStr);
+                        if (cellEffect != null && cellEffect.badgeStyle != null && !"NONE".equalsIgnoreCase(cellEffect.badgeStyle)) {
+                            renderedContent = wrapWithBadge(renderedContent, cellEffect.badgeStyle);
+                        }
+
+                        table.append("<td style='").append(customCellCss).append("'>")
+                            .append(renderedContent).append("</td>");
                     }
                     table.append("</tr>");
                 }
@@ -1516,6 +1565,148 @@ public class TemplateHtmlBuilder {
                 + "<tr><td style='vertical-align:middle;text-align:center;color:#999;"
                 + "font-size:11px;font-family:Arial,sans-serif;padding:4px;'>"
                 + escape(label) + "</td></tr></table>";
+    }
+
+    // ============================================================
+    // FORMATAGE CONDITIONNEL (CONDITIONAL STYLING)
+    // ============================================================
+
+    private static class StyleEffect {
+        String color;
+        String backgroundColor;
+        Boolean bold;
+        Boolean italic;
+        Boolean underline;
+        String badgeStyle;
+
+        String toInlineCss() {
+            StringBuilder sb = new StringBuilder();
+            if (color != null && !color.isBlank()) sb.append("color:").append(color).append(";");
+            if (backgroundColor != null && !backgroundColor.isBlank()) sb.append("background-color:").append(backgroundColor).append(";");
+            if (Boolean.TRUE.equals(bold)) sb.append("font-weight:bold;");
+            if (Boolean.TRUE.equals(italic)) sb.append("font-style:italic;");
+            if (Boolean.TRUE.equals(underline)) sb.append("text-decoration:underline;");
+            return sb.toString();
+        }
+    }
+
+    private StyleEffect resolveConditionalStyles(JsonNode conditionalStylesNode, Map<String, Object> contextData, String defaultField) {
+        if (conditionalStylesNode == null || !conditionalStylesNode.isArray() || conditionalStylesNode.isEmpty()) {
+            return null;
+        }
+        StyleEffect merged = new StyleEffect();
+        boolean matchedAny = false;
+
+        for (JsonNode rule : conditionalStylesNode) {
+            if (evaluateConditionalRule(rule, contextData, defaultField)) {
+                matchedAny = true;
+                JsonNode effect = rule.path("effect");
+                if (effect.hasNonNull("color") && !effect.path("color").asText("").isBlank()) {
+                    merged.color = effect.path("color").asText();
+                }
+                if (effect.hasNonNull("backgroundColor") && !effect.path("backgroundColor").asText("").isBlank()) {
+                    merged.backgroundColor = effect.path("backgroundColor").asText();
+                }
+                if (effect.hasNonNull("bold")) {
+                    merged.bold = effect.path("bold").asBoolean();
+                }
+                if (effect.hasNonNull("italic")) {
+                    merged.italic = effect.path("italic").asBoolean();
+                }
+                if (effect.hasNonNull("underline")) {
+                    merged.underline = effect.path("underline").asBoolean();
+                }
+                if (effect.hasNonNull("badgeStyle") && !effect.path("badgeStyle").asText("").isBlank()) {
+                    merged.badgeStyle = effect.path("badgeStyle").asText();
+                }
+            }
+        }
+        return matchedAny ? merged : null;
+    }
+
+    private boolean evaluateConditionalRule(JsonNode rule, Map<String, Object> data, String defaultField) {
+        String field = rule.path("field").asText("").trim();
+        if (field.isEmpty() && defaultField != null) {
+            field = defaultField;
+        }
+        if (field.isEmpty()) {
+            return false;
+        }
+
+        String operator = rule.path("operator").asText("EQUALS").toUpperCase(java.util.Locale.ROOT);
+        String targetValStr = rule.path("value").asText("");
+
+        Object actualObj = data.get(field);
+        if (actualObj == null && (field.contains(".") || field.contains("("))) {
+            try {
+                actualObj = expressionEvaluator.evaluate(field, data);
+            } catch (Exception ignored) {}
+        }
+
+        if ("IS_EMPTY".equals(operator)) {
+            return actualObj == null || actualObj.toString().trim().isEmpty();
+        }
+        if ("NOT_EMPTY".equals(operator)) {
+            return actualObj != null && !actualObj.toString().trim().isEmpty();
+        }
+
+        if (actualObj == null) {
+            return false;
+        }
+
+        Double actualNum = tryParseDouble(actualObj);
+        Double targetNum = tryParseDouble(targetValStr);
+
+        if (actualNum != null && targetNum != null) {
+            return switch (operator) {
+                case "EQUALS" -> Double.compare(actualNum, targetNum) == 0;
+                case "NOT_EQUALS" -> Double.compare(actualNum, targetNum) != 0;
+                case "GREATER_THAN" -> actualNum > targetNum;
+                case "GREATER_OR_EQUAL" -> actualNum >= targetNum;
+                case "LESS_THAN" -> actualNum < targetNum;
+                case "LESS_OR_EQUAL" -> actualNum <= targetNum;
+                default -> false;
+            };
+        }
+
+        String actualStr = actualObj.toString();
+        return switch (operator) {
+            case "EQUALS" -> actualStr.equalsIgnoreCase(targetValStr);
+            case "NOT_EQUALS" -> !actualStr.equalsIgnoreCase(targetValStr);
+            case "CONTAINS" -> actualStr.toLowerCase().contains(targetValStr.toLowerCase());
+            default -> false;
+        };
+    }
+
+    private Double tryParseDouble(Object obj) {
+        if (obj == null) return null;
+        if (obj instanceof Number num) return num.doubleValue();
+        try {
+            String s = obj.toString().replace(",", ".").replace(" ", "").trim();
+            return Double.parseDouble(s);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private String getBadgeInlineStyle(String badgeStyle) {
+        if (badgeStyle == null) return "";
+        return switch (badgeStyle.toUpperCase(java.util.Locale.ROOT)) {
+            case "SUCCESS" -> "background-color:#dcfce7;color:#15803d;font-weight:600;border:1px solid #86efac;";
+            case "WARNING" -> "background-color:#fef3c7;color:#b45309;font-weight:600;border:1px solid #fde68a;";
+            case "DANGER" -> "background-color:#fee2e2;color:#b91c1c;font-weight:600;border:1px solid #fca5a5;";
+            case "INFO" -> "background-color:#dbeafe;color:#1d4ed8;font-weight:600;border:1px solid #93c5fd;";
+            default -> "";
+        };
+    }
+
+    private String wrapWithBadge(String content, String badgeStyle) {
+        if (badgeStyle == null || "NONE".equalsIgnoreCase(badgeStyle)) {
+            return content;
+        }
+        return "<span class=\"badge badge-" + badgeStyle.toLowerCase(java.util.Locale.ROOT)
+            + "\" style=\"display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.85em;"
+            + getBadgeInlineStyle(badgeStyle) + "\">" + content + "</span>";
     }
 
     private String buildStyle(JsonNode bloc) {

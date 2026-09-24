@@ -118,21 +118,22 @@ class ReportTemplateIntegrationTest extends BaseIntegrationTest {
             String newVersionBody = mockMvc.perform(post("/api/templates/" + template.getId() + "/new-version")
                             .header("Authorization", token))
                     .andExpect(status().isCreated())
-                    .andExpect(jsonPath("$.version").value(2))
+                    .andExpect(jsonPath("$.version").value(3))
                     .andExpect(jsonPath("$.statut").value("BROUILLON"))
                     .andExpect(jsonPath("$.parentTemplateId").value(template.getId().toString()))
                     .andReturn().getResponse().getContentAsString();
 
             UUID newVersionId = UUID.fromString(objectMapper.readTree(newVersionBody).get("id").asText());
             ReportTemplate v2 = templateRepository.findById(newVersionId).orElseThrow();
-            assertThat(v2.getVersion()).isEqualTo(2);
+            assertThat(v2.getVersion()).isEqualTo(3);
             assertThat(v2.getParentTemplate().getId()).isEqualTo(template.getId());
 
             // 4. Arbre des versions
             mockMvc.perform(get("/api/templates/" + template.getId() + "/versions")
                             .header("Authorization", token))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.chronologie", hasSize(2)));
+                    .andExpect(jsonPath("$.totalVersions").value(2))
+                    .andExpect(jsonPath("$.flatHistory", hasSize(2)));
         }
 
         @Test
@@ -265,7 +266,7 @@ class ReportTemplateIntegrationTest extends BaseIntegrationTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(varReq)))
                     .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.message", containsString("statut BROUILLON")));
+                    .andExpect(jsonPath("$.message", containsString("Impossible d'ajouter des variables")));
         }
     }
 

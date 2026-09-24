@@ -122,6 +122,146 @@ public class TemplateHtmlBuilderTest {
         byte[] pdfBytes = out.toByteArray();
         org.junit.jupiter.api.Assertions.assertTrue(pdfBytes.length > 1000, "Le PDF généré par Flying Saucer doit être non vide");
     }
+
+    @Test
+    void testConditionalStylingAndBadges() throws Exception {
+        TemplateHtmlBuilder builder = new TemplateHtmlBuilder(new CodeGeneratorService());
+
+        String designJson = """
+            {
+              "pages": [
+                {
+                  "nom": "Page 1",
+                  "blocs": [
+                    {
+                      "id": "b-texte-1",
+                      "type": "texte",
+                      "contenu": "Solde: {{montant_solde}}",
+                      "x": 10,
+                      "y": 10,
+                      "largeurBox": 150,
+                      "hauteurBox": 30,
+                      "conditionalStyles": [
+                        {
+                          "id": "r1",
+                          "field": "montant_solde",
+                          "operator": "GREATER_THAN",
+                          "value": "0",
+                          "effect": {
+                            "color": "#ef4444",
+                            "bold": true
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "id": "b-texte-2",
+                      "type": "texte",
+                      "contenu": "{{statut}}",
+                      "x": 10,
+                      "y": 45,
+                      "largeurBox": 100,
+                      "hauteurBox": 30,
+                      "conditionalStyles": [
+                        {
+                          "id": "r2",
+                          "field": "statut",
+                          "operator": "EQUALS",
+                          "value": "PAYE",
+                          "effect": {
+                            "badgeStyle": "SUCCESS"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "id": "b-table",
+                      "type": "tableau",
+                      "source": "{{factures}}",
+                      "x": 10,
+                      "y": 80,
+                      "largeurBox": 180,
+                      "hauteurBox": 100,
+                      "colonnes": [
+                        { "variable": "ref", "titre": "Référence" },
+                        {
+                          "variable": "statut",
+                          "titre": "Statut",
+                          "conditionalStyles": [
+                            {
+                              "id": "col-r1",
+                              "field": "statut",
+                              "operator": "EQUALS",
+                              "value": "PAYE",
+                              "effect": {
+                                "badgeStyle": "SUCCESS"
+                              }
+                            }
+                          ]
+                        },
+                        { "variable": "montant", "titre": "Montant" }
+                      ],
+                      "conditionalStyles": [
+                        {
+                          "id": "row-r1",
+                          "field": "montant",
+                          "operator": "GREATER_THAN",
+                          "value": "100",
+                          "effect": {
+                            "backgroundColor": "#fef08a"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            """;
+
+        com.rapports.moteur.entity.ReportTemplate template = com.rapports.moteur.entity.ReportTemplate.builder()
+                .nom("Rapport avec Styles Conditionnels")
+                .contenuDesign(designJson)
+                .formatPapier("A4")
+                .statut(com.rapports.moteur.entity.TemplateStatus.BROUILLON)
+                .version(1)
+                .build();
+
+        java.util.Map<String, Object> data = java.util.Map.of(
+            "montant_solde", 150.50,
+            "statut", "PAYE",
+            "factures", java.util.List.of(
+                java.util.Map.of("ref", "FAC-001", "statut", "PAYE", "montant", 150),
+                java.util.Map.of("ref", "FAC-002", "statut", "EN_ATTENTE", "montant", 50)
+            )
+        );
+
+        String html = builder.build(template, data);
+
+        // Vérification du texte conditionnel
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("color:#ef4444"));
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("font-weight:bold"));
+
+        // Vérification du badge texte
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("badge-success"));
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("background-color:#dcfce7"));
+
+        // Vérification de la ligne conditionnelle du tableau (montant > 100 => #fef08a)
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("background-color:#fef08a"));
+
+        // Vérification que le badge de colonne de tableau est rendu
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("badge badge-success"));
+
+        // Validation Flying Saucer (rendu PDF)
+        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+        ITextRenderer renderer = new ITextRenderer();
+        renderer.setDocumentFromString(html);
+        renderer.layout();
+        renderer.createPDF(out);
+
+        byte[] pdfBytes = out.toByteArray();
+        org.junit.jupiter.api.Assertions.assertTrue(pdfBytes.length > 1000, "Le PDF généré avec styles conditionnels doit être valide");
+    }
 }
 
 

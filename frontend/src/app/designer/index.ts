@@ -13,4 +13,5 @@ export * from './services/designer-clipboard.service';
 export * from './services/designer-selection.service';
 export * from './services/designer-geometry.service';
 export * from './services/designer-history.service';
+export * from './services/condition-evaluator.service';
 

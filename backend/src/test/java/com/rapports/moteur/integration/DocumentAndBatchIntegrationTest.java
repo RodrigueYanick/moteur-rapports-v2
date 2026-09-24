@@ -248,6 +248,7 @@ class DocumentAndBatchIntegrationTest extends BaseIntegrationTest {
         void shouldReturn404WhenCreatingDocumentOnUnknownTemplate() throws Exception {
             DocumentCreate doc = new DocumentCreate();
             doc.setNom("Doc Test");
+            doc.setDonnees(Map.of());
 
             mockMvc.perform(post("/api/templates/" + UUID.randomUUID() + "/documents")
                             .header("Authorization", token)

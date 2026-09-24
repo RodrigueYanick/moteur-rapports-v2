@@ -9,7 +9,7 @@ import {
   FormsModule,
   FormControl,
 } from '@angular/forms';
-import { DesignBlock, TableCell, BLOCK_DEFAULT_DIMENSIONS } from '../models/design-block.model';
+import { DesignBlock, TableCell, BLOCK_DEFAULT_DIMENSIONS, ConditionalStyleRule } from '../models/design-block.model';
 import { debounceTime, Subject } from 'rxjs';
 import { Variable } from '../../models/variable.model'; // NOUVEAU
 import {
@@ -113,7 +113,10 @@ export class BlockEditor implements OnChanges, DoCheck {
     grouping: true,
     graphique: true,
     condition: false,
+    conditionalStyles: false,
   };
+
+  conditionalStyles: ConditionalStyleRule[] = [];
 
   fontFamilies = ['Inter', 'Arial', 'Georgia', 'Times New Roman', 'Courier New', 'Roboto'];
 
@@ -321,6 +324,9 @@ export class BlockEditor implements OnChanges, DoCheck {
     this.refreshAvailableVariables();
 
     if (changes['block'] && this.block) {
+      this.conditionalStyles = this.block.conditionalStyles
+        ? JSON.parse(JSON.stringify(this.block.conditionalStyles))
+        : [];
       const fallback = BLOCK_DEFAULT_DIMENSIONS[this.block.type];
       this.form.patchValue(
         {
@@ -602,6 +608,7 @@ export class BlockEditor implements OnChanges, DoCheck {
       ...this.block,
       nom: val.nom,
       condition: val.condition || undefined,
+      conditionalStyles: this.conditionalStyles.length > 0 ? this.conditionalStyles : undefined,
       x: clampedX,
       y: clampedY,
       largeurBox: clampedLargeur,
@@ -711,6 +718,40 @@ export class BlockEditor implements OnChanges, DoCheck {
   get canAddVariable(): boolean {
     const name = this.newVariableName.trim();
     return name.length > 0 && /^[a-zA-Z0-9_]+$/.test(name);
+  }
+
+  // ==================== Formatage Conditionnel ====================
+  addConditionalStyle(): void {
+    if (!this.conditionalStyles) this.conditionalStyles = [];
+    this.conditionalStyles.push({
+      id: `rule-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      champ: '',
+      operateur: 'EQUALS',
+      valeur: '',
+      effet: {
+        color: '#ef4444',
+        backgroundColor: '',
+        bold: false,
+        italic: false,
+        underline: false,
+        badgeStyle: 'NONE',
+      },
+    });
+    this.emitConditionalStylesUpdate();
+  }
+
+  removeConditionalStyle(index: number): void {
+    this.conditionalStyles.splice(index, 1);
+    this.emitConditionalStylesUpdate();
+  }
+
+  emitConditionalStylesUpdate(): void {
+    if (!this.block) return;
+    this.block.conditionalStyles = this.conditionalStyles.length > 0 ? [...this.conditionalStyles] : undefined;
+    this.updated.emit({
+      ...this.block,
+      conditionalStyles: this.block.conditionalStyles,
+    });
   }
 
   // ==================== Fusion ====================

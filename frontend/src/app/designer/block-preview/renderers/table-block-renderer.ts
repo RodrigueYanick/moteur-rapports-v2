@@ -1,7 +1,25 @@
 import { DesignBlock } from '../../models/design-block.model';
 import { BlockHtmlRenderer, RenderContext } from './block-html-renderer.interface';
+import { ConditionEvaluatorService } from '../../services/condition-evaluator.service';
+
+function getBadgeInlineStyle(badgeStyle: string): string {
+  switch (badgeStyle) {
+    case 'SUCCESS':
+      return 'background-color:#dcfce7;color:#15803d;font-weight:600;border:1px solid #86efac;';
+    case 'WARNING':
+      return 'background-color:#fef3c7;color:#b45309;font-weight:600;border:1px solid #fde68a;';
+    case 'DANGER':
+      return 'background-color:#fee2e2;color:#b91c1c;font-weight:600;border:1px solid #fca5a5;';
+    case 'INFO':
+      return 'background-color:#dbeafe;color:#1d4ed8;font-weight:600;border:1px solid #93c5fd;';
+    default:
+      return '';
+  }
+}
 
 export class TableBlockRenderer implements BlockHtmlRenderer {
+  private evaluator = new ConditionEvaluatorService();
+
   supports(type: string): boolean {
     return type === 'tableau';
   }
@@ -69,14 +87,33 @@ export class TableBlockRenderer implements BlockHtmlRenderer {
     const endRow = slice ? slice.endRow : allRows.length;
     const visibleRows = allRows.slice(startRow, endRow);
     for (const row of visibleRows) {
-      table += '<tr>';
+      const rowData = { ...context.mockData, ...row };
+      const rowEffect = this.evaluator.resolveStyles(block.conditionalStyles, rowData);
+      const rowBg = rowEffect?.backgroundColor ? `background-color:${rowEffect.backgroundColor};` : '';
+
+      table += `<tr style="${rowBg}">`;
       for (const col of block.colonnes || []) {
-        const val = row[col.variable];
-        table += `<td style="${cellStyle}">${context.escape(String(val))}</td>`;
+        const val = row[col.variable] ?? '';
+        const cellEffect = this.evaluator.resolveStyles(col.conditionalStyles, rowData);
+
+        let cellCss = cellStyle;
+        if (cellEffect?.color) cellCss += `color:${cellEffect.color};`;
+        if (cellEffect?.backgroundColor) cellCss += `background-color:${cellEffect.backgroundColor};`;
+        if (cellEffect?.bold) cellCss += `font-weight:bold;`;
+        if (cellEffect?.italic) cellCss += `font-style:italic;`;
+        if (cellEffect?.underline) cellCss += `text-decoration:underline;`;
+
+        let cellContent = context.escape(String(val));
+        if (cellEffect?.badgeStyle && cellEffect.badgeStyle !== 'NONE') {
+          cellContent = `<span class="badge badge-${cellEffect.badgeStyle.toLowerCase()}" style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.85em;${getBadgeInlineStyle(cellEffect.badgeStyle)}">${cellContent}</span>`;
+        }
+
+        table += `<td style="${cellCss}">${cellContent}</td>`;
       }
       table += '</tr>';
     }
     return table + '</table>';
   }
 }
+
 

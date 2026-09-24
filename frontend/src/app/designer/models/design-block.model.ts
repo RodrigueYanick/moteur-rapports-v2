@@ -7,11 +7,41 @@ export interface TableCell {
   hidden?: boolean;   // true si la cellule est absorbée par une fusion
 }
 
+export type ConditionOperator =
+  | 'EQUALS'
+  | 'NOT_EQUALS'
+  | 'GREATER_THAN'
+  | 'GREATER_OR_EQUAL'
+  | 'LESS_THAN'
+  | 'LESS_OR_EQUAL'
+  | 'CONTAINS'
+  | 'STARTS_WITH'
+  | 'IS_EMPTY'
+  | 'IS_NOT_EMPTY';
+
+export interface ConditionalStyleEffect {
+  color?: string;
+  backgroundColor?: string;
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+  badgeStyle?: 'NONE' | 'SUCCESS' | 'WARNING' | 'DANGER' | 'INFO';
+}
+
+export interface ConditionalStyleRule {
+  id: string;
+  champ: string;                // Nom de la variable ou colonne (ex: "solde", "statut")
+  operateur: ConditionOperator;   // Opérateur de comparaison
+  valeur: any;                  // Valeur cible de comparaison
+  effet: ConditionalStyleEffect; // Styles à appliquer si la condition est remplie
+}
+
 export interface TableColumn {
   titre: string;
   variable: string;
   formule?: string;
   agregat?: 'NONE' | 'SUM' | 'AVG' | 'COUNT' | 'MIN' | 'MAX';
+  conditionalStyles?: ConditionalStyleRule[];
 }
 
 export interface DesignBlock {
@@ -74,6 +104,7 @@ export interface DesignBlock {
     format?: string;
     valeurDefaut?: string;
   };
+  conditionalStyles?: ConditionalStyleRule[];
 }
 
 export const BLOCK_DEFAULT_DIMENSIONS: Record<DesignBlock['type'], { w: number; h: number }> = {
