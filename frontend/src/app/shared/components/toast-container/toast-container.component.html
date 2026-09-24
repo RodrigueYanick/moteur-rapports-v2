@@ -1,0 +1,55 @@
+<div class="toast-viewport" aria-live="polite" aria-atomic="true">
+  <div
+    *ngFor="let toast of toastService.toasts$ | async; trackBy: trackByToastId"
+    class="toast-card toast-item"
+    [ngClass]="toast.type"
+    role="status">
+
+    <!-- Icône selon le type -->
+    <div class="toast-icon-box">
+      <lucide-icon
+        *ngIf="toast.type === 'success'"
+        [img]="icons.check"
+        [size]="18"
+        class="toast-icon"></lucide-icon>
+      <lucide-icon
+        *ngIf="toast.type === 'error'"
+        [img]="icons.error"
+        [size]="18"
+        class="toast-icon"></lucide-icon>
+      <lucide-icon
+        *ngIf="toast.type === 'info'"
+        [img]="icons.info"
+        [size]="18"
+        class="toast-icon"></lucide-icon>
+      <lucide-icon
+        *ngIf="toast.type === 'warning'"
+        [img]="icons.warning"
+        [size]="18"
+        class="toast-icon"></lucide-icon>
+    </div>
+
+    <!-- Contenu texte -->
+    <div class="toast-content">
+      <div class="toast-title" *ngIf="toast.title">{{ toast.title }}</div>
+      <div class="toast-message">{{ toast.message }}</div>
+    </div>
+
+    <!-- Bouton fermeture -->
+    <button
+      type="button"
+      class="toast-close-btn"
+      (click)="toastService.remove(toast.id)"
+      title="Fermer la notification">
+      <lucide-icon [img]="icons.close" [size]="14"></lucide-icon>
+    </button>
+
+    <!-- Barre de décompte animée si durée définie -->
+    <div
+      *ngIf="toast.duration > 0"
+      class="toast-progress-bar"
+      [style.animation-duration]="toast.duration + 'ms'">
+    </div>
+  </div>
+</div>
+

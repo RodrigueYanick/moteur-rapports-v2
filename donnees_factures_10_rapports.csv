@@ -1,0 +1,11 @@
+﻿Numero Facture,Date Facture,Date Echeance,Client,Adresse Client,Email Client,Total HT,Taux TVA,Montant TVA,Total TTC,Conditions
+FAC-2026-001,2026-09-15,2026-10-15,TechSolutions SAS,"12 Avenue des Champs, 75008 Paris",compta@techsolutions.fr,2450,20,490,2940,Virement à 30 jours net
+FAC-2026-002,2026-09-16,2026-10-16,Clinique Horizon Santé,"45 Rue de la Paix, 69002 Lyon",direction@horizon-sante.fr,4800,20,960,5760,Paiement à réception
+FAC-2026-003,2026-09-17,2026-10-17,Cabinet Juridique Lexis,"8 Boulevard Haussmann, 75009 Paris",finance@lexis-avocats.com,1650.5,20,330.1,1980.6,Virement sous 30 jours
+FAC-2026-004,2026-09-18,2026-10-18,Nexus Logistique SARL,"Zone Portuaire Nord, 13002 Marseille",facturation@nexus-log.fr,3120,20,624,3744,Prélèvement automatique le 18/10
+FAC-2026-005,2026-09-19,2026-10-19,GreenPulse Énergie,"18 Rue de l’Écologie, 44000 Nantes",compta@greenpulse.io,5400,20,1080,6480,Paiement à 45 jours fin de mois
+FAC-2026-006,2026-09-20,2026-10-20,Groupe Hôtelier Miramar,"3 Promenade des Anglais, 06000 Nice",achats@hotel-miramar.fr,7200,20,1440,8640,Virement à 30 jours
+FAC-2026-007,2026-09-21,2026-10-21,Atelier Design & Co,"24 Rue des Artisans, 33000 Bordeaux",contact@atelierdesign.com,890,20,178,1068,Paiement comptant
+FAC-2026-008,2026-09-21,2026-10-21,BTP Rénov Ouest,"5 Rue du Commerce, 35000 Rennes",gestion@btp-renov.bzh,6350,20,1270,7620,"Acompte versé, solde à 30 jours"
+FAC-2026-009,2026-09-22,2026-10-22,BioSaveur Distribution,"14 Route Nationale, 31000 Toulouse",commandes@biosaveur.fr,1980,20,396,2376,Paiement à 30 jours net
+FAC-2026-010,2026-09-22,2026-10-22,Nova Conseil & Stratégie,"9 Place Royale, 67000 Strasbourg",direction@nova-conseil.eu,3750,20,750,4500,Virement sous 15 jours

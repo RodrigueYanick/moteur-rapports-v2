@@ -1,0 +1,63 @@
+<div class="onboarding-overlay" *ngIf="active" (click)="onboardingService.skip()">
+  <!-- Découpe lumineuse / Spotlight -->
+  <div class="spotlight-cutout" [ngStyle]="spotlightStyle"></div>
+
+  <!-- Infobulle interactive d'étape -->
+  <div class="tour-popover" [ngStyle]="tooltipStyle" (click)="$event.stopPropagation()">
+    <!-- En-tête -->
+    <div class="popover-header">
+      <div class="header-tag">
+        <lucide-icon [img]="icons.compass" [size]="14" class="compass-icon"></lucide-icon>
+        <span>Visite Guidée · Étape {{ currentStepIndex + 1 }}/{{ onboardingService.totalSteps }}</span>
+      </div>
+      <button type="button" class="btn-skip-close" (click)="onboardingService.skip()" title="Quitter la visite">
+        <lucide-icon [img]="icons.close" [size]="14"></lucide-icon>
+      </button>
+    </div>
+
+    <!-- Corps du message -->
+    <div class="popover-body">
+      <h3 class="step-title">{{ step.title }}</h3>
+      <p class="step-desc">{{ step.description }}</p>
+    </div>
+
+    <!-- Puces d'étapes (Dots) -->
+    <div class="step-dots">
+      <span
+        *ngFor="let s of onboardingService.steps; let idx = index"
+        class="dot"
+        [class.active]="idx === currentStepIndex"
+        [class.passed]="idx < currentStepIndex">
+      </span>
+    </div>
+
+    <!-- Pied d'actions -->
+    <div class="popover-footer">
+      <button
+        type="button"
+        class="btn-nav secondary"
+        *ngIf="currentStepIndex > 0"
+        (click)="onboardingService.prev()">
+        <lucide-icon [img]="icons.arrowLeft" [size]="13"></lucide-icon>
+        Précédent
+      </button>
+
+      <button
+        type="button"
+        class="btn-nav text"
+        *ngIf="currentStepIndex === 0"
+        (click)="onboardingService.skip()">
+        Passer la visite
+      </button>
+
+      <button
+        type="button"
+        class="btn-nav primary"
+        (click)="onboardingService.next()">
+        <span>{{ isLastStep ? 'Terminer' : 'Suivant' }}</span>
+        <lucide-icon [img]="isLastStep ? icons.check : icons.arrowRight" [size]="14"></lucide-icon>
+      </button>
+    </div>
+  </div>
+</div>
+

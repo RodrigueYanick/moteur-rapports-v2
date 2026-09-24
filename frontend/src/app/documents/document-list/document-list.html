@@ -1,19 +1,30 @@
 <div class="document-list-container">
 
   <!-- ===== Barre d'outils (même style que la bibliothèque) ===== -->
+  <!-- ===== Barre d'outils ===== -->
   <div class="toolbar">
     <div class="header-title">
       <lucide-icon [img]="icons.file" [size]="20"></lucide-icon>
+      <lucide-icon [img]="icons.file" [size]="24"></lucide-icon>
       <h1>Mes documents</h1>
     </div>
 
+    <!-- Recherche -->
     <div class="search-box">
       <lucide-icon [img]="icons.search" [size]="14"></lucide-icon>
       <input type="text" [(ngModel)]="searchTerm"
              (ngModelChange)="onSearchChange()"
              placeholder="Rechercher un document ou un modèle..." />
+      <lucide-icon [img]="icons.search" [size]="16"></lucide-icon>
+      <input
+        type="text"
+        [(ngModel)]="searchTerm"
+        (ngModelChange)="onSearchChange()"
+        placeholder="Rechercher un document ou un modèle..."
+      />
     </div>
 
+    <!-- Filtre visibilité -->
     <select [(ngModel)]="visibilityFilter" (change)="loadDocuments()" class="filter-select">
       <option value="ALL">Tous les documents</option>
       <option value="PRIVATE">Mes documents</option>
@@ -27,9 +38,11 @@
     <div class="view-toggle" *ngIf="documents.length > 0">
       <button [class.active]="viewMode === 'grid'" (click)="setViewMode('grid')" title="Vue grille">
         <lucide-icon [img]="icons.grid" [size]="15"></lucide-icon>
+        <lucide-icon [img]="icons.grid" [size]="16"></lucide-icon>
       </button>
       <button [class.active]="viewMode === 'list'" (click)="setViewMode('list')" title="Vue liste">
         <lucide-icon [img]="icons.list" [size]="15"></lucide-icon>
+        <lucide-icon [img]="icons.list" [size]="16"></lucide-icon>
       </button>
     </div>
   </div>
@@ -37,6 +50,7 @@
   <!-- ===== États ===== -->
   <div *ngIf="loading" class="state-msg">
     <lucide-icon [img]="icons.loader" [size]="16" class="spin"></lucide-icon>
+    <lucide-icon [img]="icons.loader" [size]="20" class="spin"></lucide-icon>
     Chargement...
   </div>
   <div *ngIf="error" class="state-msg error">{{ error }}</div>
@@ -49,11 +63,23 @@
           <lucide-icon [img]="icons.file" [size]="28"></lucide-icon>
         </div>
         <div class="hover-actions">
-          <button class="hover-btn" [disabled]="downloadingId === doc.id" (click)="downloadDocument(doc, $event)">
-            <lucide-icon [img]="downloadingId === doc.id ? icons.loader : icons.download" [size]="13" [class.spin]="downloadingId === doc.id"></lucide-icon>
-            Télécharger
+          <button class="hover-btn preview" [disabled]="previewingId === doc.id" (click)="previewDocument(doc, $event)" title="Aperçu In-App">
+            <lucide-icon [img]="previewingId === doc.id ? icons.loader : icons.eye" [size]="13" [class.spin]="previewingId === doc.id"></lucide-icon>
+            Aperçu
           </button>
-          <button class="hover-btn ghost" [disabled]="deletingId === doc.id" (click)="deleteDocument(doc, $event)">
+          <button class="hover-btn" [disabled]="downloadingId === doc.id" (click)="downloadDocument(doc, $event)" title="Télécharger le PDF">
+            <lucide-icon [img]="downloadingId === doc.id ? icons.loader : icons.download" [size]="13" [class.spin]="downloadingId === doc.id"></lucide-icon>
+            PDF
+          </button>
+          <button class="hover-btn excel" [disabled]="downloadingExcelId === doc.id" (click)="downloadDocumentExcel(doc, $event)" title="Exporter en Excel (.xlsx)">
+            <lucide-icon [img]="downloadingExcelId === doc.id ? icons.loader : icons.spreadsheet" [size]="13" [class.spin]="downloadingExcelId === doc.id"></lucide-icon>
+            Excel
+          </button>
+          <button class="hover-btn email" (click)="openEmailForDocument(doc, $event)" title="Envoyer par email">
+            <lucide-icon [img]="icons.mail" [size]="13"></lucide-icon>
+            Email
+          </button>
+          <button class="hover-btn ghost" [disabled]="deletingId === doc.id" (click)="deleteDocument(doc, $event)" title="Supprimer">
             <lucide-icon [img]="deletingId === doc.id ? icons.loader : icons.trash" [size]="13" [class.spin]="deletingId === doc.id"></lucide-icon>
           </button>
         </div>
@@ -92,10 +118,19 @@
           </td>
           <td class="doc-date-cell">{{ doc.dateModification | date:'dd/MM/yyyy HH:mm' }}</td>
           <td class="actions-cell">
-            <button (click)="downloadDocument(doc)" class="icon-action" [disabled]="downloadingId === doc.id" title="Télécharger le PDF">
+            <button (click)="previewDocument(doc, $event)" class="icon-action preview" [disabled]="previewingId === doc.id" title="Aperçu In-App">
+              <lucide-icon [img]="previewingId === doc.id ? icons.loader : icons.eye" [size]="15" [class.spin]="previewingId === doc.id"></lucide-icon>
+            </button>
+            <button (click)="downloadDocument(doc, $event)" class="icon-action" [disabled]="downloadingId === doc.id" title="Télécharger le PDF">
               <lucide-icon [img]="downloadingId === doc.id ? icons.loader : icons.download" [size]="15" [class.spin]="downloadingId === doc.id"></lucide-icon>
             </button>
-            <button (click)="deleteDocument(doc)" class="icon-action danger" [disabled]="deletingId === doc.id" title="Supprimer">
+            <button (click)="downloadDocumentExcel(doc, $event)" class="icon-action excel" [disabled]="downloadingExcelId === doc.id" title="Exporter en Excel (.xlsx)">
+              <lucide-icon [img]="downloadingExcelId === doc.id ? icons.loader : icons.spreadsheet" [size]="15" [class.spin]="downloadingExcelId === doc.id"></lucide-icon>
+            </button>
+            <button (click)="openEmailForDocument(doc, $event)" class="icon-action email" title="Envoyer par email">
+              <lucide-icon [img]="icons.mail" [size]="15"></lucide-icon>
+            </button>
+            <button (click)="deleteDocument(doc, $event)" class="icon-action danger" [disabled]="deletingId === doc.id" title="Supprimer">
               <lucide-icon [img]="deletingId === doc.id ? icons.loader : icons.trash" [size]="15" [class.spin]="deletingId === doc.id"></lucide-icon>
             </button>
           </td>
@@ -113,4 +148,24 @@
     <p>Aucun document sauvegardé pour le moment.</p>
     <span class="empty-hint">Remplis un modèle publié pour créer ton premier document.</span>
   </div>
+
+  <!-- Modal Visionneuse PDF In-App -->
+  <app-pdf-viewer-modal
+    [visible]="previewModalVisible"
+    [title]="previewTitle"
+    [pdfBlob]="previewPdfBlob"
+    [canEmail]="true"
+    (requestEmail)="onPdfViewerRequestEmail()"
+    (closed)="previewModalVisible = false">
+  </app-pdf-viewer-modal>
+
+  <!-- Modal Envoi par Email -->
+  <app-document-email-modal
+    [visible]="emailModalVisible"
+    [templateId]="activeDocForEmail?.templateId || ''"
+    [documentId]="activeDocForEmail?.id || ''"
+    [documentNom]="activeDocForEmail?.nom || ''"
+    (closed)="emailModalVisible = false">
+  </app-document-email-modal>
+
 </div>

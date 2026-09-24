@@ -4,10 +4,12 @@ import {
   Output,
   EventEmitter,
   OnInit,
+  OnDestroy,
   OnChanges,
   SimpleChanges,
   ChangeDetectorRef,
 } from '@angular/core';
+import { Subject, takeUntil } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TemplateApiService } from '../../services/template-api';
@@ -32,12 +34,13 @@ import { DesignBlock, DesignPage } from '../models/design-block.model';
   templateUrl: './variable-validation-form.html',
   styleUrls: ['./variable-validation-form.scss'],
 })
-export class VariableValidationForm implements OnInit, OnChanges {
+export class VariableValidationForm implements OnInit, OnChanges, OnDestroy {
   @Input() templateId: string | null = null;
   @Input() active = false;
   @Output() validated = new EventEmitter<void>();
   @Input() pages: DesignPage[] = []; // 👈 nouveau
 
+  private destroy$ = new Subject<void>();
 
   readonly icons = {
     check: CheckCircle2,
@@ -64,14 +67,13 @@ export class VariableValidationForm implements OnInit, OnChanges {
     private api: TemplateApiService,
     private fillerData: FillerDataService,
     private cdr: ChangeDetectorRef
-  ) {
-    this.fillerData.values$.subscribe((values) => {
-      this.values = { ...values };
-      this.cdr.detectChanges();
-    });
-  }
+  ) {}
 
   ngOnInit(): void {
+    this.fillerData.values$.pipe(takeUntil(this.destroy$)).subscribe((values) => {
+      this.values = { ...values };
+      this.cdr.markForCheck();
+    });
     if (this.active && this.templateId) this.load();
   }
 
@@ -81,6 +83,11 @@ export class VariableValidationForm implements OnInit, OnChanges {
       this.load();
       this.cdr.detectChanges(); // 🔧 force la détection de changement après le chargement
     }
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   private get allBlocks(): DesignBlock[] {

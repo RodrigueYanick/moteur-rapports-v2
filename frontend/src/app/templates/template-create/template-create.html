@@ -1,113 +1,186 @@
-<h1>Créer un nouveau modèle</h1>
-
-<form [formGroup]="form" (ngSubmit)="onSubmit()" class="form">
-  <div class="form-group">
-    <label for="nom">Nom *</label>
-    <input id="nom" type="text" formControlName="nom" class="form-control" />
-    <div class="error" *ngIf="form.get('nom')?.invalid && form.get('nom')?.touched">
-      Le nom est obligatoire.
+<div class="page-container">
+  <div class="page-header">
+    <div class="header-icon-badge">
+      <lucide-icon [img]="icons.sparkles" [size]="24"></lucide-icon>
+    </div>
+    <div class="header-texts">
+      <h1>Nouveau modèle de rapport</h1>
+      <p class="subtitle">Sélectionnez un modèle pré-conçu prêt à l'emploi ou commencez à partir d'une feuille vierge.</p>
     </div>
   </div>
 
-  <div class="form-group">
-    <label for="description">Description</label>
-    <input id="description" type="text" formControlName="description" class="form-control" />
-  </div>
+  <!-- ===== Section Galerie de Starter Templates ===== -->
+  <div class="starter-section">
+    <div class="section-title-row">
+      <div class="section-title">
+        <lucide-icon [img]="icons.layers" [size]="18"></lucide-icon>
+        <h2>Choisissez un point de départ</h2>
+      </div>
 
-  <!-- <div class="form-group">
-    <label for="codeEntreprise">Code entreprise</label>
-    <input id="codeEntreprise" type="text" formControlName="codeEntreprise" class="form-control" />
-  </div> -->
-
-  <div class="form-group">
-    <label for="categorie">Catégorie</label>
-    <select id="categorie" formControlName="categorie" class="form-control">
-      <option value="VENTES">Ventes</option>
-      <option value="ACHATS">Achats</option>
-      <option value="FINANCE">Finance</option>
-      <option value="RH">Ressources Humaines</option>
-      <option value="LOGISTIQUE">Logistique</option>
-      <option value="STOCK">Stock</option>
-      <option value="PRODUCTION">Production</option>
-      <option value="ADMINISTRATION">Administration</option>
-      <option value="AUTRES">Autres</option>
-    </select>
-  </div>
-
-  <div class="form-group">
-    <label for="formatPapier">Format papier</label>
-    <select id="formatPapier" formControlName="formatPapier" class="form-control">
-      <option value="A4">A4</option>
-      <option value="A5">A5</option>
-      <option value="A3">A3</option>
-      <option value="A6">A6</option>
-      <option value="Letter">Letter</option>
-      <option value="Legal">Legal</option>
-      <option value="CUSTOM">Personnalisé</option>
-    </select>
-  </div>
-
-  <!-- Champs pour format personnalisé -->
-  <ng-container *ngIf="form.get('formatPapier')?.value === 'CUSTOM'">
-    <div class="form-group">
-      <label for="largeurMm">Largeur (mm) *</label>
-      <input id="largeurMm" type="number" formControlName="largeurMm" class="form-control" min="1" />
-      <div class="error" *ngIf="form.get('largeurMm')?.invalid && form.get('largeurMm')?.touched">
-        Largeur obligatoire et supérieure à 0.
+      <!-- Filtres par catégorie -->
+      <div class="category-tabs">
+        <button type="button" class="tab-btn" [class.active]="selectedCategory === 'TOUS'" (click)="selectedCategory = 'TOUS'">
+          Tous les modèles
+        </button>
+        <button type="button" class="tab-btn" [class.active]="selectedCategory === 'VENTES'" (click)="selectedCategory = 'VENTES'">
+          Ventes
+        </button>
+        <button type="button" class="tab-btn" [class.active]="selectedCategory === 'ACHATS'" (click)="selectedCategory = 'ACHATS'">
+          Achats
+        </button>
+        <button type="button" class="tab-btn" [class.active]="selectedCategory === 'RH'" (click)="selectedCategory = 'RH'">
+          RH & Paie
+        </button>
+        <button type="button" class="tab-btn" [class.active]="selectedCategory === 'ADMINISTRATION'" (click)="selectedCategory = 'ADMINISTRATION'">
+          Administration
+        </button>
       </div>
     </div>
-    <div class="form-group">
-      <label for="hauteurMm">Hauteur (mm) *</label>
-      <input id="hauteurMm" type="number" formControlName="hauteurMm" class="form-control" min="1" />
-      <div class="error" *ngIf="form.get('hauteurMm')?.invalid && form.get('hauteurMm')?.touched">
-        Hauteur obligatoire et supérieure à 0.
-      </div>
-    </div>
-  </ng-container>
 
-  <!-- Marges de la page -->
-  <div class="form-group">
-    <label>Marges (mm)</label>
-    <div class="margins-grid">
-      <div class="margin-field">
-        <label for="margeHautMm">Haut</label>
-        <input id="margeHautMm" type="number" formControlName="margeHautMm" class="form-control" min="0" />
+    <!-- Grille de cartes -->
+    <div class="starter-grid">
+      <!-- Option 1: Feuille Vierge -->
+      <div
+        class="starter-card blank-card"
+        [class.selected]="selectedStarterId === 'blank'"
+        (click)="selectStarter('blank')"
+        tabindex="0"
+        role="button"
+        (keydown.enter)="selectStarter('blank')"
+        (keydown.space)="selectStarter('blank')">
+        <div class="selected-check" *ngIf="selectedStarterId === 'blank'">
+          <lucide-icon [img]="icons.check" [size]="14"></lucide-icon>
+        </div>
+        <div class="card-icon blank-icon">
+          <lucide-icon [img]="icons.filePlus" [size]="24"></lucide-icon>
+        </div>
+        <div class="card-meta">
+          <span class="badge blank-badge">Page Blanche</span>
+        </div>
+        <h3 class="card-title">Feuille vierge</h3>
+        <p class="card-desc">Concevoir entièrement votre document de zéro avec une mise en page personnalisée.</p>
+        <div class="card-footer-info">
+          <span class="info-tag">0 variable</span>
+        </div>
       </div>
-      <div class="margin-field">
-        <label for="margeBasMm">Bas</label>
-        <input id="margeBasMm" type="number" formControlName="margeBasMm" class="form-control" min="0" />
-      </div>
-      <div class="margin-field">
-        <label for="margeGaucheMm">Gauche</label>
-        <input id="margeGaucheMm" type="number" formControlName="margeGaucheMm" class="form-control" min="0" />
-      </div>
-      <div class="margin-field">
-        <label for="margeDroiteMm">Droite</label>
-        <input id="margeDroiteMm" type="number" formControlName="margeDroiteMm" class="form-control" min="0" />
+
+      <!-- Options 2+: Modèles Types Prédéfinis -->
+      <div
+        *ngFor="let st of filteredStarters"
+        class="starter-card"
+        [class.selected]="selectedStarterId === st.id"
+        (click)="selectStarter(st)"
+        tabindex="0"
+        role="button"
+        (keydown.enter)="selectStarter(st)"
+        (keydown.space)="selectStarter(st)">
+        <div class="selected-check" *ngIf="selectedStarterId === st.id">
+          <lucide-icon [img]="icons.check" [size]="14"></lucide-icon>
+        </div>
+        <div class="card-icon" [style.background]="st.couleurTag + '18'" [style.color]="st.couleurTag">
+          <lucide-icon [img]="getStarterIcon(st.iconName)" [size]="24"></lucide-icon>
+        </div>
+        <div class="card-meta">
+          <span class="badge category-badge">{{ st.categorie }}</span>
+          <span class="badge custom-badge" [style.color]="st.couleurTag" [style.borderColor]="st.couleurTag + '40'">{{ st.badge }}</span>
+        </div>
+        <h3 class="card-title">{{ st.nom }}</h3>
+        <p class="card-desc">{{ st.description }}</p>
+        <div class="card-footer-info">
+          <span class="info-tag">{{ st.variables.length }} variables incluses</span>
+          <span class="pages-tag">1 page</span>
+        </div>
       </div>
     </div>
-    <div class="error" *ngIf="(form.get('margeHautMm')?.invalid || form.get('margeBasMm')?.invalid || form.get('margeGaucheMm')?.invalid || form.get('margeDroiteMm')?.invalid) && (form.get('margeHautMm')?.touched || form.get('margeBasMm')?.touched || form.get('margeGaucheMm')?.touched || form.get('margeDroiteMm')?.touched)">
-      Les marges doivent être des nombres positifs.
+
+    <!-- Aperçu des variables du modèle sélectionné -->
+    <div class="starter-preview-banner" *ngIf="selectedStarter">
+      <div class="preview-banner-header">
+        <lucide-icon [img]="icons.sparkles" [size]="16" [style.color]="selectedStarter.couleurTag"></lucide-icon>
+        <strong>Variables de schéma pré-configurées pour ce modèle ({{ selectedStarter.variables.length }}) :</strong>
+      </div>
+      <div class="variables-chips-list">
+        <div class="var-chip" *ngFor="let v of selectedStarter.variables" [title]="v.description || v.nomVariable">
+          <span class="var-name">{{ v.nomVariable }}</span>
+          <span class="var-type" [ngClass]="'type-' + v.type.toLowerCase()">{{ v.type }}</span>
+        </div>
+      </div>
+      <p class="preview-hint">
+        Ces variables et les blocs graphiques associés seront automatiquement injectés dans le studio de conception.
+      </p>
     </div>
   </div>
 
-  <div class="form-group">
-    <label for="modePagination">Mode de pagination</label>
-    <select id="modePagination" formControlName="modePagination" class="form-control">
-      <option value="FIXED">Pages fixes</option>
-      <option value="AUTO">Pagination automatique</option>
-    </select>
-    <small class="form-hint">
-      <strong>Pages fixes</strong> : vous contrôlez manuellement les pages.<br>
-      <strong>Automatique</strong> : le système crée les pages nécessaires selon le contenu.
-    </small>
+  <!-- ===== Formulaire de personnalisation ===== -->
+  <div class="form-wrapper">
+    <div class="form-header-bar">
+      <h3>Détails du document</h3>
+      <span class="template-type-indicator">
+        Mode sélectionné : <strong>{{ selectedStarter ? selectedStarter.nom : 'Feuille vierge' }}</strong>
+      </span>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form">
+      <div class="form-group">
+        <label for="nom">Nom du modèle <span class="required-star">*</span></label>
+        <input
+          id="nom"
+          type="text"
+          formControlName="nom"
+          class="form-control"
+          placeholder="ex: Facture Proforma, Bon de Commande" />
+        <div class="error" *ngIf="form.get('nom')?.invalid && form.get('nom')?.touched">
+          Le nom du modèle est obligatoire.
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="description">Description</label>
+        <textarea
+          id="description"
+          formControlName="description"
+          class="form-control"
+          rows="2"
+          placeholder="Brève description de l'usage du modèle..."></textarea>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="categorie">Catégorie</label>
+          <select id="categorie" formControlName="categorie" class="form-control">
+            <option value="VENTES">Ventes</option>
+            <option value="ACHATS">Achats</option>
+            <option value="FINANCE">Finance</option>
+            <option value="RH">Ressources Humaines</option>
+            <option value="LOGISTIQUE">Logistique</option>
+            <option value="STOCK">Stock</option>
+            <option value="PRODUCTION">Production</option>
+            <option value="ADMINISTRATION">Administration</option>
+            <option value="AUTRES">Autres</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="modePagination">Mode de pagination</label>
+          <select id="modePagination" formControlName="modePagination" class="form-control">
+            <option value="FIXED">Pages fixes (conception manuelle page par page)</option>
+            <option value="AUTO">Pagination automatique (découpage dynamique du contenu)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" routerLink="/bibliotheque" class="btn btn-secondary">
+          Annuler
+        </button>
+        <button type="submit" [disabled]="form.invalid || submitting" class="btn btn-primary">
+          <lucide-icon [img]="icons.loader" [size]="16" class="spin" *ngIf="submitting"></lucide-icon>
+          <lucide-icon [img]="icons.arrowRight" [size]="16" *ngIf="!submitting"></lucide-icon>
+          <span>{{ submitting ? 'Création en cours...' : (selectedStarter ? 'Créer avec ce modèle' : 'Créer et ouvrir le concepteur') }}</span>
+        </button>
+      </div>
+
+      <div *ngIf="error" class="error message">{{ error }}</div>
+    </form>
   </div>
-
-  <!-- <app-report-designer [(blocks)]="blocks" (blocksChange)="saveDesign()"></app-report-designer> -->
-
-  <button type="submit" [disabled]="form.invalid || submitting" class="btn btn-primary">
-    {{ submitting ? 'Création...' : 'Créer' }}
-  </button>
-
-  <div *ngIf="error" class="error message">{{ error }}</div>
-</form>
+</div>

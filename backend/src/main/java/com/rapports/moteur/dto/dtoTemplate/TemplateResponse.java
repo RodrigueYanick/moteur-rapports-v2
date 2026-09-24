@@ -70,4 +70,57 @@ public class TemplateResponse {
 
     @Schema(description = "Identifiant du modèle parent (pour les versions)", example = "3fa85f64-5717-4562-b3fc-2c963f66afa6")
     private UUID parentTemplateId;
+
+    @Schema(description = "Couleur d'arrière-plan de la feuille", example = "#ffffff")
+    private String couleurFond;
+
+    // --- Header ---
+    @Schema(description = "Activer l'en-tête répété", example = "true")
+    private Boolean headerActif;
+
+    @Schema(description = "Hauteur de l'en-tête en mm", example = "15")
+    private Integer hauteurHeaderMm;
+
+    @Schema(description = "Contenu de l'en-tête")
+    private String headerContenu;
+
+    @Schema(description = "Alignement de l'en-tête", example = "LEFT")
+    private String headerAlignement;
+
+    @Schema(description = "Afficher l'en-tête sur la première page", example = "true")
+    private Boolean headerAfficherSurPremierePage;
+
+    @Schema(description = "Ligne de séparation sous l'en-tête", example = "false")
+    private Boolean headerLigneSeparation;
+
+    @Schema(description = "Couleur de la ligne sous l'en-tête", example = "#d1d5db")
+    private String headerCouleurLigne;
+
+    // --- Footer ---
+    @Schema(description = "Activer le pied de page répété", example = "true")
+    private Boolean footerActif;
+
+    @Schema(description = "Hauteur du pied de page en mm", example = "15")
+    private Integer hauteurFooterMm;
+
+    @Schema(description = "Contenu du pied de page")
+    private String footerContenu;
+
+    @Schema(description = "Alignement du pied de page", example = "LEFT")
+    private String footerAlignement;
+
+    @Schema(description = "Afficher le pied de page sur la première page", example = "true")
+    private Boolean footerAfficherSurPremierePage;
+
+    @Schema(description = "Ligne de séparation au-dessus du pied de page", example = "false")
+    private Boolean footerLigneSeparation;
+
+    @Schema(description = "Couleur de la ligne au-dessus du pied de page", example = "#d1d5db")
+    private String footerCouleurLigne;
+
+    @Schema(description = "Activer la numérotation automatique des pages", example = "true")
+    private Boolean numerotationPage;
+
+    @Schema(description = "Format de la numérotation des pages", example = "PAGE_X_SUR_Y")
+    private String formatNumerotation;
 }

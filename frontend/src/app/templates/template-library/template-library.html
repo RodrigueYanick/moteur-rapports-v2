@@ -47,19 +47,31 @@
     <lucide-icon [img]="icons.loader" [size]="16" class="spin"></lucide-icon>
     Chargement des modèles...
   </div>
+
+  <!-- Squelettes Shimmer pendant le chargement -->
+  <div class="cards-grid" *ngIf="loading">
+    <div class="card skeleton-card" *ngFor="let i of [1, 2, 3, 4, 5, 6]">
+      <div class="skeleton-shimmer skeleton-cover"></div>
+      <div class="card-body">
+        <div class="skeleton-shimmer skeleton-line title"></div>
+        <div class="skeleton-shimmer skeleton-line sub"></div>
+        <div class="skeleton-shimmer skeleton-line footer"></div>
+      </div>
+    </div>
+  </div>
   <div *ngIf="error" class="state-msg error">{{ error }}</div>
 
   <!-- ===== Vue grille ===== -->
   <div class="cards-grid" *ngIf="!loading && !error && viewMode === 'grid'">
-    <div class="new-card" routerLink="/templates/new">
+    <div class="new-card hover-lift" routerLink="/templates/new">
       <div class="new-card-icon">
         <lucide-icon [img]="icons.plus" [size]="20"></lucide-icon>
       </div>
       <span class="new-card-title">Nouveau modèle</span>
-      <span class="new-card-sub">Partir d'une feuille vierge</span>
+      <span class="new-card-sub">Feuille vierge ou modèles types</span>
     </div>
 
-    <div class="card" *ngFor="let template of filteredTemplates" [routerLink]="['/templates', template.id]">
+    <div class="card hover-lift" *ngFor="let template of filteredTemplates" [routerLink]="['/templates', template.id]">
       <div class="card-cover" [style.background]="cardBackground(template)">
         <button class="star-btn" (click)="$event.stopPropagation()" title="Favori">
           <lucide-icon [img]="icons.star" [size]="14"></lucide-icon>
@@ -164,7 +176,17 @@
     </table>
   </div>
 
-  <p *ngIf="!loading && !error && filteredTemplates.length === 0" class="empty-msg">
-    Aucun modèle trouvé.
-  </p>
+  <div *ngIf="!loading && !error && filteredTemplates.length === 0" class="empty-state-box empty-msg">
+    <div class="empty-icon-circle">
+      <lucide-icon [img]="icons.file" [size]="32"></lucide-icon>
+    </div>
+    <p class="empty-title">Aucun modèle trouvé</p>
+    <p class="empty-subtitle">
+      {{ searchTerm ? 'Aucun résultat ne correspond à vos filtres de recherche.' : 'Commencez par concevoir votre premier modèle de rapport.' }}
+    </p>
+    <button routerLink="/templates/new" class="btn-primary">
+      <lucide-icon [img]="icons.plus" [size]="15"></lucide-icon>
+      Nouveau modèle
+    </button>
+  </div>
 </div>

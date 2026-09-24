@@ -11,21 +11,48 @@ export class MockDataService {
       if (block.type === 'tableau' && !block.lignes && block.source) {
         const varName = block.source.replace('{{', '').replace('}}', '').trim();
         if (varName && !Object.prototype.hasOwnProperty.call(data, varName)) {
-          data[varName] = this.buildSampleRows(block.colonnes || []);
+          if (varName === 'livrables') {
+            data[varName] = [
+              { id_livrable: 'L01', description: 'Développement API Virement', sprint: 'Sprint 4', avancement: '100%', cout: '3,500,000 FCFA' },
+              { id_livrable: 'L02', description: 'UI/UX Écran Accueil Mobile', sprint: 'Sprint 4', avancement: '100%', cout: '2,800,000 FCFA' },
+              { id_livrable: 'L03', description: 'Backend Authentification Biométrique', sprint: 'Sprint 5', avancement: '100%', cout: '4,200,000 FCFA' },
+              { id_livrable: 'L04', description: 'Module Cartes de Crédit', sprint: 'Sprint 6', avancement: '75%', cout: '2,100,000 FCFA' },
+              { id_livrable: 'L05', description: 'Tests d’Intégration & Performance', sprint: 'Sprint 6', avancement: '80%', cout: '3,200,000 FCFA' },
+            ];
+          } else {
+            data[varName] = this.buildSampleRows(block.colonnes || []);
+          }
         }
         continue;
       }
 
-      // Cas graphique (déjà géré)
+      // Cas graphique
       if (block.type === 'graphique' && block.source) {
         const varName = block.source.replace('{{', '').replace('}}', '').trim();
         if (!data[varName]) {
-          data[varName] = [
-            { label: 'Jan', value: 40 },
-            { label: 'Fév', value: 65 },
-            { label: 'Mar', value: 30 },
-            { label: 'Avr', value: 80 },
-          ];
+          const lKey = block.graphiqueLabelKey || 'label';
+          const vKey = block.graphiqueValueKey || 'value';
+          if (varName.includes('sprint')) {
+            data[varName] = [
+              { [lKey]: 'Sprint 4', [vKey]: 100, label: 'Sprint 4', value: 100 },
+              { [lKey]: 'Sprint 5', [vKey]: 100, label: 'Sprint 5', value: 100 },
+              { [lKey]: 'Sprint 6', [vKey]: 100, label: 'Sprint 6', value: 100 },
+              { [lKey]: 'Sprint 7', [vKey]: 10, label: 'Sprint 7', value: 10 },
+            ];
+          } else if (varName.includes('test')) {
+            data[varName] = [
+              { [lKey]: 'Tests d’Unités', [vKey]: 85, label: 'Tests d’Unités', value: 85 },
+              { [lKey]: 'Tests d’Intégration', [vKey]: 78, label: 'Tests d’Intégration', value: 78 },
+              { [lKey]: 'Tests de Sécurité', [vKey]: 60, label: 'Tests de Sécurité', value: 60 },
+            ];
+          } else {
+            data[varName] = [
+              { [lKey]: 'Jan', [vKey]: 40, label: 'Jan', value: 40 },
+              { [lKey]: 'Fév', [vKey]: 65, label: 'Fév', value: 65 },
+              { [lKey]: 'Mar', [vKey]: 30, label: 'Mar', value: 30 },
+              { [lKey]: 'Avr', [vKey]: 80, label: 'Avr', value: 80 },
+            ];
+          }
         }
         continue;
       }
@@ -90,7 +117,18 @@ export class MockDataService {
       const varName = m.replace(/\{\{|\}\}/g, '').trim();
       if (Object.prototype.hasOwnProperty.call(data, varName)) continue;
 
-      if (varName.startsWith('titre')) data[varName] = 'Titre exemple';
+      if (varName === 'titre_rapport') data[varName] = 'Rapport d’Avancement & Facturation - Mobile Banking 2.0';
+      else if (varName === 'date_rapport') data[varName] = '20 Septembre 2026';
+      else if (varName === 'projet_code') data[varName] = 'PROJ-MB20-14';
+      else if (varName === 'client_nom') data[varName] = 'Banque Atlantique Cameroun';
+      else if (varName === 'avancement_global') data[varName] = '78%';
+      else if (varName === 'livrables_completes') data[varName] = '32/45';
+      else if (varName === 'valeur_projet') data[varName] = 'FCFA 18,500,000';
+      else if (varName === 'periode_facturation') data[varName] = 'Août-Septembre 2026';
+      else if (varName === 'sous_total') data[varName] = '15,800,000';
+      else if (varName === 'total_net_payer') data[varName] = '15,800,000';
+      else if (varName === 'date_echeance') data[varName] = '05 Octobre 2026';
+      else if (varName.startsWith('titre')) data[varName] = 'Titre exemple';
       else if (varName.startsWith('texte')) data[varName] = 'Texte exemple';
       else if (varName.startsWith('image')) {
         data[varName] = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="150" height="150" viewBox="0 0 150 150"%3E%3Crect width="150" height="150" fill="%23eef0f4"/%3E%3Cpath d="M25 110l32-35 23 23 13-14 32 26H25z" fill="%2399a2b3"/%3E%3Ccircle cx="99" cy="50" r="14" fill="%236d5efc"/%3E%3C/svg%3E';

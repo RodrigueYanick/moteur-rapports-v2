@@ -3,6 +3,8 @@ package com.rapports.moteur.controller;
 import com.rapports.moteur.dto.ApiError;
 import com.rapports.moteur.dto.dtoDocument.DocumentCreate;
 import com.rapports.moteur.dto.dtoDocument.DocumentResponse;
+import com.rapports.moteur.dto.dtoDocument.DocumentEmailRequest;
+import com.rapports.moteur.dto.dtoDocument.DocumentEmailResponse;
 import com.rapports.moteur.service.DocumentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -17,8 +19,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.http.HttpHeaders;
 import java.util.List;
 import java.util.UUID;
+import com.rapports.moteur.service.ReportGenerationService;
 
 @RestController
 @RequestMapping("/api/templates/{templateId}/documents")
@@ -27,6 +31,7 @@ import java.util.UUID;
 public class DocumentController {
 
     private final DocumentService documentService;
+    private final ReportGenerationService generationService;
 
     @Operation(
         summary = "Créer un document",
@@ -129,5 +134,52 @@ public class DocumentController {
             @PathVariable UUID id) {
         documentService.delete(templateId, id);
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(
+        summary = "Exporter un document en Excel (.xlsx)",
+        description = "Génère un classeur Excel (.xlsx) à partir des données enregistrées du document."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Fichier Excel généré avec succès",
+                     content = @Content(mediaType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")),
+        @ApiResponse(responseCode = "404", description = "Document ou modèle introuvable",
+                     content = @Content(schema = @Schema(implementation = ApiError.class)))
+    })
+    @GetMapping("/{id}/export-excel")
+    public ResponseEntity<byte[]> exportExcel(
+            @Parameter(description = "Identifiant UUID du template", required = true)
+            @PathVariable UUID templateId,
+            @Parameter(description = "Identifiant UUID du document", required = true)
+            @PathVariable UUID id) {
+        DocumentResponse doc = documentService.getById(templateId, id);
+        byte[] excel = generationService.generateExcel(templateId, doc.getDonnees());
+        String cleanName = doc.getNom() != null ? doc.getNom().replaceAll("[^a-zA-Z0-9._-]", "_") : "document";
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + cleanName + ".xlsx\"")
+                .header(HttpHeaders.CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                .body(excel);
+    }
+
+    @Operation(
+        summary = "Envoyer un document par email",
+        description = "Expédie le document sous forme de pièce jointe PDF à l'adresse email spécifiée."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Email expédié avec succès",
+                     content = @Content(schema = @Schema(implementation = DocumentEmailResponse.class))),
+        @ApiResponse(responseCode = "400", description = "Données d'email invalides",
+                     content = @Content(schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "404", description = "Document ou modèle introuvable",
+                     content = @Content(schema = @Schema(implementation = ApiError.class)))
+    })
+    @PostMapping("/{id}/send-email")
+    public ResponseEntity<DocumentEmailResponse> sendEmail(
+            @Parameter(description = "Identifiant UUID du template", required = true)
+            @PathVariable UUID templateId,
+            @Parameter(description = "Identifiant UUID du document", required = true)
+            @PathVariable UUID id,
+            @Valid @RequestBody DocumentEmailRequest request) {
+        return ResponseEntity.ok(documentService.sendEmail(templateId, id, request));
     }
 }

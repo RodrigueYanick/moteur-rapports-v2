@@ -1,13 +1,13 @@
-$bg-panel: #1a1d29;
-$bg-dark: #14161f;
-$bg-card: #20232f;
-$bg-hover: #262a38;
-$border: #2a2e3d;
-$accent: #6d5efc;
-$accent-glow: rgba(109, 94, 252, 0.35);
-$text-primary: #e8e9ee;
-$text-secondary: #9498a8;
-$text-muted: #676c7f;
+$bg-panel: var(--surface-panel, #1a1d29);
+$bg-dark: var(--surface-ground, #14161f);
+$bg-card: var(--surface-card, #20232f);
+$bg-hover: var(--surface-hover, #262a38);
+$border: var(--surface-border, #2a2e3d);
+$accent: var(--brand-primary, #6d5efc);
+$accent-glow: rgba(99, 102, 241, 0.35);
+$text-primary: var(--text-primary, #e8e9ee);
+$text-secondary: var(--text-secondary, #9498a8);
+$text-muted: var(--text-muted, #676c7f);
 
 .sidebar {
   display: flex;

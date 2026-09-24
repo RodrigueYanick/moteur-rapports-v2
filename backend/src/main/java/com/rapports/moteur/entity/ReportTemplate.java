@@ -86,6 +86,74 @@ public class ReportTemplate {
     @Builder.Default
     private Integer margeBasMm = 0;
 
+    @Column(name = "couleur_fond", length = 30)
+    @Builder.Default
+    private String couleurFond = "#ffffff";
+
+    // --- Header ---
+    @Column(name = "header_actif", nullable = false)
+    @Builder.Default
+    private Boolean headerActif = false;
+
+    @Column(name = "hauteur_header_mm")
+    @Builder.Default
+    private Integer hauteurHeaderMm = 15;
+
+    @Column(name = "header_contenu", columnDefinition = "text")
+    private String headerContenu;
+
+    @Column(name = "header_alignement", length = 20)
+    @Builder.Default
+    private String headerAlignement = "LEFT";
+
+    @Column(name = "header_afficher_sur_premiere_page", nullable = false)
+    @Builder.Default
+    private Boolean headerAfficherSurPremierePage = true;
+
+    @Column(name = "header_ligne_separation", nullable = false)
+    @Builder.Default
+    private Boolean headerLigneSeparation = false;
+
+    @Column(name = "header_couleur_ligne", length = 30)
+    @Builder.Default
+    private String headerCouleurLigne = "#d1d5db";
+
+    // --- Footer ---
+    @Column(name = "footer_actif", nullable = false)
+    @Builder.Default
+    private Boolean footerActif = false;
+
+    @Column(name = "hauteur_footer_mm")
+    @Builder.Default
+    private Integer hauteurFooterMm = 15;
+
+    @Column(name = "footer_contenu", columnDefinition = "text")
+    private String footerContenu;
+
+    @Column(name = "footer_alignement", length = 20)
+    @Builder.Default
+    private String footerAlignement = "LEFT";
+
+    @Column(name = "footer_afficher_sur_premiere_page", nullable = false)
+    @Builder.Default
+    private Boolean footerAfficherSurPremierePage = true;
+
+    @Column(name = "footer_ligne_separation", nullable = false)
+    @Builder.Default
+    private Boolean footerLigneSeparation = false;
+
+    @Column(name = "footer_couleur_ligne", length = 30)
+    @Builder.Default
+    private String footerCouleurLigne = "#d1d5db";
+
+    @Column(name = "numerotation_page", nullable = false)
+    @Builder.Default
+    private Boolean numerotationPage = true;
+
+    @Column(name = "format_numerotation", length = 50)
+    @Builder.Default
+    private String formatNumerotation = "PAGE_X_SUR_Y";
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_template_id")
     private ReportTemplate parentTemplate;

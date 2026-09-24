@@ -20,6 +20,9 @@ public class DocumentResponse {
     @Schema(description = "Nom du template source", example = "Facture Client")
     private String templateNom;
 
+    @Schema(description = "Code de l'entreprise propriétaire du document", example = "ENT-001")
+    private String codeEntreprise;
+
     @Schema(description = "Données du document (JSON)", type = "object", example = "{\"nom_client\":\"Entreprise ABC\"}")
     private Object donnees;
 

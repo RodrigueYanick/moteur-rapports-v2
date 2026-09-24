@@ -1,0 +1,96 @@
+<div class="modal-backdrop" *ngIf="visible" (click)="close()">
+  <div class="email-modal-card" (click)="$event.stopPropagation()">
+
+    <!-- En-tête -->
+    <header class="modal-header">
+      <div class="header-left">
+        <div class="header-icon">
+          <lucide-icon [img]="icons.mail" [size]="20"></lucide-icon>
+        </div>
+        <div>
+          <h2>Envoyer le document par email</h2>
+          <p class="header-sub">Expédiez directement votre document PDF à son destinataire.</p>
+        </div>
+      </div>
+      <button type="button" class="close-btn" (click)="close()" title="Fermer">
+        <lucide-icon [img]="icons.close" [size]="18"></lucide-icon>
+      </button>
+    </header>
+
+    <!-- Corps du formulaire -->
+    <div class="modal-body">
+      <div *ngIf="sendError" class="alert-error">
+        {{ sendError }}
+      </div>
+
+      <!-- Destinataire -->
+      <div class="form-group">
+        <label for="emailRecipient">Adresse email du destinataire *</label>
+        <input
+          id="emailRecipient"
+          type="email"
+          [(ngModel)]="recipient"
+          class="form-input"
+          placeholder="ex: client@entreprise.com"
+          required />
+      </div>
+
+      <!-- Objet -->
+      <div class="form-group">
+        <label for="emailSubject">Objet du message *</label>
+        <input
+          id="emailSubject"
+          type="text"
+          [(ngModel)]="subject"
+          class="form-input"
+          placeholder="Objet de l'email"
+          required />
+      </div>
+
+      <!-- Corps du message -->
+      <div class="form-group">
+        <label for="emailBody">Message d'accompagnement</label>
+        <textarea
+          id="emailBody"
+          [(ngModel)]="messageBody"
+          rows="5"
+          class="form-textarea"
+          placeholder="Rédigez votre message...">
+        </textarea>
+      </div>
+
+      <!-- Carte de la pièce jointe -->
+      <div class="attachment-box">
+        <div class="att-icon">
+          <lucide-icon [img]="icons.file" [size]="20"></lucide-icon>
+        </div>
+        <div class="att-info">
+          <span class="att-name">{{ documentNom || 'document' }}.pdf</span>
+          <span class="att-badge">Pièce jointe PDF générée</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pied de page -->
+    <footer class="modal-footer">
+      <button type="button" class="btn-secondary" (click)="openSystemMailClient()" title="Ouvrir dans votre logiciel de messagerie">
+        <lucide-icon [img]="icons.external" [size]="14"></lucide-icon>
+        Client de messagerie
+      </button>
+
+      <div class="footer-actions-right">
+        <button type="button" class="btn-cancel" (click)="close()">Annuler</button>
+        <button
+          type="button"
+          class="btn-send"
+          [disabled]="!isFormValid || sending"
+          (click)="sendEmail()">
+          <lucide-icon [img]="sending ? icons.loader : icons.send" [size]="15" [class.spin]="sending"></lucide-icon>
+          <span>{{ sending ? 'Expédition en cours...' : 'Envoyer par email' }}</span>
+        </button>
+      </div>
+    </footer>
+
+  </div>
+</div>
+

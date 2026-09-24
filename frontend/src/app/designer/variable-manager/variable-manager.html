@@ -18,10 +18,13 @@
         <span class="required-dot" *ngIf="v.obligatoire" title="Obligatoire"></span>
       </div>
       <div class="var-actions">
-        <button (click)="edit(v)" title="Modifier">
+        <button type="button" (click)="insert(v)" title="Insérer sur le modèle" aria-label="Insérer sur le modèle" class="insert-btn">
+          <lucide-icon [img]="icons.plus" [size]="13"></lucide-icon>
+        </button>
+        <button type="button" (click)="edit(v)" title="Modifier" aria-label="Modifier la variable">
           <lucide-icon [img]="icons.edit" [size]="13"></lucide-icon>
         </button>
-        <button (click)="delete(v)" title="Supprimer" class="danger">
+        <button type="button" (click)="delete(v)" title="Supprimer" aria-label="Supprimer la variable" class="danger">
           <lucide-icon [img]="icons.trash" [size]="13"></lucide-icon>
         </button>
       </div>

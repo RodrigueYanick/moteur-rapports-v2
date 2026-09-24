@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { Template } from '../models/template.model';
+import { Template, TemplateVersionTreeDto } from '../models/template.model';
 import { TemplateSchema } from '../models/template-schema.model';
 import { Generation } from '../models/generation.model';
 import { TemplateForm } from '../models/template-form.model';
@@ -87,6 +87,16 @@ updateTemplate(id: string, form: any): Observable<Template> {
     return this.http.post(`${this.baseUrl}/${id}/preview-html`, data, { responseType: 'blob' });
   }
 
+  // Export Excel (.xlsx) direct avec les données
+  exportExcel(id: string, data: any): Observable<Blob> {
+    return this.http.post(`${this.baseUrl}/${id}/export-excel`, data, { responseType: 'blob' });
+  }
+
+  // Export Excel (.xlsx) d'un document sauvegardé
+  exportDocumentExcel(templateId: string, documentId: string): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/${templateId}/documents/${documentId}/export-excel`, { responseType: 'blob' });
+  }
+
   duplicateTemplate(id: string): Observable<Template> {
     return this.http.post<Template>(`${this.baseUrl}/${id}/duplicate`, {});
   }
@@ -121,6 +131,10 @@ updateTemplate(id: string, form: any): Observable<Template> {
     return this.http.delete<void>(`${this.baseUrl}/${templateId}/documents/${documentId}`);
   }
 
+  sendDocumentEmail(templateId: string, documentId: string, payload: { destinataire: string; objet: string; message?: string }): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/${templateId}/documents/${documentId}/send-email`, payload);
+  }
+
   // Tous les documents avec visibilité et recherche
   getAllDocuments(visibilite?: string, q?: string): Observable<GeneratedDocument[]> {
     let params = new HttpParams();
@@ -141,8 +155,60 @@ updateTemplate(id: string, form: any): Observable<Template> {
     return this.http.post<Template>(`${this.baseUrl}/${id}/restore`, {});
   }
 
+  getVersionTree(id: string): Observable<TemplateVersionTreeDto> {
+    return this.http.get<TemplateVersionTreeDto>(`${this.baseUrl}/${id}/versions`);
+  }
+
   getPreviewHtml(templateId: string, data: any): Observable<string> {
     return this.http.post(`${this.baseUrl}/${templateId}/preview-html`, data, { responseType: 'text' });
   }
   
+
+  // Configuration de l'espace de travail de l'entreprise
+  getWorkspaceConfig(): Observable<import('../models/workspace-config.model').WorkspaceConfig> {
+    return this.http.get<import('../models/workspace-config.model').WorkspaceConfig>('/api/workspace-config');
+  }
+
+  updateWorkspaceConfig(config: Partial<import('../models/workspace-config.model').WorkspaceConfig>): Observable<import('../models/workspace-config.model').WorkspaceConfig> {
+    return this.http.put<import('../models/workspace-config.model').WorkspaceConfig>('/api/workspace-config', config);
+  }
+
+  resetWorkspaceConfig(): Observable<import('../models/workspace-config.model').WorkspaceConfig> {
+    return this.http.post<import('../models/workspace-config.model').WorkspaceConfig>('/api/workspace-config/reset', {});
+  }
+
+  // ==========================================
+  // Traitement par lot (Batch) & Webhooks
+  // ==========================================
+
+  createBatch(templateId: string, request: import('../models/batch.model').BatchCreateRequest): Observable<import('../models/batch.model').BatchResponse> {
+    return this.http.post<import('../models/batch.model').BatchResponse>(`${this.baseUrl}/${templateId}/batch`, request);
+  }
+
+  listBatches(templateId?: string): Observable<import('../models/batch.model').BatchResponse[]> {
+    let params = new HttpParams();
+    if (templateId) params = params.set('templateId', templateId);
+    return this.http.get<import('../models/batch.model').BatchResponse[]>('/api/batches', { params });
+  }
+
+  getBatch(batchId: string): Observable<import('../models/batch.model').BatchResponse> {
+    return this.http.get<import('../models/batch.model').BatchResponse>(`/api/batches/${batchId}`);
+  }
+
+  getBatchItems(batchId: string): Observable<import('../models/batch.model').BatchItemResponse[]> {
+    return this.http.get<import('../models/batch.model').BatchItemResponse[]>(`/api/batches/${batchId}/items`);
+  }
+
+  retryFailedBatch(batchId: string): Observable<import('../models/batch.model').BatchResponse> {
+    return this.http.post<import('../models/batch.model').BatchResponse>(`/api/batches/${batchId}/retry-failed`, {});
+  }
+
+  downloadBatchZip(batchId: string): Observable<Blob> {
+    return this.http.get(`/api/batches/${batchId}/download-zip`, { responseType: 'blob' });
+  }
+
+  testWebhook(req: import('../models/batch.model').WebhookTestRequest): Observable<import('../models/batch.model').WebhookTestResponse> {
+    return this.http.post<import('../models/batch.model').WebhookTestResponse>('/api/batches/webhooks/test', req);
+  }
 }
+

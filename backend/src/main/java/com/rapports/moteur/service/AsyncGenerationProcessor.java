@@ -6,17 +6,17 @@ import com.rapports.moteur.entity.ReportTemplate;
 import com.rapports.moteur.exceptions.TemplateNotFoundException;
 import com.rapports.moteur.repository.ReportGenerationRepository;
 import com.rapports.moteur.repository.ReportTemplateRepository;
-import org.springframework.scheduling.annotation.Async;
+import com.rapports.moteur.service.rendering.RenderOptions;
+import com.rapports.moteur.service.storage.FileStorageService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.lang.NonNull;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Map;
 import java.util.UUID;
 
+@Slf4j
 @Service
 public class AsyncGenerationProcessor {
 
@@ -25,24 +25,26 @@ public class AsyncGenerationProcessor {
     private final TemplateHtmlBuilder htmlBuilder;
     private final PdfRendererService pdfRenderer;
     private final EntrepriseService entrepriseService;
+    private final FileStorageService fileStorageService;
 
     public AsyncGenerationProcessor(ReportGenerationRepository generationRepository,
                                     ReportTemplateRepository templateRepository,
                                     TemplateHtmlBuilder htmlBuilder,
                                     PdfRendererService pdfRenderer,
-                                    EntrepriseService entrepriseService) {   // ✅ ajouté
+                                    EntrepriseService entrepriseService,
+                                    FileStorageService fileStorageService) {
         this.generationRepository = generationRepository;
         this.templateRepository = templateRepository;
         this.htmlBuilder = htmlBuilder;
         this.pdfRenderer = pdfRenderer;
         this.entrepriseService = entrepriseService;
+        this.fileStorageService = fileStorageService;
     }
 
     @Async("generationExecutor")
     public void processAsync(@NonNull UUID generationId,
                              @NonNull UUID templateId,
-                             Map<String, Object> data,
-                             String storagePath) {
+                             Map<String, Object> data) {
         ReportGeneration generation = generationRepository.findById(generationId)
                 .orElseThrow(() -> new IllegalStateException("Generation introuvable : " + generationId));
         ReportTemplate template = templateRepository.findById(templateId)
@@ -50,44 +52,39 @@ public class AsyncGenerationProcessor {
 
         // ✅ Vérification d’appartenance à l’entreprise courante
         String currentCode = entrepriseService.getCurrentCodeEntreprise();
-        if (currentCode == null || !currentCode.equals(template.getCodeEntreprise())) {
-            // On ne révèle pas l’existence du template
-            throw new TemplateNotFoundException("Template introuvable : " + templateId);
+        if (template.getCodeEntreprise() != null && !template.getCodeEntreprise().isBlank()) {
+            if (currentCode == null || !currentCode.equals(template.getCodeEntreprise())) {
+                throw new TemplateNotFoundException("Template introuvable : " + templateId);
+            }
         }
 
         try {
-            byte[] pdf = pdfRenderer.renderToPdf(
-                htmlBuilder.build(
-                    template.getContenuDesign(),
-                    data,
-                    template.getFormatPapier(),
-                    template.getLargeurMm(),
-                    template.getHauteurMm(),
-                    template.getModePagination(),
-                    template.getMargeGaucheMm(),
-                    template.getMargeDroiteMm(),
-                    template.getMargeHautMm(),
-                    template.getMargeBasMm()
-                )
-            );
-            String filePath = storePdf(generationId, pdf, storagePath);
-            generation.setUrlFichierGenere(filePath);
+            RenderOptions options = RenderOptions.fromTemplate(template);
+            byte[] pdf = pdfRenderer.renderToPdf(htmlBuilder.build(template, data), options);
+            String storageKey = buildStorageKey(template, generationId);
+            String savedPath = fileStorageService.storeFile(storageKey, pdf, "application/pdf");
+            generation.setUrlFichierGenere(savedPath);
             generation.setStatut(GenerationStatus.SUCCES);
         } catch (Exception e) {
+            log.error("Erreur lors de la génération asynchrone pour generationId={}", generationId, e);
             generation.setStatut(GenerationStatus.ECHEC);
         }
         generationRepository.save(generation);
     }
 
-    private String storePdf(UUID generationId, byte[] pdf, String storagePath) {
-        try {
-            Path dir = Paths.get(storagePath);
-            Files.createDirectories(dir);
-            Path file = dir.resolve(generationId + ".pdf");
-            Files.write(file, pdf);
-            return file.toString();
-        } catch (IOException e) {
-            throw new IllegalStateException("Impossible de stocker le PDF", e);
+    @Async("generationExecutor")
+    public void processAsync(@NonNull UUID generationId,
+                             @NonNull UUID templateId,
+                             Map<String, Object> data,
+                             String storagePath) {
+        processAsync(generationId, templateId, data);
+    }
+
+    private String buildStorageKey(ReportTemplate template, UUID generationId) {
+        String codeEntreprise = template.getCodeEntreprise();
+        if (codeEntreprise != null && !codeEntreprise.isBlank()) {
+            return "entreprises/" + codeEntreprise.trim() + "/reports/" + generationId + ".pdf";
         }
+        return "public/reports/" + generationId + ".pdf";
     }
 }

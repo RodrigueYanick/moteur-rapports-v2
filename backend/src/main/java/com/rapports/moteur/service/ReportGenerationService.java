@@ -12,6 +12,8 @@ import com.rapports.moteur.repository.ReportGenerationRepository;
 import com.rapports.moteur.repository.ReportTemplateRepository;
 import com.rapports.moteur.repository.ReportVariableRepository;
 
+import com.rapports.moteur.service.rendering.RenderOptions;
+import com.rapports.moteur.service.storage.FileStorageService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,6 +39,10 @@ public class ReportGenerationService {
     private final AsyncGenerationProcessor asyncProcessor;
     private final ReportVariableRepository variableRepository;
     private final EntrepriseService entrepriseService;
+    private final FileStorageService fileStorageService;
+    private final ExcelRendererService excelRenderer;
+    private final com.rapports.moteur.service.facturx.FacturXPdfService facturXPdfService;
+    private final com.rapports.moteur.service.metrics.ReportMetricsService reportMetricsService;
 
     public ReportGenerationService(ReportGenerationRepository generationRepository,
                                     ReportTemplateRepository templateRepository,
@@ -47,7 +53,11 @@ public class ReportGenerationService {
                                     AppProperties appProperties,
                                     ReportVariableRepository variableRepository,
                                     AsyncGenerationProcessor asyncProcessor,
-                                    EntrepriseService entrepriseService) {   // ✅ ajouté
+                                    EntrepriseService entrepriseService,
+                                    FileStorageService fileStorageService,
+                                    ExcelRendererService excelRenderer,
+                                    com.rapports.moteur.service.facturx.FacturXPdfService facturXPdfService,
+                                    com.rapports.moteur.service.metrics.ReportMetricsService reportMetricsService) {
         this.generationRepository = generationRepository;
         this.templateRepository = templateRepository;
         this.validatorService = validatorService;
@@ -58,6 +68,10 @@ public class ReportGenerationService {
         this.variableRepository = variableRepository;
         this.asyncProcessor = asyncProcessor;
         this.entrepriseService = entrepriseService;
+        this.fileStorageService = fileStorageService;
+        this.excelRenderer = excelRenderer;
+        this.facturXPdfService = facturXPdfService;
+        this.reportMetricsService = reportMetricsService;
     }
 
     // ============================================================
@@ -95,20 +109,60 @@ public class ReportGenerationService {
     public byte[] generateSync(UUID templateId, Object rawData) {
         ReportTemplate template = getPublishedTemplate(templateId);
         Map<String, Object> data = toDataMap(rawData);
+        ReportGeneration generation = generateAndStoreReport(template, data);
+        return fileStorageService.loadFile(generation.getUrlFichierGenere());
+    }
 
+    @Transactional
+    public ReportGeneration generateAndStoreReport(ReportTemplate template, Map<String, Object> data) {
         // ✅ Validation avec le schéma extrait
         validatorService.validate(template.getSchema(), data);
 
+        long startMs = System.currentTimeMillis();
         ReportGeneration generation = createGenerationEntry(template, data);
+        boolean isFacturX = Boolean.TRUE.equals(data.get("factur_x"))
+                || Boolean.TRUE.equals(data.get("facturX"))
+                || "factur-x".equalsIgnoreCase(String.valueOf(data.get("format")));
+
         try {
             byte[] pdf = renderPdf(template, data);
-            generation.setUrlFichierGenere(storePdf(generation.getId(), pdf));
+
+            if (isFacturX) {
+                String profileStr = String.valueOf(data.getOrDefault("factur_x_profile", "BASIC"));
+                com.rapports.moteur.service.facturx.FacturXProfile profile =
+                        com.rapports.moteur.service.facturx.FacturXProfile.fromString(profileStr);
+                pdf = facturXPdfService.convertToFacturX(pdf, data, profile);
+            }
+
+            String storageKey = buildStorageKey(template, generation.getId());
+            String savedPath = fileStorageService.storeFile(storageKey, pdf, "application/pdf");
+            generation.setUrlFichierGenere(savedPath);
             generation.setStatut(GenerationStatus.SUCCES);
-            generationRepository.save(generation);
-            return pdf;
+            ReportGeneration saved = generationRepository.save(generation);
+
+            java.time.Duration duration = java.time.Duration.ofMillis(System.currentTimeMillis() - startMs);
+            reportMetricsService.recordGeneration(
+                    pdfRenderer.getPreferredEngineName(),
+                    isFacturX ? "factur-x" : "pdf",
+                    "success",
+                    template.getCodeEntreprise(),
+                    duration
+            );
+
+            return saved;
         } catch (Exception e) {
             generation.setStatut(GenerationStatus.ECHEC);
             generationRepository.save(generation);
+
+            java.time.Duration duration = java.time.Duration.ofMillis(System.currentTimeMillis() - startMs);
+            reportMetricsService.recordGeneration(
+                    pdfRenderer.getPreferredEngineName(),
+                    isFacturX ? "factur-x" : "pdf",
+                    "error",
+                    template.getCodeEntreprise(),
+                    duration
+            );
+
             throw new IllegalStateException("Echec de la generation : " + e.getMessage(), e);
         }
     }
@@ -160,29 +214,21 @@ public class ReportGenerationService {
         if (generation.getUrlFichierGenere() == null) {
             throw new IllegalStateException("Aucun fichier disponible pour cette generation");
         }
-        try {
-            return Files.readAllBytes(Paths.get(generation.getUrlFichierGenere()));
-        } catch (IOException e) {
-            throw new IllegalStateException("Fichier introuvable sur le disque", e);
-        }
+        return fileStorageService.loadFile(generation.getUrlFichierGenere());
     }
 
     public String generateHtml(UUID templateId, Object rawData) {
         ReportTemplate template = loadTemplateForCurrentEntreprise(templateId);
         Map<String, Object> data = toDataMap(rawData);
         validatorService.validate(template.getSchema(), data);
-        return htmlBuilder.build(
-            template.getContenuDesign(),
-            data,
-            template.getFormatPapier(),
-            template.getLargeurMm(),
-            template.getHauteurMm(),
-            template.getModePagination(),
-            template.getMargeGaucheMm(),
-            template.getMargeDroiteMm(),
-            template.getMargeHautMm(),
-            template.getMargeBasMm()
-        );
+        return htmlBuilder.build(template, data);
+    }
+
+    public byte[] generateExcel(UUID templateId, Object rawData) {
+        ReportTemplate template = getPublishedTemplate(templateId);
+        Map<String, Object> data = toDataMap(rawData);
+        validatorService.validate(template.getSchema(), data);
+        return excelRenderer.renderToExcel(template, data);
     }
 
     // ---------- HELPERS ----------
@@ -218,32 +264,16 @@ public class ReportGenerationService {
     }
 
     private byte[] renderPdf(ReportTemplate template, Map<String, Object> data) {
-        return pdfRenderer.renderToPdf(
-            htmlBuilder.build(
-                template.getContenuDesign(),
-                data,
-                template.getFormatPapier(),
-                template.getLargeurMm(),
-                template.getHauteurMm(),
-                template.getModePagination(),
-                template.getMargeGaucheMm(),
-                template.getMargeDroiteMm(),
-                template.getMargeHautMm(),
-                template.getMargeBasMm()
-            )
-        );
+        RenderOptions options = RenderOptions.fromTemplate(template);
+        return pdfRenderer.renderToPdf(htmlBuilder.build(template, data), options);
     }
 
-    private String storePdf(UUID generationId, byte[] pdf) {
-        try {
-            Path dir = Paths.get(appProperties.getStoragePath());
-            Files.createDirectories(dir);
-            Path file = dir.resolve(generationId + ".pdf");
-            Files.write(file, pdf);
-            return file.toString();
-        } catch (IOException e) {
-            throw new IllegalStateException("Impossible de stocker le PDF", e);
+    private String buildStorageKey(ReportTemplate template, UUID generationId) {
+        String codeEntreprise = template.getCodeEntreprise();
+        if (codeEntreprise != null && !codeEntreprise.isBlank()) {
+            return "entreprises/" + codeEntreprise.trim() + "/reports/" + generationId + ".pdf";
         }
+        return "public/reports/" + generationId + ".pdf";
     }
 
     private double toNumber(Object value) {

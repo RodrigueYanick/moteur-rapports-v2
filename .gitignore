@@ -18,3 +18,7 @@ backend/data/reports/
 
 # Logs
 *.log
+
+# Playwright
+frontend/playwright-report/
+frontend/test-results/

@@ -5,18 +5,51 @@ services:
     image: postgres:15-alpine
     container_name: report-postgres
     environment:
-      POSTGRES_DB: moteur_rapports_test
-      POSTGRES_USER: reportuser
-      POSTGRES_PASSWORD: rodrigue
+      POSTGRES_DB: ${POSTGRES_DB:-moteur_rapports_test}
+      POSTGRES_USER: ${POSTGRES_USER:-reportuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rodrigue}
     ports:
-      - "5454:5432"   # hôte:conteneur
+      - "127.0.0.1:${POSTGRES_PORT:-5454}:5432"   # hôte:conteneur (restreint à localhost)
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U reportuser -d moteur_rapports_test"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-reportuser} -d ${POSTGRES_DB:-moteur_rapports_test}"]
       interval: 10s
       timeout: 5s
       retries: 5
+
+  minio:
+    image: minio/minio:RELEASE.2024-05-28T07-16-16Z
+    container_name: report-minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    command: server /data --console-address ":9001"
+    ports:
+      - "127.0.0.1:${MINIO_API_PORT:-9000}:9000"   # API S3 (restreint à localhost)
+      - "127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001"   # Console Web UI (restreint à localhost)
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    container_name: report-gotenberg
+    ports:
+      - "127.0.0.1:${GOTENBERG_PORT:-3000}:3000"
+    environment:
+      - CHROMIUM_DISABLE_JAVASCRIPT=false
+      - CHROMIUM_ALLOW_LIST=file:///tmp/.*
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
 
   backend:
     build:
@@ -24,17 +57,31 @@ services:
       dockerfile: Dockerfile
     container_name: report-backend
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/moteur_rapports_test
-      SPRING_DATASOURCE_USERNAME: reportuser
-      SPRING_DATASOURCE_PASSWORD: rodrigue
-      APP_STORAGE_PATH: /app/data/reports
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-moteur_rapports_test}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-reportuser}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-rodrigue}
+      APP_STORAGE_PATH: ${APP_STORAGE_PATH:-/app/data/reports}
+      STORAGE_PROVIDER: ${STORAGE_PROVIDER:-s3}
+      S3_ENDPOINT: http://minio:9000
+      S3_BUCKET: ${S3_BUCKET:-rapports-pdf}
+      S3_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
+      S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      S3_AUTO_CREATE_BUCKET: "true"
+      JWT_SECRET: ${JWT_SECRET:-404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-86400000}
+      PDF_ENGINE: ${PDF_ENGINE:-gotenberg}
+      GOTENBERG_ENDPOINT: ${GOTENBERG_ENDPOINT:-http://gotenberg:3000}
     ports:
-      - "8082:8082"
+      - "${BACKEND_PORT:-8082}:8082"
     volumes:
       - reports-data:/app/data/reports
     depends_on:
       postgres:
         condition: service_healthy
+      minio:
+        condition: service_started
+      gotenberg:
+        condition: service_started
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8082/api/health"]
       interval: 30s
@@ -48,10 +95,11 @@ services:
       dockerfile: Dockerfile
     container_name: report-frontend
     ports:
-      - "80:80"
+      - "${FRONTEND_PORT:-80}:80"
     depends_on:
       - backend
 
 volumes:
   pgdata:
   reports-data:
+  miniodata:

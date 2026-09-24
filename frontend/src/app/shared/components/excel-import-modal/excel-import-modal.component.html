@@ -1,0 +1,223 @@
+<div class="modal-backdrop" *ngIf="visible" (click)="close()">
+  <div class="modal-card" (click)="$event.stopPropagation()">
+
+    <!-- ===== En-tête du modal ===== -->
+    <div class="modal-header">
+      <div class="header-title-box">
+        <div class="header-icon">
+          <lucide-icon [img]="icons.spreadsheet" [size]="20"></lucide-icon>
+        </div>
+        <div>
+          <h2>Assistant d'Importation Excel / CSV</h2>
+          <p class="header-sub">
+            Chargez vos données et associez vos colonnes aux variables du modèle en quelques clics.
+          </p>
+        </div>
+      </div>
+      <button class="close-btn" (click)="close()" title="Fermer">
+        <lucide-icon [img]="icons.close" [size]="18"></lucide-icon>
+      </button>
+    </div>
+
+    <!-- ===== Corps du modal ===== -->
+    <div class="modal-body">
+
+      <!-- Message d'erreur éventuel -->
+      <div class="alert-error" *ngIf="parseError">
+        <lucide-icon [img]="icons.alert" [size]="16"></lucide-icon>
+        <span>{{ parseError }}</span>
+      </div>
+
+      <!-- ========================================================= -->
+      <!-- ÉTAPE 1 : Zone de Glisser-Déposer de Fichier             -->
+      <!-- ========================================================= -->
+      <div
+        class="dropzone"
+        *ngIf="!fileName"
+        [class.dragging]="isDragging"
+        (dragover)="onDragOver($event)"
+        (dragleave)="onDragLeave($event)"
+        (drop)="onDrop($event)"
+        (click)="fileInput.click()">
+        <input
+          #fileInput
+          type="file"
+          accept=".xlsx,.xls,.csv"
+          (change)="onFileInputChange($event)"
+          style="display: none" />
+
+        <div class="dropzone-icon">
+          <lucide-icon [img]="icons.upload" [size]="32"></lucide-icon>
+        </div>
+        <h3>Glissez-déposez votre fichier Excel ou CSV ici</h3>
+        <p class="dropzone-hint">
+          Formats acceptés : <strong>.xlsx</strong>, <strong>.xls</strong>, <strong>.csv</strong> · Jusqu'à 10 000 lignes
+        </p>
+        <button type="button" class="btn-browse">Parcourir les fichiers</button>
+      </div>
+
+      <!-- Carte du fichier chargé -->
+      <div class="file-loaded-bar" *ngIf="fileName">
+        <div class="file-info-left">
+          <lucide-icon [img]="icons.spreadsheet" [size]="22" class="file-icon"></lucide-icon>
+          <div>
+            <div class="file-name">{{ fileName }}</div>
+            <div class="file-meta">{{ fileSize }} · {{ totalRowsCount }} ligne{{ totalRowsCount > 1 ? 's' : '' }} détectée{{ totalRowsCount > 1 ? 's' : '' }}</div>
+          </div>
+        </div>
+
+        <div class="file-controls-right">
+          <!-- Sélecteur de feuille de calcul si multiple -->
+          <div class="sheet-selector" *ngIf="sheetNames.length > 1">
+            <label>Feuille :</label>
+            <select [(ngModel)]="selectedSheet" (change)="onSheetChange()">
+              <option *ngFor="let s of sheetNames" [value]="s">{{ s }}</option>
+            </select>
+          </div>
+
+          <button type="button" class="btn-change-file" (click)="resetState(); fileInputReload.click()">
+            <lucide-icon [img]="icons.refresh" [size]="13"></lucide-icon> Changer de fichier
+          </button>
+          <input
+            #fileInputReload
+            type="file"
+            accept=".xlsx,.xls,.csv"
+            (change)="onFileInputChange($event)"
+            style="display: none" />
+        </div>
+      </div>
+
+      <!-- ========================================================= -->
+      <!-- ÉTAPE 2 : Aperçu des Données Détectées                    -->
+      <!-- ========================================================= -->
+      <div class="section-box" *ngIf="fileName && detectedHeaders.length > 0">
+        <div class="section-title">
+          <lucide-icon [img]="icons.table" [size]="15"></lucide-icon>
+          <span>Aperçu des données brutes (5 premières lignes)</span>
+        </div>
+
+        <div class="table-preview-wrapper">
+          <table class="preview-table">
+            <thead>
+              <tr>
+                <th class="row-num-col">#</th>
+                <th *ngFor="let header of detectedHeaders">{{ header }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let row of previewRows; let rIdx = index">
+                <td class="row-num-cell">{{ rIdx + 1 }}</td>
+                <td *ngFor="let col of detectedHeaders; let cIdx = index">
+                  {{ row[cIdx] !== undefined && row[cIdx] !== null ? row[cIdx] : '' }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ========================================================= -->
+      <!-- ÉTAPE 3 : Mapping Visuel des Colonnes vers Variables     -->
+      <!-- ========================================================= -->
+      <div class="section-box" *ngIf="fileName && detectedHeaders.length > 0">
+        <div class="section-header-row">
+          <div class="section-title">
+            <lucide-icon [img]="icons.sparkles" [size]="15" class="sparkle-icon"></lucide-icon>
+            <span>Mapping visuel : associer les colonnes aux variables</span>
+          </div>
+          <button type="button" class="btn-text" (click)="autoMapColumns()" title="Relancer la détection automatique">
+            <lucide-icon [img]="icons.refresh" [size]="12"></lucide-icon>
+            Ré-analyser la correspondance
+          </button>
+        </div>
+
+        <div class="mapping-grid">
+          <div class="mapping-row" *ngFor="let header of detectedHeaders; let colIdx = index">
+            <!-- Colonne Source Excel -->
+            <div class="col-source">
+              <span class="source-header-name">{{ header }}</span>
+              <span class="source-sample">Exemple : « {{ getSampleValue(colIdx) }} »</span>
+            </div>
+
+            <!-- Flèche d'association -->
+            <div class="col-arrow">
+              <lucide-icon [img]="icons.arrowRight" [size]="14"></lucide-icon>
+            </div>
+
+            <!-- Sélecteur de Variable Cible -->
+            <div class="col-target">
+              <select [(ngModel)]="columnMappings[colIdx]" class="target-select" [class.mapped]="!!columnMappings[colIdx]">
+                <option value="">-- Ignorer cette colonne --</option>
+                <option *ngFor="let v of variables" [value]="v.nomVariable">
+                  {{ v.nomVariable }} ({{ v.type }}){{ v.obligatoire ? ' *' : '' }}
+                </option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="mapping-summary-bar">
+          <span class="mapped-count">
+            <strong>{{ mappedColumnsCount }}</strong> colonne{{ mappedColumnsCount > 1 ? 's' : '' }} associée{{ mappedColumnsCount > 1 ? 's' : '' }}
+            sur {{ detectedHeaders.length }}
+          </span>
+        </div>
+      </div>
+
+      <!-- ========================================================= -->
+      <!-- Options Spécifiques selon le Mode                        -->
+      <!-- ========================================================= -->
+
+      <!-- Mode Batch : Colonne d'identifiant personnalisé -->
+      <div class="extra-options-box" *ngIf="fileName && mode === 'batch' && detectedHeaders.length > 0">
+        <label>Identifiant unique de chaque rapport (customId) :</label>
+        <select [(ngModel)]="selectedIdColumn" class="modal-select">
+          <option value="auto">Générer automatiquement (RPT-001, RPT-002...)</option>
+          <option *ngFor="let header of detectedHeaders; let cIdx = index" [ngValue]="cIdx">
+            Utiliser la colonne « {{ header }} »
+          </option>
+        </select>
+        <small class="option-hint">
+          Sera utilisé pour nommer les fichiers PDF dans l'archive ZIP générée.
+        </small>
+      </div>
+
+      <!-- Mode Single-Row : Sélecteur de ligne pour le testeur -->
+      <div class="extra-options-box" *ngIf="fileName && mode === 'single-row' && totalRowsCount > 0">
+        <label>Ligne de données à appliquer au modèle :</label>
+        <div class="row-picker">
+          <select [(ngModel)]="selectedRowIndex" class="modal-select">
+            <option *ngFor="let row of allDataRows; let rIdx = index" [ngValue]="rIdx">
+              Ligne {{ rIdx + 1 }} : {{ row[0] || 'Enregistrement' }} {{ row[1] ? ('· ' + row[1]) : '' }}
+            </option>
+          </select>
+        </div>
+        <small class="option-hint">
+          Remplira automatiquement tous les champs du modèle avec les valeurs de cette ligne.
+        </small>
+      </div>
+
+    </div>
+
+    <!-- ===== Pied du modal ===== -->
+    <div class="modal-footer">
+      <button type="button" class="btn-cancel" (click)="close()">Annuler</button>
+
+      <button
+        type="button"
+        class="btn-confirm"
+        [disabled]="!fileName || totalRowsCount === 0 || mappedColumnsCount === 0"
+        (click)="confirmImport()">
+        <lucide-icon [img]="icons.checkCircle" [size]="16"></lucide-icon>
+        <span *ngIf="mode === 'batch'">
+          Importer {{ totalRowsCount }} rapport{{ totalRowsCount > 1 ? 's' : '' }} dans le lot
+        </span>
+        <span *ngIf="mode === 'single-row'">
+          Appliquer la ligne {{ (+selectedRowIndex) + 1 }} au modèle
+        </span>
+      </button>
+    </div>
+
+  </div>
+</div>
+

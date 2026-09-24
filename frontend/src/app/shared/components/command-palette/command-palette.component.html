@@ -1,0 +1,79 @@
+<div class="palette-backdrop" *ngIf="isOpen" (click)="close()">
+  <div class="palette-modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-label="Palette de commande">
+    <!-- Header avec champ de recherche -->
+    <div class="palette-header">
+      <div class="search-icon-wrapper">
+        <lucide-icon [img]="icons.search" [size]="18" class="search-icon"></lucide-icon>
+      </div>
+      <input
+        #searchInput
+        type="text"
+        class="palette-input"
+        placeholder="Rechercher une action, une page ou un modèle de rapport..."
+        [(ngModel)]="searchQuery"
+        (input)="selectedIndex = 0"
+      />
+      <div class="header-actions">
+        <span class="esc-badge" (click)="close()">Échap</span>
+      </div>
+    </div>
+
+    <!-- Corps des résultats -->
+    <div class="palette-body" role="listbox">
+      <!-- Liste des commandes filtrées -->
+      <ng-container *ngIf="filteredItems.length > 0; else noResults">
+        <div
+          *ngFor="let item of filteredItems; let i = index"
+          class="palette-item"
+          [class.selected]="i === selectedIndex"
+          (mouseenter)="selectItem(i)"
+          (click)="executeItem(item)"
+          role="option"
+          [attr.aria-selected]="i === selectedIndex"
+        >
+          <div class="item-icon-box" [ngClass]="item.category">
+            <lucide-icon [img]="item.icon" [size]="16"></lucide-icon>
+          </div>
+
+          <div class="item-content">
+            <div class="item-label-row">
+              <span class="item-label">{{ item.label }}</span>
+              <span *ngIf="item.badge" class="item-badge" [ngClass]="item.badge">{{ item.badge }}</span>
+            </div>
+            <span *ngIf="item.sublabel" class="item-sublabel">{{ item.sublabel }}</span>
+          </div>
+
+          <div class="item-action-indicator" *ngIf="i === selectedIndex">
+            <span class="enter-key">↵</span>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- État aucun résultat -->
+      <ng-template #noResults>
+        <div class="no-results-box">
+          <lucide-icon [img]="icons.search" [size]="28" class="no-results-icon"></lucide-icon>
+          <p class="no-results-title">Aucun résultat trouvé pour « {{ searchQuery }} »</p>
+          <p class="no-results-desc">Essayez un autre mot-clé ou tapez « modèle » pour voir tous les rapports.</p>
+        </div>
+      </ng-template>
+    </div>
+
+    <!-- Pied de palette avec raccourcis clavier -->
+    <div class="palette-footer">
+      <div class="footer-hint">
+        <kbd class="key-pill">↑</kbd> <kbd class="key-pill">↓</kbd>
+        <span>Naviguer</span>
+      </div>
+      <div class="footer-hint">
+        <kbd class="key-pill">↵</kbd>
+        <span>Exécuter</span>
+      </div>
+      <div class="footer-hint">
+        <kbd class="key-pill">Échap</kbd>
+        <span>Fermer</span>
+      </div>
+    </div>
+  </div>
+</div>
+

@@ -200,7 +200,7 @@
       <div class="section-body" *ngIf="sectionsOpen['typographie']">
         <div class="field">
           <label>Contenu</label>
-          <textarea formControlName="contenu" rows="3"></textarea>
+          <textarea formControlName="contenu" rows="3" [appVariableAutocomplete]="allVariablesForAutocomplete" [placeholder]="'Saisissez le texte ou {{ pour insérer une variable'"></textarea>
           <div class="var-buttons">
             <button
               type="button"
@@ -287,7 +287,7 @@
       <div class="section-body">
         <div class="field">
           <label>URL</label>
-          <input type="text" formControlName="url" placeholder="https://..." />
+          <input type="text" formControlName="url" [appVariableAutocomplete]="allVariablesForAutocomplete" [placeholder]="'https://... ou {{variable}}'" />
           <div class="var-buttons">
             <button
               type="button"
@@ -409,6 +409,7 @@
                     [class.cell-selected]="isCellSelected(i, j)"
                     (click)="selectCell(i, j)">
                   <input type="text" [ngModel]="cell.value" (ngModelChange)="updateCellValue(i, j, $event)"
+                    [appVariableAutocomplete]="allVariablesForAutocomplete"
                     placeholder="Cellule" [ngModelOptions]="{ standalone: true }" />
                 </td>
               </ng-container>
@@ -530,7 +531,18 @@
             <div *ngFor="let col of colonnes.controls; let i = index" class="colonne-row">
               <input placeholder="Titre" [formControl]="asFormControl(col.get('titre'))" />
               <input placeholder="Variable" [formControl]="asFormControl(col.get('variable'))" />
-              <button type="button" class="icon-remove" (click)="removeColonne(i)">
+              <input placeholder="Titre" [formControl]="asFormControl(col.get('titre'))" style="flex: 1.2;" />
+              <input placeholder="Variable" [formControl]="asFormControl(col.get('variable'))" style="flex: 1;" />
+              <input placeholder="Formule (ex: qte * pu)" [formControl]="asFormControl(col.get('formule'))" style="flex: 1.2;" title="Formule SpEL optionnelle" />
+              <select [formControl]="asFormControl(col.get('agregat'))" style="flex: 0.9;" title="Agrégat (Pied de tableau)">
+                <option value="NONE">— Aucun —</option>
+                <option value="SUM">Somme (SUM)</option>
+                <option value="AVG">Moyenne (AVG)</option>
+                <option value="COUNT">Nombre (COUNT)</option>
+                <option value="MIN">Min (MIN)</option>
+                <option value="MAX">Max (MAX)</option>
+              </select>
+              <button type="button" class="icon-remove" (click)="removeColonne(i)" aria-label="Supprimer la colonne">
                 <lucide-icon [img]="icons.close" [size]="14"></lucide-icon>
               </button>
             </div>
@@ -539,7 +551,61 @@
               Colonne
             </button>
           </div>
+
+          <!-- Ruptures de Groupe & Sous-Totaux -->
+          <div class="grouping-section" style="margin-top: 14px; padding-top: 12px; border-top: 1px dashed #e2e8f0;">
+            <label class="subtle-label" style="font-weight: 600; color: #4338ca;">⚡ Ruptures de Groupe &amp; Sous-Totaux</label>
+            <div class="field" style="margin-top: 8px;">
+              <label>Regrouper par (champ métier, ex: categorie)</label>
+              <input type="text" formControlName="groupBy" placeholder="Propriété (ex: categorie, vendeur)" />
+            </div>
+            <div class="field" *ngIf="form.value.groupBy">
+              <label>Titre de rupture (Gabarit)</label>
+              <input type="text" formControlName="groupHeaderTemplate" [placeholder]="'Famille : {{groupKey}}'" />
+            </div>
+            <div class="switch-row" *ngIf="form.value.groupBy" style="margin-top: 6px;">
+              <span>Sous-totaux par rupture</span>
+              <label class="switch">
+                <input type="checkbox" formControlName="afficherSousTotaux" />
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
         </ng-template>
+      </div>
+    </div>
+
+    <!-- ======================== GRAPHIQUE VECTORIEL SVG ======================== -->
+    <div class="section" *ngIf="block.type === 'graphique'">
+      <div class="section-header static">📊 Paramètres du Graphique Vectoriel</div>
+      <div class="section-body">
+        <div class="field">
+          <label>Type de graphique</label>
+          <select formControlName="graphiqueType">
+            <option value="bar">Barres verticales (SVG)</option>
+            <option value="line">Courbe continue (SVG)</option>
+            <option value="pie">Camembert / Secteurs (SVG)</option>
+            <option value="donut">Anneau / Donut (SVG)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Source de données (Variable liste)</label>
+          <input type="text" formControlName="source" [placeholder]="'ex: {{statistiques}} ou stats'" />
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Champ Libellé (Axe X / Secteur)</label>
+            <input type="text" formControlName="graphiqueLabelKey" placeholder="ex: mois ou label" />
+          </div>
+          <div class="field">
+            <label>Champ Valeur (Numérique)</label>
+            <input type="text" formControlName="graphiqueValueKey" placeholder="ex: total ou value" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Couleur principale</label>
+          <input type="color" formControlName="shapeFill" />
+        </div>
       </div>
     </div>
 
@@ -602,6 +668,38 @@
         <div class="field">
           <label>Valeur par défaut</label>
           <input type="text" formControlName="dataDefault" placeholder="Valeur si absente" />
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================== CONDITION D'AFFICHAGE ======================== -->
+    <div class="section">
+      <button type="button" class="section-header" (click)="toggleSection('condition')">
+        <span>⚡ Condition d'affichage</span>
+        <lucide-icon
+          [img]="sectionsOpen['condition'] ? icons.chevronUp : icons.chevronDown"
+          [size]="14"
+        ></lucide-icon>
+      </button>
+      <div class="section-body" *ngIf="sectionsOpen['condition']">
+        <div class="field">
+          <label>Expression conditionnelle</label>
+          <input
+            type="text"
+            formControlName="condition"
+            placeholder="ex: remise > 0, total >= 1000, pays == 'FR'"
+          />
+        </div>
+        <div class="field-hint">
+          Le bloc sera masqué si la condition s'évalue à faux. Laissez vide pour toujours afficher.
+        </div>
+        <div class="expression-helpers">
+          <label class="subtle-label">Raccourcis rapides :</label>
+          <div class="helper-buttons">
+            <button type="button" class="helper-btn" (click)="insertConditionSnippet('total > 0')">total > 0</button>
+            <button type="button" class="helper-btn" (click)="insertConditionSnippet('remise > 0')">remise > 0</button>
+            <button type="button" class="helper-btn" (click)="insertConditionSnippet('pays == \'FR\'')">pays == 'FR'</button>
+          </div>
         </div>
       </div>
     </div>

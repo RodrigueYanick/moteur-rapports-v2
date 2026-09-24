@@ -2,6 +2,14 @@
   <div class="filler-header">
     <lucide-icon [img]="icons.clipboard" [size]="16"></lucide-icon>
     <h3>Remplir le modèle </h3>
+    <div class="header-title">
+      <lucide-icon [img]="icons.clipboard" [size]="16"></lucide-icon>
+      <h3>Remplir le modèle</h3>
+    </div>
+    <button type="button" class="btn-import-excel" (click)="openExcelImportModal()" title="Importer des données depuis Excel ou CSV">
+      <lucide-icon [img]="icons.spreadsheet" [size]="13"></lucide-icon>
+      Importer Excel
+    </button>
   </div>
 
   <div class="filter-row" *ngIf="selectedBlock">
@@ -91,6 +99,10 @@
         <lucide-icon [img]="savingDocument ? icons.loader : icons.save" [size]="14" [class.spin]="savingDocument"></lucide-icon>
         {{ savingDocument ? 'Sauvegarde...' : (activeDocumentId ? 'Mettre à jour' : 'Sauvegarder') }}
       </button>
+      <button class="btn-success" (click)="exportExcelFromValues()" [disabled]="exportingExcel" title="Exporter les valeurs en Excel (.xlsx)">
+        <lucide-icon [img]="exportingExcel ? icons.loader : icons.spreadsheet" [size]="14" [class.spin]="exportingExcel"></lucide-icon>
+        {{ exportingExcel ? 'Export...' : 'Excel' }}
+      </button>
       <button class="btn-secondary" *ngIf="activeDocumentId" (click)="newDocument()">
         <lucide-icon [img]="icons.plus" [size]="14"></lucide-icon>
         Nouveau
@@ -125,10 +137,22 @@
         <button (click)="generateFromDocument(doc)" title="Générer le PDF">
           <lucide-icon [img]="icons.printer" [size]="14"></lucide-icon>
         </button>
+        <button (click)="exportDocumentExcel(doc)" title="Exporter en Excel (.xlsx)" class="excel-btn">
+          <lucide-icon [img]="icons.spreadsheet" [size]="14"></lucide-icon>
+        </button>
         <button (click)="deleteDocument(doc)" title="Supprimer" class="danger">
           <lucide-icon [img]="icons.trash" [size]="14"></lucide-icon>
         </button>
       </div>
     </div>
   </div>
+
+  <!-- Modal Assistant Import Excel / CSV -->
+  <app-excel-import-modal
+    [visible]="showExcelImportModal"
+    [variables]="variables"
+    [mode]="'single-row'"
+    (importSingleRow)="onExcelRowImported($event)"
+    (cancelled)="showExcelImportModal = false">
+  </app-excel-import-modal>
 </div>

@@ -99,6 +99,9 @@ export class DesignSerializer {
         } else {
           b.source = block.source || '';
           b.colonnes = block.colonnes || [];
+          if (block.groupBy) b.groupBy = block.groupBy;
+          if (block.groupHeaderTemplate) b.groupHeaderTemplate = block.groupHeaderTemplate;
+          if (block.afficherSousTotaux !== undefined) b.afficherSousTotaux = block.afficherSousTotaux;
         }
         b.style = {
           bordureCouleur: block.style?.bordureCouleur ?? '#d9d9d9',
@@ -135,6 +138,8 @@ export class DesignSerializer {
 
       case 'graphique':
         b.source = block.source || '';
+        b.graphiqueType = block.graphiqueType || 'bar';
+        if (block.style) b.style = { ...block.style };
         break;
     }
 
@@ -192,6 +197,9 @@ export class DesignSerializer {
         } else {
           block.source = b.source || '';
           block.colonnes = b.colonnes || [];
+          block.groupBy = b.groupBy;
+          block.groupHeaderTemplate = b.groupHeaderTemplate;
+          block.afficherSousTotaux = b.afficherSousTotaux;
         }
         block.style = {
           bordureCouleur: b.style?.bordureCouleur ?? '#d9d9d9',
@@ -235,6 +243,8 @@ export class DesignSerializer {
 
       case 'graphique':
         block.source = b.source || '';
+        block.graphiqueType = b.graphiqueType || 'bar';
+        if (b.style) block.style = { ...b.style };
         break;
 
       default:

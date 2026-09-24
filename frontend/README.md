@@ -1,59 +1,88 @@
-# ReportDesigner
+# Moteur de Rapports — Frontend Studio (Angular 21)
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.1.2.
+Ce projet est l'atelier de conception visuelle WYSIWYG et studio de reporting interactif développé avec **Angular 21** (Standalone Components, Signals réactifs, Vite) et **TypeScript 5.8**.
 
-## Development server
+---
 
-To start a local development server, run:
+## 🏛️ Architecture Modulaire
 
-```bash
-ng serve
+L'application respecte les principes de la *Clean Feature-Based Architecture* et le principe de responsabilité unique (SOLID) :
+
+```
+frontend/src/app/
+├── auth/                       # Authentification (Login, Register, Modèle utilisateur)
+├── core/                       # Services singletons & configuration globale
+├── designer/                   # Studio WYSIWYG de conception
+│   ├── block-editor/           # Inspecteur de propriétés de blocs
+│   ├── block-preview/          # Prévisualisation dynamique avec Renderers
+│   │   └── renderers/          # Pattern Stratégie : Text, Table, Chart, Shape, Barcode
+│   ├── components/             # Sous-composants modulaires du studio
+│   │   ├── designer-toolbar/   # Barre d'outils (Undo/Redo, Alignements, Zoom, Export)
+│   │   └── designer-page-tabs/ # Gestion des onglets multipages (Ajout, Duplication, Renommage)
+│   ├── design-canvas/          # Feuille virtuelle et moteur de manipulation drag-and-drop
+│   ├── sidebar/                # Panneau latéral de calques, composants et variables
+│   ├── services/               # State store (Signals), Presse-papiers, Géométrie, Historique
+│   └── index.ts                # Barrel export public du module designer
+├── documents/                  # Consultation, diffusion (Email, XLSX, PDF in-app)
+├── batches/                    # Traitements par lot, Webhooks & Assistant Excel
+├── templates/                  # Galerie & gestion des modèles de rapports
+│   ├── starter-templates/      # Gabarits prédéfinis modulaires
+│   │   ├── templates/          # Facture, Devis, Attestation, Bulletin de paie, etc.
+│   │   └── starter-template.model.ts
+│   └── template-detail/        # Vue studio de template
+├── shared/                     # Composants, services et directives réutilisables
+│   ├── components/             # CommandPalette (Ctrl+K), Toasts, Modales
+│   ├── directives/             # Autocomplétion variable {{ in-place
+│   ├── services/               # Thème (Clair/Sombre), Toasts, Onboarding
+│   └── index.ts                # Barrel export global de la couche shared
+└── widget/                     # SDK Web Component <report-designer-widget>
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+---
 
-## Code scaffolding
+## 🧭 Path Aliases TypeScript
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+Pour éviter les chemins relatifs profonds (`../../../`), des alias TypeScript sont configurés dans `tsconfig.json` :
 
+| Alias | Destination | Utilisation |
+| :--- | :--- | :--- |
+| `@shared/*` | `src/app/shared/*` | UI Kit, Modales, Palette de commande, Toasts |
+| `@designer/*` | `src/app/designer/*` | Studio Designer, Canvas, Inspecteur, Renderers |
+| `@models/*` | `src/app/models/*` | Modèles de données (Template, Variable, Document) |
+| `@services/*` | `src/app/services/*` | Services HTTP backend (TemplateApi, Batch, Auth) |
+| `@templates/*` | `src/app/templates/*`| Galerie de modèles et Starter Templates |
+| `@auth/*` | `src/app/auth/*` | Parcours de connexion et d'inscription |
+| `@guards/*` | `src/app/guards/*` | Protection des routes Angular |
+| `@interceptors/*`| `src/app/interceptors/*` | Intercepteur JWT |
+
+---
+
+## 🎨 Moteur de Rendu Modulaire (`BlockHtmlRenderer`)
+
+Dans `src/app/designer/block-preview/renderers/`, le rendu HTML des blocs est découplé via le **Pattern Stratégie** :
+- `TextBlockRenderer` : Rendu des titres, paragraphes et séparateurs horizontaux avec substitution dynamique des variables.
+- `TableBlockRenderer` : Tableaux statiques matriciels et tableaux dynamiques avec pagination intelligente inter-pages.
+- `ChartBlockRenderer` : Graphiques vectoriels SVG (histogrammes, barres).
+- `ShapeBlockRenderer` : Rectangles avec arrondis et cercles.
+- `BarcodeBlockRenderer` : QR Codes de vérification, codes-barres, signatures manuscrites et images.
+
+---
+
+## 🚀 Commandes de Développement & Validation
+
+### Serveur de développement local
 ```bash
-ng generate component component-name
+npm start
+# ou ng serve
+# Accessible sur http://localhost:4200
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
+### Compilation de production
 ```bash
-ng generate --help
+npm run build
 ```
 
-## Building
-
-To build the project run:
-
+### Tests E2E Playwright (26 scénarios complets)
 ```bash
-ng build
+npm run test:e2e
 ```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.

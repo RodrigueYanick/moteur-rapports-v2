@@ -8,13 +8,14 @@ import { FillerDataService } from '../services/filler-data';
 import { Subject, takeUntil } from 'rxjs';
 import { DesignBlock } from '../models/design-block.model';
 import {
-  LucideAngularModule, ClipboardList, Plus, Save, Loader2, FolderOpen, Printer, Trash2
+  LucideAngularModule, ClipboardList, Plus, Save, Loader2, FolderOpen, Printer, Trash2, FileSpreadsheet
 } from 'lucide-angular';
+import { ExcelImportModalComponent } from '../../shared/components/excel-import-modal/excel-import-modal.component';
 
 @Component({
   selector: 'app-template-filler',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, LucideAngularModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, LucideAngularModule, ExcelImportModalComponent],
   templateUrl: './template-filler.html',
   styleUrls: ['./template-filler.scss'],
 })
@@ -34,8 +35,10 @@ export class TemplateFiller implements OnInit, OnDestroy {
   loadingDocuments = false;
   docNameInput = '';
   savingDocument = false;
+  exportingExcel = false;
   activeDocumentId: string | null = null;
   showAllVariables = true;  // ✅ Par défaut: afficher TOUTES les variables
+  showExcelImportModal = false;
 
   private destroy$ = new Subject<void>();
 
@@ -47,7 +50,8 @@ export class TemplateFiller implements OnInit, OnDestroy {
     loader: Loader2,
     folder: FolderOpen,
     printer: Printer,
-    trash: Trash2
+    trash: Trash2,
+    spreadsheet: FileSpreadsheet
   };
 
   constructor(
@@ -122,6 +126,17 @@ export class TemplateFiller implements OnInit, OnDestroy {
     this.values[varName] = value;
     this.fillerData.updateValue(varName, value);
     this.cdr.detectChanges();
+  }
+
+  openExcelImportModal(): void {
+    this.showExcelImportModal = true;
+  }
+
+  onExcelRowImported(rowData: Record<string, any>): void {
+    this.showExcelImportModal = false;
+    for (const [key, val] of Object.entries(rowData)) {
+      this.onValueChange(key, val);
+    }
   }
 
   addRow(varName: string): void {
@@ -232,6 +247,48 @@ export class TemplateFiller implements OnInit, OnDestroy {
   generateFromDocument(doc: GeneratedDocument): void {
     this.loadDocument(doc);
     this.generatePdfRequest.emit(doc.donnees);
+  }
+
+  exportExcelFromValues(): void {
+    if (!this.templateId || this.exportingExcel) return;
+    this.exportingExcel = true;
+    this.api.exportExcel(this.templateId, this.values).subscribe({
+      next: (blob: Blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const name = this.docNameInput.trim() || 'rapport';
+        a.download = `${name}.xlsx`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        this.exportingExcel = false;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Erreur export Excel', err);
+        alert('Échec de l\'export Excel.');
+        this.exportingExcel = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  exportDocumentExcel(doc: GeneratedDocument): void {
+    if (!this.templateId) return;
+    this.api.exportDocumentExcel(this.templateId, doc.id).subscribe({
+      next: (blob: Blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${doc.nom}.xlsx`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+      },
+      error: (err) => {
+        console.error('Erreur export Excel', err);
+        alert('Échec de l\'export Excel.');
+      }
+    });
   }
 
   deleteDocument(doc: GeneratedDocument): void {

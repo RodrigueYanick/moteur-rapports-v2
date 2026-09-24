@@ -6,6 +6,7 @@ import com.rapports.moteur.dto.dtoGeneration.GenerationResponse;
 import com.rapports.moteur.dto.dtoTemplate.TemplateCreate;
 import com.rapports.moteur.dto.dtoTemplate.TemplateResponse;
 import com.rapports.moteur.dto.dtoTemplate.TemplateSchemaDto;
+import com.rapports.moteur.dto.dtoTemplate.TemplateVersionTreeDto;
 import com.rapports.moteur.dto.dtoVariable.VariableRequest;
 import com.rapports.moteur.dto.dtoVariable.VariableResponse;
 import com.rapports.moteur.entity.Visibilite;
@@ -324,6 +325,33 @@ public class TemplateController {
     }
 
     @Operation(
+        summary = "Exporter un document en Excel (.xlsx)",
+        description = """
+            Reçoit les données réelles (variables du modèle), valide qu'elles correspondent au schéma,
+            puis génère un classeur Excel (.xlsx) stylé avec feuille de synthèse et feuilles dédiées pour chaque tableau.
+            """
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Fichier Excel généré avec succès",
+                     content = @Content(mediaType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")),
+        @ApiResponse(responseCode = "400", description = "Données invalides ou champ manquant",
+                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "404", description = "Modèle introuvable ou non publié",
+                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class)))
+    })
+    @PostMapping("/{id}/export-excel")
+    public ResponseEntity<byte[]> exportExcel(
+            @Parameter(description = "Identifiant UUID du modèle publié", required = true)
+            @PathVariable @NonNull UUID id,
+            @org.springframework.web.bind.annotation.RequestBody Map<String, Object> data) {
+        byte[] excel = generationService.generateExcel(id, data);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"rapport.xlsx\"")
+                .header(HttpHeaders.CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                .body(excel);
+    }
+
+    @Operation(
         summary = "Aperçu HTML d'un document",
         description = """
             Retourne le HTML généré à partir des données et du design, sans conversion PDF.
@@ -491,5 +519,22 @@ public class TemplateController {
             @Parameter(description = "Identifiant UUID du modèle archivé", required = true)
             @PathVariable UUID id) {
         return ResponseEntity.ok(templateService.restore(id));
+    }
+
+    @Operation(
+        summary = "Obtenir l'arbre et l'historique complet des versions",
+        description = "Retourne la généalogie complète (arbre parent/enfants et chronologie ordonnée) de la famille du modèle."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Arbre des versions récupéré avec succès",
+                     content = @Content(schema = @Schema(implementation = TemplateVersionTreeDto.class))),
+        @ApiResponse(responseCode = "404", description = "Modèle introuvable ou inaccessible",
+                     content = @Content(schema = @Schema(implementation = ApiError.class)))
+    })
+    @GetMapping("/{id}/versions")
+    public ResponseEntity<TemplateVersionTreeDto> getVersionTree(
+            @Parameter(description = "Identifiant UUID du modèle", required = true)
+            @PathVariable @NonNull UUID id) {
+        return ResponseEntity.ok(templateService.getVersionTree(id));
     }
 }

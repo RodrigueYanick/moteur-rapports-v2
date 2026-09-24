@@ -1,0 +1,963 @@
+$primary: #6366f1;
+$primary-hover: #4f46e5;
+$success: #10b981;
+$success-hover: #059669;
+$warning: #f59e0b;
+$danger: #ef4444;
+$bg-card: #ffffff;
+$border: #e2e8f0;
+$text-main: #1e293b;
+$text-muted: #64748b;
+
+.batches-container {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  min-height: calc(100vh - 65px);
+  background-color: #f8fafc;
+}
+
+/* En-tête */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+
+  .header-titles {
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: $text-main;
+      margin: 0 0 0.5rem 0;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+
+      .header-icon {
+        color: $primary;
+      }
+    }
+
+    .subtitle {
+      color: $text-muted;
+      margin: 0;
+      font-size: 0.95rem;
+    }
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+
+    .filter-select {
+      padding: 0.5rem 0.85rem;
+      border: 1px solid $border;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      background: #fff;
+      color: $text-main;
+      outline: none;
+      transition: border-color 0.2s;
+
+      &:focus {
+        border-color: $primary;
+      }
+    }
+
+    .btn-icon {
+      background: #fff;
+      border: 1px solid $border;
+      border-radius: 8px;
+      padding: 0.55rem;
+      cursor: pointer;
+      color: $text-muted;
+      display: flex;
+      align-items: center;
+      transition: all 0.2s;
+
+      &:hover {
+        color: $text-main;
+        border-color: #cbd5e1;
+      }
+    }
+
+    .btn-primary {
+      background: $primary;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 0.55rem 1.1rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: background 0.2s;
+
+      &:hover {
+        background: $primary-hover;
+      }
+    }
+  }
+}
+
+/* KPIs */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+
+  .kpi-card {
+    background: #fff;
+    border: 1px solid $border;
+    border-radius: 12px;
+    padding: 1.25rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+
+    .kpi-val {
+      font-size: 1.85rem;
+      font-weight: 700;
+      color: $text-main;
+      margin-bottom: 0.25rem;
+    }
+
+    .kpi-label {
+      font-size: 0.85rem;
+      color: $text-muted;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 500;
+    }
+
+    &.highlight .kpi-val {
+      color: $primary;
+    }
+
+    &.success .kpi-val {
+      color: $success;
+    }
+  }
+}
+
+/* Messages d'état */
+.state-msg {
+  padding: 2rem;
+  text-align: center;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid $border;
+  color: $text-muted;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+
+  &.error {
+    color: $danger;
+    border-color: rgba($danger, 0.3);
+    background: #fef2f2;
+  }
+}
+
+/* État vide */
+.empty-state {
+  text-align: center;
+  padding: 4rem 2rem;
+  background: #fff;
+  border: 1px dashed $border;
+  border-radius: 16px;
+  margin-top: 1rem;
+
+  .empty-icon {
+    color: #cbd5e1;
+    margin-bottom: 1rem;
+  }
+
+  h3 {
+    font-size: 1.25rem;
+    color: $text-main;
+    margin: 0 0 0.5rem 0;
+  }
+
+  p {
+    color: $text-muted;
+    max-width: 450px;
+    margin: 0 auto 1.5rem auto;
+    font-size: 0.95rem;
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: $primary;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 0.65rem 1.25rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+}
+
+/* Cartes des lots */
+.batch-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.batch-card {
+  background: #fff;
+  border: 1px solid $border;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease-in-out;
+  overflow: hidden;
+
+  &:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
+  }
+
+  &.expanded {
+    border-color: $primary;
+  }
+
+  .batch-card-main {
+    padding: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .batch-info {
+    flex: 1;
+    min-width: 280px;
+
+    .batch-title-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+      flex-wrap: wrap;
+
+      .template-name {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: $text-main;
+      }
+
+      .batch-id {
+        font-size: 0.8rem;
+        font-family: monospace;
+        color: $text-muted;
+        background: #f1f5f9;
+        padding: 0.15rem 0.4rem;
+        border-radius: 4px;
+      }
+    }
+  }
+
+  /* Barre de progression */
+  .progress-section {
+    margin-bottom: 0.75rem;
+
+    .progress-bar-container {
+      width: 100%;
+      height: 8px;
+      background: #f1f5f9;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 0.35rem;
+
+      .progress-bar-fill {
+        height: 100%;
+        background: $primary;
+        transition: width 0.4s ease;
+
+        &.TERMINE {
+          background: $success;
+        }
+
+        &.TERMINE_AVEC_ERREURS {
+          background: $warning;
+        }
+
+        &.ECHEC {
+          background: $danger;
+        }
+
+        &.EN_COURS {
+          background: linear-gradient(90deg, #6366f1 0%, #a855f7 100%);
+        }
+      }
+    }
+
+    .progress-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.82rem;
+
+      .progress-pct {
+        font-weight: 700;
+        color: $text-main;
+      }
+
+      .progress-counts {
+        color: $text-muted;
+
+        .text-success {
+          color: $success;
+          font-weight: 600;
+        }
+
+        .text-danger {
+          color: $danger;
+          font-weight: 600;
+        }
+      }
+    }
+  }
+
+  /* Détails métadonnées */
+  .batch-details-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-size: 0.8rem;
+    color: $text-muted;
+    flex-wrap: wrap;
+
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .webhook-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+
+      &.ENVOYE {
+        background: #ecfdf5;
+        color: #065f46;
+      }
+
+      &.ECHEC {
+        background: #fef2f2;
+        color: #991b1b;
+      }
+
+      &.EN_ATTENTE {
+        background: #eff6ff;
+        color: #1e40af;
+      }
+
+      &.NON_CONFIGURE {
+        background: #f1f5f9;
+        color: #64748b;
+      }
+    }
+  }
+
+  /* Actions */
+  .batch-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+
+    .btn-zip {
+      background: #ecfdf5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+      border-radius: 8px;
+      padding: 0.5rem 0.85rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.2s;
+
+      &:hover:not(:disabled) {
+        background: #d1fae5;
+        border-color: #6ee7b7;
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+
+    .btn-retry {
+      background: #fffbeb;
+      color: #92400e;
+      border: 1px solid #fde68a;
+      border-radius: 8px;
+      padding: 0.5rem 0.85rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.2s;
+
+      &:hover:not(:disabled) {
+        background: #fef3c7;
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+
+    .btn-toggle-details {
+      background: #f8fafc;
+      color: $text-main;
+      border: 1px solid $border;
+      border-radius: 8px;
+      padding: 0.5rem 0.85rem;
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: all 0.2s;
+
+      &:hover {
+        background: #f1f5f9;
+        border-color: #cbd5e1;
+      }
+    }
+  }
+}
+
+/* Badges Statuts */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+
+  &.EN_ATTENTE {
+    background: #fef3c7;
+    color: #92400e;
+  }
+
+  &.EN_COURS {
+    background: #eff6ff;
+    color: #1d4ed8;
+  }
+
+  &.TERMINE {
+    background: #dcfce7;
+    color: #15803d;
+  }
+
+  &.TERMINE_AVEC_ERREURS {
+    background: #ffedd5;
+    color: #c2410c;
+  }
+
+  &.ECHEC {
+    background: #fee2e2;
+    color: #b91c1c;
+  }
+
+  .spin-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #1d4ed8;
+    animation: pulse 1.5s infinite;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
+}
+
+/* Accordéon Éléments */
+.batch-items-dropdown {
+  border-top: 1px solid $border;
+  background: #fafafa;
+  padding: 1rem 1.5rem 1.5rem 1.5rem;
+
+  .items-loader {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: $text-muted;
+    padding: 1rem 0;
+  }
+
+  .items-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+
+    th {
+      text-align: left;
+      padding: 0.6rem 0.75rem;
+      border-bottom: 2px solid $border;
+      color: $text-muted;
+      font-weight: 600;
+    }
+
+    td {
+      padding: 0.6rem 0.75rem;
+      border-bottom: 1px solid $border;
+      vertical-align: middle;
+    }
+
+    .cell-ref strong {
+      font-family: monospace;
+      color: $text-main;
+    }
+
+    .item-badge {
+      display: inline-block;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+
+      &.SUCCES {
+        background: #ecfdf5;
+        color: #065f46;
+      }
+
+      &.ECHEC {
+        background: #fef2f2;
+        color: #991b1b;
+      }
+
+      &.EN_COURS, &.EN_ATTENTE {
+        background: #eff6ff;
+        color: #1e40af;
+      }
+    }
+
+    .cell-error {
+      max-width: 320px;
+
+      .error-text {
+        color: $danger;
+        font-size: 0.8rem;
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .text-muted {
+        color: #94a3b8;
+        font-size: 0.8rem;
+      }
+    }
+
+    .btn-item-download {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      color: $primary;
+      text-decoration: none;
+      font-weight: 600;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      background: rgba($primary, 0.08);
+      transition: background 0.2s;
+
+      &:hover {
+        background: rgba($primary, 0.16);
+      }
+    }
+  }
+}
+
+/* Modal */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modal-card {
+  background: #fff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 650px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+
+  .modal-header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid $border;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: $text-main;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .modal-close-btn {
+      background: transparent;
+      border: none;
+      font-size: 1.5rem;
+      line-height: 1;
+      color: $text-muted;
+      cursor: pointer;
+
+      &:hover {
+        color: $text-main;
+      }
+    }
+  }
+
+  .modal-body {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+
+    .modal-error {
+      background: #fef2f2;
+      border: 1px solid rgba($danger, 0.3);
+      color: $danger;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+
+      label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: $text-main;
+      }
+
+      .label-with-action {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+        .btn-text {
+          background: none;
+          border: none;
+          color: $primary;
+          font-size: 0.8rem;
+          font-weight: 600;
+          cursor: pointer;
+          padding: 0;
+
+          &:hover {
+            text-decoration: underline;
+          }
+        }
+      }
+
+      .modal-select, .modal-input, .modal-textarea {
+        padding: 0.65rem 0.85rem;
+        border: 1px solid $border;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        color: $text-main;
+        outline: none;
+        transition: border-color 0.2s;
+
+        &:focus {
+          border-color: $primary;
+        }
+      }
+
+      .modal-textarea {
+        font-family: monospace;
+        font-size: 0.85rem;
+        line-height: 1.4;
+      }
+
+      .hint-row {
+        display: flex;
+        justify-content: flex-end;
+        font-size: 0.8rem;
+
+        .count-badge {
+          color: $success;
+          font-weight: 600;
+        }
+
+        .error-hint {
+          color: $danger;
+        }
+      }
+
+      .field-hint {
+        font-size: 0.75rem;
+        color: $text-muted;
+      }
+
+      .input-with-btn {
+        display: flex;
+        gap: 0.5rem;
+
+        input {
+          flex: 1;
+        }
+
+        .btn-test-webhook {
+          background: #f1f5f9;
+          border: 1px solid $border;
+          border-radius: 8px;
+          padding: 0 0.85rem;
+          font-size: 0.85rem;
+          font-weight: 600;
+          cursor: pointer;
+          white-space: nowrap;
+          display: flex;
+          align-items: center;
+          gap: 0.35rem;
+
+          &:hover:not(:disabled) {
+            background: #e2e8f0;
+          }
+
+          &:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+          }
+        }
+      }
+    }
+
+    .webhook-config-box {
+      background: #f8fafc;
+      border: 1px solid $border;
+      border-radius: 12px;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+
+      h3 {
+        margin: 0;
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: $text-main;
+      }
+
+      .box-desc {
+        margin: 0 0 0.25rem 0;
+        font-size: 0.8rem;
+        color: $text-muted;
+      }
+
+      .test-result-box {
+        padding: 0.5rem 0.75rem;
+        border-radius: 6px;
+        font-size: 0.8rem;
+        font-weight: 500;
+
+        &.success {
+          background: #ecfdf5;
+          color: #065f46;
+        }
+
+        &.fail {
+          background: #fef2f2;
+          color: #991b1b;
+        }
+      }
+    }
+  }
+
+  .modal-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid $border;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+
+    .btn-cancel {
+      background: #fff;
+      border: 1px solid $border;
+      border-radius: 8px;
+      padding: 0.6rem 1.1rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+      color: $text-main;
+
+      &:hover {
+        background: #f8fafc;
+      }
+    }
+
+    .btn-submit {
+      background: $primary;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 0.6rem 1.25rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+
+      &:hover:not(:disabled) {
+        background: $primary-hover;
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+  }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Assistant Import Excel / CSV Promo Box */
+.excel-import-promo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 1.1rem;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(99, 102, 241, 0.06) 100%);
+  border: 1px dashed rgba(16, 185, 129, 0.4);
+  border-radius: 10px;
+  margin-bottom: 1.25rem;
+
+  .promo-info {
+    flex: 1;
+
+    .promo-badge-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.35rem;
+
+      .promo-badge {
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        color: #059669;
+        background: #ecfdf5;
+        padding: 2px 7px;
+        border-radius: 5px;
+        border: 1px solid rgba(16, 185, 129, 0.2);
+      }
+
+      .promo-tip {
+        font-size: 0.75rem;
+        color: $text-muted;
+        font-weight: 500;
+      }
+    }
+
+    .promo-subtitle {
+      font-size: 0.82rem;
+      color: $text-main;
+      margin: 0;
+      line-height: 1.4;
+
+      strong {
+        color: #059669;
+      }
+    }
+  }
+
+  .btn-open-excel-wizard {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1rem;
+    background: #10b981;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+
+    &:hover {
+      background: #059669;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+    }
+  }
+}
+
+.excel-success-banner {
+  padding: 0.65rem 0.9rem;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  border-radius: 8px;
+  color: #065f46;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+

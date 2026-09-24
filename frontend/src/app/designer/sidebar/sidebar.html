@@ -1,14 +1,29 @@
 <div class="sidebar">
-  <div class="tabs">
-    <button [class.active]="activeTab === 'library'" (click)="setActiveTab('library')">
+  <div class="tabs" role="tablist" aria-label="Sections du panneau latéral">
+    <button
+      role="tab"
+      [attr.aria-selected]="activeTab === 'library'"
+      [class.active]="activeTab === 'library'"
+      (click)="setActiveTab('library')"
+    >
       <lucide-icon [img]="icons.library" [size]="15"></lucide-icon>
       Bibliothèque
     </button>
-    <button [class.active]="activeTab === 'layers'" (click)="setActiveTab('layers')">
+    <button
+      role="tab"
+      [attr.aria-selected]="activeTab === 'layers'"
+      [class.active]="activeTab === 'layers'"
+      (click)="setActiveTab('layers')"
+    >
       <lucide-icon [img]="icons.layers" [size]="15"></lucide-icon>
       Calques
     </button>
-    <button [class.active]="activeTab === 'variables'" (click)="setActiveTab('variables')">
+    <button
+      role="tab"
+      [attr.aria-selected]="activeTab === 'variables'"
+      [class.active]="activeTab === 'variables'"
+      (click)="setActiveTab('variables')"
+    >
       <lucide-icon [img]="icons.code" [size]="15"></lucide-icon>
       Variables
     </button>
@@ -16,9 +31,9 @@
 
   <div class="tab-content">
     <!-- ======================== BIBLIOTHÈQUE ======================== -->
-    <div *ngIf="activeTab === 'library'" class="library-tab">
+    <div *ngIf="activeTab === 'library'" class="library-tab" role="tabpanel" aria-label="Bibliothèque de composants">
       <div class="category" *ngFor="let cat of categories">
-        <button type="button" class="category-header" (click)="toggleCategory(cat)">
+        <button type="button" class="category-header" (click)="toggleCategory(cat)" [attr.aria-expanded]="cat.open">
           <lucide-icon
             [img]="cat.open ? icons.chevronDown : icons.chevronRight"
             [size]="13"
@@ -47,7 +62,7 @@
     </div>
 
     <!-- ======================== CALQUES ======================== -->
-    <div *ngIf="activeTab === 'layers'" class="layers-tab">
+    <div *ngIf="activeTab === 'layers'" class="layers-tab" role="tabpanel" aria-label="Gestion des calques">
       <div class="layers-hint" *ngIf="blocks.length > 1">
         <span>Glisse pour réorganiser · le haut = premier plan</span>
       </div>
@@ -79,6 +94,7 @@
               (click)="moveLayerUp(block, $event)"
               [disabled]="isFirstInDisplay(block)"
               title="Monter (premier plan)"
+              aria-label="Monter au premier plan"
             >
               <lucide-icon [img]="icons.chevronUp" [size]="13"></lucide-icon>
             </button>
@@ -86,18 +102,21 @@
               (click)="moveLayerDown(block, $event)"
               [disabled]="isLastInDisplay(block)"
               title="Descendre (arrière-plan)"
+              aria-label="Descendre à l'arrière-plan"
             >
               <lucide-icon [img]="icons.chevronDown" [size]="13"></lucide-icon>
             </button>
             <button
               (click)="onToggleVisibility(block)"
               [title]="block.visible ? 'Masquer' : 'Afficher'"
+              [attr.aria-label]="block.visible ? 'Masquer' : 'Afficher'"
             >
               <lucide-icon [img]="block.visible ? icons.eye : icons.eyeOff" [size]="14"></lucide-icon>
             </button>
             <button
               (click)="onToggleLock(block)"
               [title]="block.locked ? 'Déverrouiller' : 'Verrouiller'"
+              [attr.aria-label]="block.locked ? 'Déverrouiller' : 'Verrouiller'"
             >
               <lucide-icon [img]="block.locked ? icons.lock : icons.unlock" [size]="14"></lucide-icon>
             </button>
@@ -109,10 +128,11 @@
     </div>
 
     <!-- ======================== VARIABLES ======================== -->
-    <div *ngIf="activeTab === 'variables'" class="variables-tab">
+    <div *ngIf="activeTab === 'variables'" class="variables-tab" role="tabpanel" aria-label="Gestion des variables">
       <app-variable-manager
         [templateId]="templateId"
         (variablesLoaded)="explicitVariablesChange.emit($event)"
+        (insertVariable)="insertVariable.emit($event)"
       >
       </app-variable-manager>
     </div>

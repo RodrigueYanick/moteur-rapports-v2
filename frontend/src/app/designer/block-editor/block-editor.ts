@@ -38,11 +38,12 @@ import {
   ChevronsRight,
   ChevronsDown,
 } from 'lucide-angular';
+import { VariableAutocompleteDirective, AutocompleteVariableItem } from '../../shared/directives/variable-autocomplete.directive';
 
 @Component({
   selector: 'app-block-editor',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, LucideAngularModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, LucideAngularModule, VariableAutocompleteDirective],
   templateUrl: './block-editor.html',
   styleUrls: ['./block-editor.scss'],
 })
@@ -62,6 +63,7 @@ export class BlockEditor implements OnChanges, DoCheck {
   selectedColumn: number | null = null;
   selectedRow: number | null = null;
   selectedCell: { row: number; col: number } | null = null;
+  allVariablesForAutocomplete: AutocompleteVariableItem[] = [];
 
   readonly icons = {
     close: X,
@@ -108,6 +110,9 @@ export class BlockEditor implements OnChanges, DoCheck {
     typographie: true,
     donnees: true,
     tableauStyle: true,
+    grouping: true,
+    graphique: true,
+    condition: false,
   };
 
   fontFamilies = ['Inter', 'Arial', 'Georgia', 'Times New Roman', 'Courier New', 'Roboto'];
@@ -116,6 +121,7 @@ export class BlockEditor implements OnChanges, DoCheck {
     this.form = this.fb.group({
       nom: [''],
       contenu: [''],
+      condition: [''],
       fontSize: [12],
       bold: [false],
       italic: [false],
@@ -139,6 +145,12 @@ export class BlockEditor implements OnChanges, DoCheck {
       alignImage: ['left'],
       source: [''],
       colonnes: this.fb.array([]),
+      groupBy: [''],
+      groupHeaderTemplate: [''],
+      afficherSousTotaux: [true],
+      graphiqueType: ['bar'],
+      graphiqueLabelKey: [''],
+      graphiqueValueKey: [''],
       dataFormat: [''],
       dataDefault: [''],
       bordureCouleur: ['#d9d9d9'],
@@ -336,6 +348,13 @@ export class BlockEditor implements OnChanges, DoCheck {
           largeurImage: this.block.style?.largeur || 100,
           alignImage: this.block.style?.align || 'left',
           source: this.block.source || '',
+          groupBy: this.block.groupBy || '',
+          groupHeaderTemplate: this.block.groupHeaderTemplate || '',
+          afficherSousTotaux: this.block.afficherSousTotaux ?? true,
+          graphiqueType: this.block.graphiqueType || 'bar',
+          graphiqueLabelKey: this.block.graphiqueLabelKey || '',
+          graphiqueValueKey: this.block.graphiqueValueKey || '',
+          condition: this.block.condition || '',
           dataFormat: this.block.dataBinding?.format || '',
           dataDefault: this.block.dataBinding?.valeurDefaut || '',
           bordureCouleur: this.block.style?.bordureCouleur || '#d9d9d9',
@@ -394,16 +413,18 @@ export class BlockEditor implements OnChanges, DoCheck {
     return this.form.get('colonnes') as FormArray;
   }
 
-  buildColonnesArray(cols: { titre: string; variable: string; }[]): void {
+  buildColonnesArray(cols: any[]): void {
     while (this.colonnes.length) this.colonnes.removeAt(0);
-    cols.forEach((col) => this.addColonne(col.titre, col.variable));
+    cols.forEach((col) => this.addColonne(col.titre, col.variable, col.formule, col.agregat));
   }
 
-  addColonne(titre = '', variable = ''): void {
+  addColonne(titre = '', variable = '', formule = '', agregat = 'NONE'): void {
     this.colonnes.push(
       this.fb.group({
         titre: [titre, Validators.required],
         variable: [variable, Validators.required],
+        formule: [formule || ''],
+        agregat: [agregat || 'NONE'],
       }),
     );
   }
@@ -412,7 +433,19 @@ export class BlockEditor implements OnChanges, DoCheck {
     this.colonnes.removeAt(index);
   }
 
+  insertConditionSnippet(snippet: string): void {
+    const current = this.form.get('condition')?.value || '';
+    if (!current) {
+      this.form.get('condition')?.setValue(snippet);
+    } else {
+      this.form.get('condition')?.setValue(current + ' && ' + snippet);
+    }
+  }
+
   refreshAvailableVariables(): void {
+    const explicitMap = new Map<string, Variable>();
+    (this.explicitVariables || []).forEach((v) => explicitMap.set(v.nomVariable, v));
+
     const explicitNames = this.explicitVariables?.map((v) => v.nomVariable) || [];
     const detected = new Set<string>(explicitNames);
 
@@ -435,6 +468,17 @@ export class BlockEditor implements OnChanges, DoCheck {
       }
     }
     this.availableVariables = Array.from(detected).sort();
+
+    // Construction de la liste riche pour l'autocomplétion
+    this.allVariablesForAutocomplete = this.availableVariables.map((nom) => {
+      const exp = explicitMap.get(nom);
+      if (exp) return exp;
+      return {
+        nomVariable: nom,
+        type: 'STRING',
+        description: 'Variable détectée dans le document',
+      };
+    });
   }
 
   insertVariable(varName: string): void {
@@ -557,6 +601,7 @@ export class BlockEditor implements OnChanges, DoCheck {
     let updatedBlock: DesignBlock = {
       ...this.block,
       nom: val.nom,
+      condition: val.condition || undefined,
       x: clampedX,
       y: clampedY,
       largeurBox: clampedLargeur,
@@ -607,10 +652,16 @@ export class BlockEditor implements OnChanges, DoCheck {
         updatedBlock.lignes = this.block.lignes;
         updatedBlock.source = undefined;
         updatedBlock.colonnes = undefined;
+        updatedBlock.groupBy = undefined;
+        updatedBlock.groupHeaderTemplate = undefined;
+        updatedBlock.afficherSousTotaux = undefined;
       } else {
         // Mode dynamique : on utilise la source et les colonnes
         updatedBlock.source = val.source;
         updatedBlock.colonnes = val.colonnes;
+        updatedBlock.groupBy = val.groupBy || undefined;
+        updatedBlock.groupHeaderTemplate = val.groupHeaderTemplate || undefined;
+        updatedBlock.afficherSousTotaux = val.afficherSousTotaux;
         updatedBlock.lignes = undefined;
       }
       updatedBlock.style = {
@@ -619,6 +670,16 @@ export class BlockEditor implements OnChanges, DoCheck {
         texteCouleurDefaut: val.texteCouleurDefaut,
       };
       break;
+      case 'graphique':
+        updatedBlock.source = val.source;
+        updatedBlock.graphiqueType = val.graphiqueType;
+        updatedBlock.graphiqueLabelKey = val.graphiqueLabelKey || undefined;
+        updatedBlock.graphiqueValueKey = val.graphiqueValueKey || undefined;
+        updatedBlock.style = {
+          ...updatedBlock.style,
+          fill: val.shapeFill || '#6366f1',
+        };
+        break;
       case 'rectangle':
       case 'cercle':
         updatedBlock.style = {

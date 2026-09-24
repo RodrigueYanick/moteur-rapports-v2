@@ -1,0 +1,185 @@
+.onboarding-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99990;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(2px);
+  pointer-events: auto;
+  animation: fadeInOverlay 0.25s ease forwards;
+}
+
+.spotlight-cutout {
+  position: fixed;
+  border-radius: 8px;
+  box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.65), 0 0 20px rgba(99, 102, 241, 0.5);
+  border: 2px solid #6366f1;
+  pointer-events: none;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: pulseGlow 2s infinite ease-in-out;
+}
+
+.tour-popover {
+  position: fixed;
+  width: 340px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+  padding: 16px 18px;
+  z-index: 99995;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: popoverScale 0.25s ease forwards;
+
+  .popover-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+
+    .header-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #6366f1;
+      background: #eef2ff;
+      padding: 3px 8px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+
+      .compass-icon {
+        color: #4f46e5;
+      }
+    }
+
+    .btn-skip-close {
+      background: none;
+      border: none;
+      color: #94a3b8;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.15s ease;
+
+      &:hover {
+        color: #1e293b;
+      }
+    }
+  }
+
+  .popover-body {
+    margin-bottom: 12px;
+
+    .step-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 0 0 6px 0;
+    }
+
+    .step-desc {
+      font-size: 13px;
+      line-height: 1.5;
+      color: #475569;
+      margin: 0;
+    }
+  }
+
+  .step-dots {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 14px;
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #e2e8f0;
+      transition: all 0.2s ease;
+
+      &.passed {
+        background: #a5b4fc;
+      }
+
+      &.active {
+        width: 18px;
+        border-radius: 4px;
+        background: #6366f1;
+      }
+    }
+  }
+
+  .popover-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+
+    .btn-nav {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 6px 12px;
+      transition: all 0.2s ease;
+
+      &.primary {
+        background: #6366f1;
+        color: #ffffff;
+        border: none;
+        margin-left: auto;
+
+        &:hover {
+          background: #4f46e5;
+          transform: translateY(-1px);
+        }
+      }
+
+      &.secondary {
+        background: #f1f5f9;
+        color: #334155;
+        border: 1px solid #cbd5e1;
+
+        &:hover {
+          background: #e2e8f0;
+        }
+      }
+
+      &.text {
+        background: none;
+        border: none;
+        color: #64748b;
+        padding-left: 0;
+
+        &:hover {
+          color: #1e293b;
+        }
+      }
+    }
+  }
+}
+
+@keyframes fadeInOverlay {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes popoverScale {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.65), 0 0 15px rgba(99, 102, 241, 0.4); }
+  50% { box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.65), 0 0 25px rgba(99, 102, 241, 0.8); }
+}
+

@@ -1,0 +1,37 @@
+<div class="page-tabs" *ngIf="!isAutoPagination">
+  <button
+    *ngFor="let page of pages; let i = index"
+    class="page-tab"
+    [class.active]="i === activePageIndex"
+    (click)="onSelect(i)"
+  >
+    <span *ngIf="editingPageIndex !== i" (dblclick)="startRename(i, $event)">{{ page.nom }}</span>
+    <input
+      *ngIf="editingPageIndex === i"
+      type="text"
+      [(ngModel)]="page.nom"
+      (blur)="finishRename()"
+      (keyup.enter)="finishRename()"
+      (click)="$event.stopPropagation()"
+    />
+    <lucide-icon
+      [img]="icons.copy"
+      [size]="12"
+      class="page-tab-icon"
+      (click)="onDuplicate(i, $event)"
+      title="Dupliquer"
+    ></lucide-icon>
+    <lucide-icon
+      *ngIf="pages.length > 1"
+      [img]="icons.close"
+      [size]="12"
+      class="page-tab-icon"
+      (click)="onRemove(i, $event)"
+      title="Supprimer"
+    ></lucide-icon>
+  </button>
+  <button class="page-tab-add" (click)="onAdd()" title="Ajouter une page">
+    <lucide-icon [img]="icons.plus" [size]="14"></lucide-icon>
+  </button>
+</div>
+

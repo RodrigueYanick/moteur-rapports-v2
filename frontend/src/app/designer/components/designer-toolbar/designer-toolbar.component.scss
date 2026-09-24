@@ -1,0 +1,299 @@
+$bg-dark: var(--surface-ground, #14161f);
+$bg-panel: var(--surface-panel, #1a1d29);
+$bg-hover: var(--surface-hover, rgba(35, 39, 53, 0.5));
+$border: var(--surface-border, #2a2e3d);
+$accent: var(--brand-primary, #6d5efc);
+$accent-hover: var(--brand-primary-hover, #5b4de8);
+$text-primary: var(--text-primary, #e8e9ee);
+$text-secondary: var(--text-secondary, #9498a8);
+$success: #10b981;
+
+.toolbar {
+  height: 56px;
+  background: $bg-panel;
+  border-bottom: 1px solid $border;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  user-select: none;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-sm);
+  z-index: 10;
+  margin-top: 0px;
+}
+
+.toolbar-left,
+.toolbar-center,
+.toolbar-right {
+  display: flex;
+  align-items: center;
+}
+
+.toolbar-left {
+  gap: 12px;
+  min-width: 200px;
+}
+
+.brand-mark {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, $accent, #4f46e5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-shrink: 0;
+}
+
+.toolbar-center {
+  gap: 14px;
+}
+
+.tool-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-right: 14px;
+  margin-right: 4px;
+  border-right: 1px solid $border;
+
+  &.alignment-tools {
+    background: rgba(109, 94, 252, 0.08);
+    border-radius: 8px;
+    padding: 2px 8px 2px 6px;
+    border: 1px solid rgba(109, 94, 252, 0.25);
+    margin-right: 8px;
+
+    .selection-count-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      color: $accent;
+      background: rgba(109, 94, 252, 0.15);
+      padding: 2px 8px;
+      border-radius: 12px;
+      margin-right: 4px;
+      white-space: nowrap;
+    }
+
+    .icon-btn {
+      width: 30px;
+      height: 30px;
+    }
+  }
+}
+
+.template-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+
+  .meta-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 2px;
+  }
+}
+
+.template-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: $text-primary;
+  white-space: nowrap;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.status-badge {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+
+  &.BROUILLON {
+    background: rgba(240, 180, 41, 0.15);
+    color: #f0b429;
+    border: 1px solid rgba(240, 180, 41, 0.3);
+  }
+  &.PUBLIE {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+  &.ARCHIVE {
+    background: rgba(148, 163, 184, 0.15);
+    color: #94a3b8;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+  }
+}
+
+.save-status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: $text-secondary;
+
+  &.saved {
+    color: $success;
+  }
+  &.saving {
+    color: #f0b429;
+  }
+}
+
+.spin {
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: $text-secondary;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background: $bg-hover;
+    color: $text-primary;
+  }
+
+  &.active {
+    background: rgba(109, 94, 252, 0.15);
+    color: $accent;
+    border-color: rgba(109, 94, 252, 0.4);
+  }
+
+  &.flat {
+    width: 28px;
+    height: 28px;
+    border-radius: 0;
+  }
+}
+
+.zoom-control {
+  display: flex;
+  align-items: center;
+  border: 1px solid $border;
+  border-radius: 8px;
+  overflow: hidden;
+  background: $bg-dark;
+}
+
+.zoom-value {
+  width: 48px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: $text-primary;
+}
+
+.paper-select select {
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid $border;
+  padding: 0 12px;
+  background: $bg-dark;
+  color: $text-primary;
+  font-size: 13px;
+  cursor: pointer;
+  outline: none;
+
+  &:hover {
+    border-color: $accent;
+  }
+}
+
+.toolbar-right {
+  gap: 8px;
+  min-width: 200px;
+  justify-content: flex-end;
+}
+
+.secondary-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 8px;
+  border: 1px solid $border;
+  background: transparent;
+  color: $text-primary;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+  font-size: 13px;
+  font-weight: 500;
+
+  &:hover {
+    background: $bg-hover;
+    border-color: #3a3f52;
+  }
+}
+
+.save-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid $border;
+  background: transparent;
+  color: $text-primary;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:hover {
+    background: $bg-hover;
+  }
+}
+
+.primary-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 8px;
+  background: $accent;
+  color: white;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  transition:
+    background 0.15s,
+    box-shadow 0.15s;
+
+  &:hover {
+    background: $accent-hover;
+    box-shadow: 0 4px 14px rgba(109, 94, 252, 0.35);
+  }
+}
+

@@ -1,0 +1,128 @@
+.toast-viewport {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+  max-width: 380px;
+  width: calc(100vw - 48px);
+}
+
+.toast-card {
+  pointer-events: auto;
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #1e293b;
+  color: #f8fafc;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.35), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  animation: toastSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.2s ease, opacity 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+
+  /* Variantes de types */
+  &.success {
+    border-left: 4px solid #10b981;
+    .toast-icon { color: #10b981; }
+    .toast-progress-bar { background: #10b981; }
+  }
+
+  &.error {
+    border-left: 4px solid #ef4444;
+    .toast-icon { color: #ef4444; }
+    .toast-progress-bar { background: #ef4444; }
+  }
+
+  &.info {
+    border-left: 4px solid #3b82f6;
+    .toast-icon { color: #3b82f6; }
+    .toast-progress-bar { background: #3b82f6; }
+  }
+
+  &.warning {
+    border-left: 4px solid #f59e0b;
+    .toast-icon { color: #f59e0b; }
+    .toast-progress-bar { background: #f59e0b; }
+  }
+
+  .toast-icon-box {
+    margin-top: 1px;
+    flex-shrink: 0;
+  }
+
+  .toast-content {
+    flex: 1;
+    min-width: 0;
+
+    .toast-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 2px;
+    }
+
+    .toast-message {
+      font-size: 12px;
+      line-height: 1.4;
+      color: #cbd5e1;
+      word-break: break-word;
+    }
+  }
+
+  .toast-close-btn {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s ease, background 0.15s ease;
+
+    &:hover {
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  .toast-progress-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    width: 100%;
+    opacity: 0.6;
+    animation: toastProgress linear forwards;
+  }
+}
+
+@keyframes toastSlideIn {
+  from {
+    transform: translateX(110%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes toastProgress {
+  from { width: 100%; }
+  to { width: 0%; }
+}
+

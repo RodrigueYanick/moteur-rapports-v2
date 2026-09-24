@@ -1,0 +1,334 @@
+<div class="batches-container">
+
+  <!-- ===== En-tête de la page ===== -->
+  <div class="page-header">
+    <div class="header-titles">
+      <h1>
+        <lucide-icon [img]="icons.layers" [size]="24" class="header-icon"></lucide-icon>
+        Génération par Lot & Webhooks
+      </h1>
+      <p class="subtitle">
+        Générez des volumes massifs de rapports asynchrones, compilez des archives ZIP et notifiez vos ERP / CRM distants.
+      </p>
+    </div>
+
+    <div class="header-actions">
+      <select [(ngModel)]="selectedTemplateFilter" (change)="onFilterChange()" class="filter-select">
+        <option value="">Tous les modèles</option>
+        <option *ngFor="let t of templates" [value]="t.id">{{ t.nom }}</option>
+      </select>
+
+      <button (click)="loadBatches()" class="btn-icon" title="Rafraîchir">
+        <lucide-icon [img]="icons.refresh" [size]="16" [class.spin]="loading"></lucide-icon>
+      </button>
+
+      <button (click)="openCreateModal()" class="btn-primary">
+        <lucide-icon [img]="icons.plus" [size]="16"></lucide-icon>
+        Nouveau lot
+      </button>
+    </div>
+  </div>
+
+  <!-- ===== Cartes KPI / Métriques ===== -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-val">{{ totalBatchesCount }}</div>
+      <div class="kpi-label">Lots lancés</div>
+    </div>
+    <div class="kpi-card highlight">
+      <div class="kpi-val">{{ runningBatchesCount }}</div>
+      <div class="kpi-label">En cours d'exécution</div>
+    </div>
+    <div class="kpi-card success">
+      <div class="kpi-val">{{ globalSuccessRate }}%</div>
+      <div class="kpi-label">Taux de succès global</div>
+    </div>
+  </div>
+
+  <!-- ===== Messages d'état ===== -->
+  <div *ngIf="loading && batches.length === 0" class="state-msg">
+    <lucide-icon [img]="icons.loader" [size]="18" class="spin"></lucide-icon>
+    Chargement des traitements par lot...
+  </div>
+
+  <div *ngIf="error" class="state-msg error">{{ error }}</div>
+
+  <!-- ===== État vide ===== -->
+  <div *ngIf="!loading && !error && batches.length === 0" class="empty-state">
+    <div class="empty-icon">
+      <lucide-icon [img]="icons.layers" [size]="48"></lucide-icon>
+    </div>
+    <h3>Aucun lot de génération</h3>
+    <p>Lancez votre premier traitement en masse pour générer plusieurs rapports en arrière-plan.</p>
+    <button (click)="openCreateModal()" class="btn-primary">
+      <lucide-icon [img]="icons.plus" [size]="16"></lucide-icon>
+      Lancer un nouveau lot
+    </button>
+  </div>
+
+  <!-- ===== Liste des Lots ===== -->
+  <div class="batch-cards" *ngIf="batches.length > 0">
+    <div class="batch-card" *ngFor="let batch of batches" [class.expanded]="expandedBatchId === batch.id">
+
+      <!-- En-tête de la carte du lot -->
+      <div class="batch-card-main">
+        <div class="batch-info">
+          <div class="batch-title-row">
+            <span class="status-badge" [ngClass]="batch.statut">
+              <span *ngIf="batch.statut === 'EN_COURS'" class="spin-dot"></span>
+              {{ batch.statut === 'EN_COURS' ? 'En cours' : batch.statut === 'TERMINE' ? 'Terminé' : batch.statut === 'TERMINE_AVEC_ERREURS' ? 'Partiel' : batch.statut === 'ECHEC' ? 'Échec' : 'En attente' }}
+            </span>
+            <h3 class="template-name">{{ batch.templateNom || 'Modèle de rapport' }}</h3>
+            <span class="batch-id" title="Identifiant du lot">#{{ batch.id.substring(0, 8) }}</span>
+          </div>
+
+          <!-- Barre de progression -->
+          <div class="progress-section">
+            <div class="progress-bar-container">
+              <div class="progress-bar-fill" [style.width.%]="batch.progressionPourcentage" [ngClass]="batch.statut"></div>
+            </div>
+            <div class="progress-meta">
+              <span class="progress-pct">{{ batch.progressionPourcentage }}%</span>
+              <span class="progress-counts">
+                <strong>{{ batch.processedItems }}</strong> / {{ batch.totalItems }} traités
+                (<span class="text-success">{{ batch.successCount }} succès</span>,
+                <span class="text-danger" *ngIf="batch.failureCount > 0">{{ batch.failureCount }} échecs</span>)
+              </span>
+            </div>
+          </div>
+
+          <!-- Métadonnées additionnelles -->
+          <div class="batch-details-row">
+            <span class="meta-item">
+              <lucide-icon [img]="icons.clock" [size]="13"></lucide-icon>
+              {{ batch.dateCreation | date:'dd/MM/yyyy HH:mm' }}
+            </span>
+
+            <span class="meta-item" *ngIf="batch.dureeSecondes !== null && batch.dureeSecondes !== undefined">
+              Durée : {{ batch.dureeSecondes }}s
+            </span>
+
+            <!-- Badge Webhook -->
+            <span class="webhook-badge" [ngClass]="batch.webhookStatut" *ngIf="batch.webhookUrl">
+              <lucide-icon [img]="icons.send" [size]="12"></lucide-icon>
+              Webhook : {{ batch.webhookStatut === 'ENVOYE' ? 'Notifié' : batch.webhookStatut === 'ECHEC' ? 'Échec' : 'En attente' }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Actions sur le lot -->
+        <div class="batch-actions">
+          <!-- Téléchargement ZIP -->
+          <button
+            class="btn-zip"
+            (click)="downloadZip(batch)"
+            [disabled]="batch.successCount === 0 || downloadingZipId === batch.id"
+            title="Télécharger tous les rapports générés (.zip)">
+            <lucide-icon [img]="icons.archive" [size]="15" *ngIf="downloadingZipId !== batch.id"></lucide-icon>
+            <lucide-icon [img]="icons.loader" [size]="15" class="spin" *ngIf="downloadingZipId === batch.id"></lucide-icon>
+            Archive ZIP
+          </button>
+
+          <!-- Relance des échecs -->
+          <button
+            *ngIf="batch.failureCount > 0 && batch.statut !== 'EN_COURS'"
+            class="btn-retry"
+            (click)="retryFailed(batch.id)"
+            [disabled]="retryingBatchId === batch.id"
+            title="Relancer uniquement les éléments en échec">
+            <lucide-icon [img]="icons.refresh" [size]="14" [class.spin]="retryingBatchId === batch.id"></lucide-icon>
+            Relancer échecs
+          </button>
+
+          <!-- Bouton déplier détails -->
+          <button class="btn-toggle-details" (click)="toggleExpand(batch.id)">
+            <lucide-icon [img]="expandedBatchId === batch.id ? icons.chevronDown : icons.chevronRight" [size]="16"></lucide-icon>
+            {{ expandedBatchId === batch.id ? 'Masquer détails' : 'Détails' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- ===== Section Dépliée (Éléments du Lot) ===== -->
+      <div class="batch-items-dropdown" *ngIf="expandedBatchId === batch.id">
+        <div *ngIf="loadingItems[batch.id]" class="items-loader">
+          <lucide-icon [img]="icons.loader" [size]="16" class="spin"></lucide-icon>
+          Chargement des rapports du lot...
+        </div>
+
+        <table class="items-table" *ngIf="!loadingItems[batch.id] && batchItemsMap[batch.id]">
+          <thead>
+            <tr>
+              <th>Référence (ID)</th>
+              <th>Statut</th>
+              <th>Traitement</th>
+              <th>Détail / Erreur</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of batchItemsMap[batch.id]">
+              <td class="cell-ref">
+                <strong>{{ item.customId || 'Sans référence' }}</strong>
+              </td>
+              <td>
+                <span class="item-badge" [ngClass]="item.statut">
+                  {{ item.statut === 'SUCCES' ? 'Succès' : item.statut === 'ECHEC' ? 'Échec' : 'En cours' }}
+                </span>
+              </td>
+              <td class="cell-date">
+                {{ item.dateTraitement ? (item.dateTraitement | date:'HH:mm:ss') : '-' }}
+              </td>
+              <td class="cell-error">
+                <span *ngIf="item.erreur" class="error-text" [title]="item.erreur">{{ item.erreur }}</span>
+                <span *ngIf="!item.erreur && item.statut === 'SUCCES'" class="text-muted">Généré sans erreur</span>
+              </td>
+              <td>
+                <a
+                  *ngIf="item.downloadUrl && item.statut === 'SUCCES'"
+                  [href]="item.downloadUrl"
+                  target="_blank"
+                  class="btn-item-download"
+                  title="Télécharger ce rapport PDF">
+                  <lucide-icon [img]="icons.download" [size]="13"></lucide-icon> PDF
+                </a>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== Modal de Lancement de Nouveau Lot ===== -->
+  <div class="modal-backdrop" *ngIf="showCreateModal" (click)="closeCreateModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>
+          <lucide-icon [img]="icons.plus" [size]="20"></lucide-icon>
+          Lancer une Génération par Lot
+        </h2>
+        <button class="modal-close-btn" (click)="closeCreateModal()">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div *ngIf="createError" class="modal-error">{{ createError }}</div>
+
+        <!-- Choix du modèle -->
+        <div class="form-group">
+          <label>Modèle de rapport à utiliser *</label>
+          <select [(ngModel)]="selectedTemplateId" (ngModelChange)="onTemplateChanged($event)" class="modal-select">
+            <option value="" disabled>-- Sélectionner un modèle publié --</option>
+            <option *ngFor="let t of templates" [value]="t.id">{{ t.nom }} (v{{ t.version }})</option>
+          </select>
+        </div>
+
+        <!-- Option Import Excel / CSV -->
+        <div class="excel-import-promo">
+          <div class="promo-info">
+            <div class="promo-badge-row">
+              <span class="promo-badge">📊 ASSISTANT EXCEL / CSV</span>
+              <span class="promo-tip">Glisser-déposer sans JSON</span>
+            </div>
+            <p class="promo-subtitle">
+              Importez un fichier <strong>.xlsx</strong> ou <strong>.csv</strong> : notre assistant associe automatiquement vos colonnes aux variables du modèle.
+            </p>
+          </div>
+          <button type="button" class="btn-open-excel-wizard" (click)="openExcelImportModal()">
+            <lucide-icon [img]="icons.archive" [size]="15"></lucide-icon>
+            Importer Excel / CSV
+          </button>
+        </div>
+
+        <div *ngIf="excelImportSuccessMessage" class="excel-success-banner">
+          {{ excelImportSuccessMessage }}
+        </div>
+
+        <!-- Données JSON des éléments -->
+        <div class="form-group">
+          <div class="label-with-action">
+            <label>Données des rapports (Tableau JSON) *</label>
+            <button type="button" class="btn-text" (click)="loadSampleJson()">Charger un exemple</button>
+          </div>
+          <textarea
+            [(ngModel)]="jsonInput"
+            class="modal-textarea"
+            rows="7"
+            placeholder='[ { "customId": "FAC-01", "data": { ... } } ]'>
+          </textarea>
+          <div class="hint-row">
+            <span *ngIf="parsedItemsCount !== null" class="count-badge">
+              ✓ {{ parsedItemsCount }} rapport{{ parsedItemsCount > 1 ? 's' : '' }} détecté{{ parsedItemsCount > 1 ? 's' : '' }}
+            </span>
+            <span *ngIf="parsedItemsCount === null && jsonInput.trim()" class="error-hint">
+              JSON invalide ou non-tableau
+            </span>
+          </div>
+        </div>
+
+        <!-- Configuration Webhook (optionnelle) -->
+        <div class="webhook-config-box">
+          <h3>Notification Webhook (Optionnel)</h3>
+          <p class="box-desc">Recevez une requête HTTP POST dès que le lot se termine.</p>
+
+          <div class="form-group">
+            <label>URL du Webhook</label>
+            <div class="input-with-btn">
+              <input
+                type="url"
+                [(ngModel)]="webhookUrlInput"
+                class="modal-input"
+                placeholder="https://mon-erp.com/api/webhooks/rapports" />
+              <button
+                type="button"
+                class="btn-test-webhook"
+                (click)="testWebhookConnection()"
+                [disabled]="!webhookUrlInput.trim() || testingWebhook">
+                <lucide-icon [img]="icons.loader" [size]="14" class="spin" *ngIf="testingWebhook"></lucide-icon>
+                <span *ngIf="!testingWebhook">Tester l'URL</span>
+              </button>
+            </div>
+          </div>
+
+          <div *ngIf="webhookTestResult" class="test-result-box" [class.success]="webhookTestResult.succes" [class.fail]="!webhookTestResult.succes">
+            {{ webhookTestResult.succes ? '✓ Connectivité validée' : '✕ Échec' }}
+            ({{ webhookTestResult.tempsReponseMs }}ms) : {{ webhookTestResult.message }}
+          </div>
+
+          <div class="form-group">
+            <label>Clé secrète HMAC-SHA256 (optionnelle)</label>
+            <input
+              type="password"
+              [(ngModel)]="webhookSecretInput"
+              class="modal-input"
+              placeholder="Ex: whsec_votre_cle_secrete_123" />
+            <small class="field-hint">Permet de signer le payload avec l'en-tête X-Webhook-Signature</small>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" (click)="closeCreateModal()">Annuler</button>
+        <button
+          type="button"
+          class="btn-submit"
+          (click)="submitBatch()"
+          [disabled]="creatingBatch || !selectedTemplateId || parsedItemsCount === null || parsedItemsCount === 0">
+          <lucide-icon [img]="icons.loader" [size]="16" class="spin" *ngIf="creatingBatch"></lucide-icon>
+          <span *ngIf="!creatingBatch">Lancer le traitement par lot</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Assistant Import Excel / CSV -->
+  <app-excel-import-modal
+    [visible]="showExcelImportModal"
+    [variables]="selectedTemplateVariables"
+    [mode]="'batch'"
+    (importBatch)="onExcelBatchImported($event)"
+    (cancelled)="showExcelImportModal = false">
+  </app-excel-import-modal>
+
+</div>
+

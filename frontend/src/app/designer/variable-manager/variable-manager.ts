@@ -6,6 +6,7 @@ import {
   Output,
   EventEmitter,
   SimpleChanges,
+  ChangeDetectorRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
@@ -19,7 +20,7 @@ import { TemplateApiService } from '../../services/template-api';
 import { Variable } from '../../models/variable.model';
 import { Subject } from 'rxjs';
 import {
-  LucideAngularModule, Braces, Sigma, Edit3, Trash2
+  LucideAngularModule, Braces, Sigma, Edit3, Trash2, Plus
 } from 'lucide-angular';
 
 @Component({
@@ -29,19 +30,22 @@ import {
   templateUrl: './variable-manager.html',
   styleUrls: ['./variable-manager.scss'],
 })
-
-
-
 export class VariableManager implements OnInit, OnDestroy {
   @Input() templateId: string | null = null;
   @Output() variablesLoaded = new EventEmitter<Variable[]>();
+  @Output() insertVariable = new EventEmitter<Variable>();
   
   readonly icons = {
     variable: Braces,
     formula: Sigma,
     edit: Edit3,
     trash: Trash2,
+    plus: Plus,
   };
+
+  insert(v: Variable): void {
+    this.insertVariable.emit(v);
+  }
 
   variables: Variable[] = [];
   loading = false;
@@ -50,12 +54,13 @@ export class VariableManager implements OnInit, OnDestroy {
   form: FormGroup;
   editingVariableId: string | null = null;
 
-  
+  private loadedOnce = false;
   private destroy$ = new Subject<void>();
   
   constructor(
     private fb: FormBuilder,
     private api: TemplateApiService,
+    private cdr: ChangeDetectorRef,
   ) {
     this.form = this.fb.group({
       nomVariable: ['', [Validators.required, Validators.pattern(/^[a-zA-Z0-9_]+$/)]],
@@ -66,17 +71,15 @@ export class VariableManager implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.loadVariablesIfIdPresent();
-  }
-
-  ngOnChanges(changes: SimpleChanges): void {
-    if (changes['templateId'] && this.templateId) {
+    if (!this.loadedOnce && this.templateId) {
+      this.loadedOnce = true;
       this.loadVariables();
     }
   }
 
-  private loadVariablesIfIdPresent(): void {
-    if (this.templateId) {
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['templateId'] && this.templateId) {
+      this.loadedOnce = true;
       this.loadVariables();
     }
   }
@@ -93,12 +96,16 @@ export class VariableManager implements OnInit, OnDestroy {
     this.api.getVariables(this.templateId).subscribe({
       next: (vars) => {
         this.variables = vars;
-        this.variablesLoaded.emit(vars);
         this.loading = false;
+        this.cdr.markForCheck();
+        queueMicrotask(() => {
+          this.variablesLoaded.emit(vars);
+        });
       },
       error: (err) => {
         this.error = 'Erreur lors du chargement des variables';
         this.loading = false;
+        this.cdr.markForCheck();
         console.error(err);
       },
     });
@@ -126,11 +133,15 @@ export class VariableManager implements OnInit, OnDestroy {
           const idx = this.variables.findIndex((v) => v.id === updated.id);
           if (idx !== -1) this.variables[idx] = updated;
           else this.variables.push(updated);
-          this.variablesLoaded.emit(this.variables);
           this.resetForm();
+          this.cdr.markForCheck();
+          queueMicrotask(() => {
+            this.variablesLoaded.emit(this.variables);
+          });
         },
         error: (err) => {
           this.error = err.error?.message || 'Erreur lors de la mise à jour';
+          this.cdr.markForCheck();
           console.error(err);
         },
       });
@@ -138,11 +149,15 @@ export class VariableManager implements OnInit, OnDestroy {
       this.api.addVariable(this.templateId, dto).subscribe({
         next: (created) => {
           this.variables.push(created);
-          this.variablesLoaded.emit(this.variables);
           this.resetForm();
+          this.cdr.markForCheck();
+          queueMicrotask(() => {
+            this.variablesLoaded.emit(this.variables);
+          });
         },
         error: (err) => {
           this.error = err.error?.message || 'Erreur lors de la création';
+          this.cdr.markForCheck();
           console.error(err);
         },
       });
@@ -157,6 +172,7 @@ export class VariableManager implements OnInit, OnDestroy {
       description: variable.description || '',
       obligatoire: variable.obligatoire,
     });
+    this.cdr.markForCheck();
   }
 
   delete(variable: Variable): void {
@@ -165,10 +181,14 @@ export class VariableManager implements OnInit, OnDestroy {
       next: () => {
         this.variables = this.variables.filter((v) => v.id !== variable.id);
         if (this.editingVariableId === variable.id) this.resetForm();
-        this.variablesLoaded.emit(this.variables);
+        this.cdr.markForCheck();
+        queueMicrotask(() => {
+          this.variablesLoaded.emit(this.variables);
+        });
       },
       error: (err) => {
         this.error = err.error?.message || 'Erreur lors de la suppression';
+        this.cdr.markForCheck();
         console.error(err);
       },
     });

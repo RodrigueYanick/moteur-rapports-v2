@@ -46,5 +46,82 @@ public class TemplateHtmlBuilderTest {
             printLayers(child, depth + 1);
         }
     }
+
+    @Test
+    void testRenderGraphiqueAndSignaturesWithFlyingSaucer() throws Exception {
+        TemplateHtmlBuilder builder = new TemplateHtmlBuilder(new CodeGeneratorService());
+
+        String designJson = """
+            {
+              "pages": [
+                {
+                  "nom": "Page 1",
+                  "blocs": [
+                    {
+                      "id": "b-graph",
+                      "type": "graphique",
+                      "source": "{{statistiques}}",
+                      "x": 20,
+                      "y": 30,
+                      "largeurBox": 320,
+                      "hauteurBox": 180,
+                      "style": { "fill": "#2563eb" }
+                    },
+                    {
+                      "id": "b-sign",
+                      "type": "signature",
+                      "x": 20,
+                      "y": 230,
+                      "largeurBox": 180,
+                      "hauteurBox": 70
+                    }
+                  ]
+                }
+              ]
+            }
+            """;
+
+        com.rapports.moteur.entity.ReportTemplate template = com.rapports.moteur.entity.ReportTemplate.builder()
+                .nom("Rapport avec Graphique")
+                .contenuDesign(designJson)
+                .formatPapier("A4")
+                .statut(com.rapports.moteur.entity.TemplateStatus.BROUILLON)
+                .version(1)
+                .build();
+
+        java.util.Map<String, Object> data = java.util.Map.of(
+            "statistiques", java.util.List.of(
+                java.util.Map.of("label", "Jan", "value", 45),
+                java.util.Map.of("label", "Fév", "value", 80),
+                java.util.Map.of("label", "Mar", "value", 25),
+                java.util.Map.of("label", "Avr", "value", 95)
+            )
+        );
+
+        String html = builder.build(template, data);
+
+        // Vérifier l'absence totale de flexbox
+        org.junit.jupiter.api.Assertions.assertFalse(html.contains("display:flex"));
+        org.junit.jupiter.api.Assertions.assertFalse(html.contains("flex:"));
+        org.junit.jupiter.api.Assertions.assertFalse(html.contains("align-items:"));
+
+        // Vérifier la présence de la structure de table CSS 2.1
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("table-layout:fixed"));
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("vertical-align:bottom"));
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("#2563eb")); // couleur personnalisée
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("Jan"));
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("Signature"));
+
+        // Vérifier que Flying Saucer le compile en PDF sans aucune erreur
+        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+        ITextRenderer renderer = new ITextRenderer();
+        renderer.setDocumentFromString(html);
+        renderer.layout();
+        renderer.createPDF(out);
+
+        byte[] pdfBytes = out.toByteArray();
+        org.junit.jupiter.api.Assertions.assertTrue(pdfBytes.length > 1000, "Le PDF généré par Flying Saucer doit être non vide");
+    }
 }
+
 

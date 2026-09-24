@@ -7,6 +7,15 @@ import { LucideAngularModule, Sparkles, Plus, Minus, RotateCcw, ArrowLeft, Arrow
 import { FillerDataService } from '../services/filler-data';
 import { TemplateApiService } from '../../services/template-api';
 import { Subscription } from 'rxjs';
+import {
+  BlockHtmlRenderer,
+  RenderContext,
+  TextBlockRenderer,
+  TableBlockRenderer,
+  ChartBlockRenderer,
+  ShapeBlockRenderer,
+  BarcodeBlockRenderer
+} from './renderers/index';
 
 @Component({
   selector: 'app-block-preview',
@@ -25,6 +34,25 @@ export class BlockPreview implements AfterViewInit, OnChanges, OnInit, OnDestroy
   @Input() margeBasPx: number = 0;
   @Input() margeGauchePx: number = 0;
   @Input() margeDroitePx: number = 0;
+  @Input() couleurFond: string = '#ffffff';
+
+  @Input() headerActif: boolean = false;
+  @Input() hauteurHeaderMm: number = 15;
+  @Input() headerContenu?: string | null = null;
+  @Input() headerAlignement: string = 'GAUCHE';
+  @Input() headerAfficherSurPremierePage: boolean = true;
+  @Input() headerLigneSeparation: boolean = true;
+  @Input() headerCouleurLigne: string = '#cccccc';
+
+  @Input() footerActif: boolean = false;
+  @Input() hauteurFooterMm: number = 12;
+  @Input() footerContenu?: string | null = null;
+  @Input() footerAlignement: string = 'CENTRE';
+  @Input() footerAfficherSurPremierePage: boolean = true;
+  @Input() footerLigneSeparation: boolean = true;
+  @Input() footerCouleurLigne: string = '#cccccc';
+  @Input() numerotationPage: boolean = true;
+  @Input() formatNumerotation: string = 'PAGE_X_SUR_Y';
 
   private readonly defaultMarginPx = Math.round(10 * 96 / 25.4); // ~38px
 
@@ -32,6 +60,14 @@ export class BlockPreview implements AfterViewInit, OnChanges, OnInit, OnDestroy
   get safeMargeBasPx(): number { return (this.margeBasPx != null && this.margeBasPx > 0) ? this.margeBasPx : this.defaultMarginPx; }
   get safeMargeGauchePx(): number { return (this.margeGauchePx != null && this.margeGauchePx > 0) ? this.margeGauchePx : this.defaultMarginPx; }
   get safeMargeDroitePx(): number { return (this.margeDroitePx != null && this.margeDroitePx > 0) ? this.margeDroitePx : this.defaultMarginPx; }
+
+  get headerHeightPx(): number {
+    return this.headerActif ? Math.round((this.hauteurHeaderMm || 15) * 96 / 25.4) : 0;
+  }
+
+  get footerHeightPx(): number {
+    return this.footerActif ? Math.round((this.hauteurFooterMm || 12) * 96 / 25.4) : 0;
+  }
 
   @ViewChild('previewViewport') private previewViewport?: ElementRef<HTMLElement>;
 
@@ -52,6 +88,14 @@ export class BlockPreview implements AfterViewInit, OnChanges, OnInit, OnDestroy
   step = 0.05;
   private fitToWidth = true;
   private resizeObserver?: ResizeObserver;
+
+  private readonly renderers: BlockHtmlRenderer[] = [
+    new TextBlockRenderer(),
+    new TableBlockRenderer(),
+    new ChartBlockRenderer(),
+    new ShapeBlockRenderer(),
+    new BarcodeBlockRenderer(),
+  ];
 
   readonly icons = {
     preview: Sparkles,
@@ -74,6 +118,17 @@ export class BlockPreview implements AfterViewInit, OnChanges, OnInit, OnDestroy
     this.updateFitZoom();
     this.resizeObserver = new ResizeObserver(() => this.updateFitZoom());
     this.resizeObserver.observe(this.previewViewport!.nativeElement);
+    queueMicrotask(() => {
+      this.updateFitZoom();
+      this.cdr.detectChanges();
+    });
+    this.resizeObserver = new ResizeObserver(() => {
+      this.updateFitZoom();
+      this.cdr.detectChanges();
+    });
+    if (this.previewViewport) {
+      this.resizeObserver.observe(this.previewViewport.nativeElement);
+    }
   }
 
   ngOnInit(): void {
@@ -115,7 +170,9 @@ export class BlockPreview implements AfterViewInit, OnChanges, OnInit, OnDestroy
     const realValues = this.fillerdata.getValues();
     const mergedData = { ...mockData, ...realValues };
 
-    const contentH = this.canvasHeight - this.safeMargeHautPx - this.safeMargeBasPx;
+    const effectiveTopPx = this.safeMargeHautPx + this.headerHeightPx;
+    const effectiveBottomPx = this.safeMargeBasPx + this.footerHeightPx;
+    const contentH = this.canvasHeight - effectiveTopPx - effectiveBottomPx;
 
     // Étape 1 : générer les fragments de blocs (un bloc tableau peut produire plusieurs fragments)
     const generatedPages: { nom: string; blocks: DesignBlock[] }[] = [];
@@ -133,7 +190,7 @@ export class BlockPreview implements AfterViewInit, OnChanges, OnInit, OnDestroy
           const pageOffset = Math.max(0, Math.floor((top + height - 1) / this.canvasHeight));
           const adjustedY = pageOffset === 0
             ? top
-            : Math.max(this.safeMargeHautPx, top - pageOffset * this.canvasHeight);
+            : Math.max(effectiveTopPx, top - pageOffset * this.canvasHeight);
           pageFragments.push({
             block: { ...block, y: adjustedY },
             pageOffset
@@ -166,10 +223,13 @@ export class BlockPreview implements AfterViewInit, OnChanges, OnInit, OnDestroy
       }
     }
 
-    this.safePreviewPages = generatedPages.map(page => {
+    const totalPages = generatedPages.length;
+    const today = new Date().toLocaleDateString('fr-FR');
+
+    this.safePreviewPages = generatedPages.map((page, pageIdx) => {
+      const pageNum = pageIdx + 1;
       const contentW = this.canvasWidth - this.safeMargeGauchePx - this.safeMargeDroitePx;
-      const contentH = this.canvasHeight - this.safeMargeHautPx - this.safeMargeBasPx;
-      let html = `<div style="position:relative;width:${this.canvasWidth}px;height:${this.canvasHeight}px;background:white;overflow:hidden;margin:0 auto;">`;
+      let html = `<div style="position:relative;width:${this.canvasWidth}px;height:${this.canvasHeight}px;background:${this.couleurFond || 'white'};overflow:hidden;margin:0 auto;">`;
 
       // Zones de marges interdites (hachures + fond semi-transparent)
       const marginBg = 'repeating-linear-gradient(-45deg,rgba(239,68,68,0.04),rgba(239,68,68,0.04) 3px,transparent 3px,transparent 7px)';
@@ -180,12 +240,33 @@ export class BlockPreview implements AfterViewInit, OnChanges, OnInit, OnDestroy
       // Marge basse
       html += `<div style="position:absolute;left:0;bottom:0;width:${this.canvasWidth}px;height:${this.safeMargeBasPx}px;background:${marginBg},${marginOverlay};pointer-events:none;border-top:${borderInner};"></div>`;
       // Marge gauche
-      html += `<div style="position:absolute;left:0;top:${this.safeMargeHautPx}px;width:${this.safeMargeGauchePx}px;height:${contentH}px;background:${marginBg},${marginOverlay};pointer-events:none;border-right:${borderInner};"></div>`;
+      html += `<div style="position:absolute;left:0;top:${this.safeMargeHautPx}px;width:${this.safeMargeGauchePx}px;height:${this.canvasHeight - this.safeMargeHautPx - this.safeMargeBasPx}px;background:${marginBg},${marginOverlay};pointer-events:none;border-right:${borderInner};"></div>`;
       // Marge droite
-      html += `<div style="position:absolute;right:0;top:${this.safeMargeHautPx}px;width:${this.safeMargeDroitePx}px;height:${contentH}px;background:${marginBg},${marginOverlay};pointer-events:none;border-left:${borderInner};"></div>`;
+      html += `<div style="position:absolute;right:0;top:${this.safeMargeHautPx}px;width:${this.safeMargeDroitePx}px;height:${this.canvasHeight - this.safeMargeHautPx - this.safeMargeBasPx}px;background:${marginBg},${marginOverlay};pointer-events:none;border-left:${borderInner};"></div>`;
+
+      // En-tête (si actif)
+      const showHeader = this.headerActif && (pageNum > 1 || this.headerAfficherSurPremierePage !== false);
+      if (showHeader) {
+        let hText = this.headerContenu || '';
+        hText = hText.replace(/\{page\}/g, String(pageNum)).replace(/\{pages\}/g, String(totalPages)).replace(/\{date\}/g, today);
+        const textAlign = (this.headerAlignement === 'DROITE' || this.headerAlignement === 'RIGHT') ? 'right' : (this.headerAlignement === 'CENTRE' || this.headerAlignement === 'CENTER' ? 'center' : 'left');
+        const borderBottom = this.headerLigneSeparation ? `border-bottom:1px solid ${this.headerCouleurLigne || '#cccccc'};` : '';
+        html += `<div style="position:absolute;left:${this.safeMargeGauchePx}px;top:${this.safeMargeHautPx}px;width:${contentW}px;height:${this.headerHeightPx}px;overflow:hidden;box-sizing:border-box;display:flex;align-items:center;justify-content:${textAlign === 'right' ? 'flex-end' : (textAlign === 'center' ? 'center' : 'flex-start')};font-family:Arial,sans-serif;font-size:12px;color:#555;padding:0 6px;${borderBottom}">${hText}</div>`;
+      }
+
+      // Pied de page (si actif)
+      const showFooter = this.footerActif && (pageNum > 1 || this.footerAfficherSurPremierePage !== false);
+      if (showFooter) {
+        let fText = this.footerContenu || (this.numerotationPage ? (this.formatNumerotation === 'PAGE_X' ? 'Page {page}' : 'Page {page} / {pages}') : '');
+        fText = fText.replace(/\{page\}/g, String(pageNum)).replace(/\{pages\}/g, String(totalPages)).replace(/\{date\}/g, today);
+        const textAlign = (this.footerAlignement === 'DROITE' || this.footerAlignement === 'RIGHT') ? 'right' : (this.footerAlignement === 'CENTRE' || this.footerAlignement === 'CENTER' ? 'center' : 'left');
+        const borderTop = this.footerLigneSeparation ? `border-top:1px solid ${this.footerCouleurLigne || '#cccccc'};` : '';
+        const footerTop = this.canvasHeight - this.safeMargeBasPx - this.footerHeightPx;
+        html += `<div style="position:absolute;left:${this.safeMargeGauchePx}px;top:${footerTop}px;width:${contentW}px;height:${this.footerHeightPx}px;overflow:hidden;box-sizing:border-box;display:flex;align-items:center;justify-content:${textAlign === 'right' ? 'flex-end' : (textAlign === 'center' ? 'center' : 'flex-start')};font-family:Arial,sans-serif;font-size:12px;color:#555;padding:0 6px;${borderTop}">${fText}</div>`;
+      }
 
       // Zone de contenu utilisable (bordure délimitant la zone autorisée)
-      html += `<div style="position:absolute;left:${this.safeMargeGauchePx}px;top:${this.safeMargeHautPx}px;width:${contentW}px;height:${contentH}px;border:1px dashed rgba(109,94,252,0.25);pointer-events:none;"></div>`;
+      html += `<div style="position:absolute;left:${this.safeMargeGauchePx}px;top:${effectiveTopPx}px;width:${contentW}px;height:${contentH}px;border:1px dashed rgba(109,94,252,0.25);pointer-events:none;"></div>`;
       for (const block of page.blocks) {
         if(block.visible === false) continue;
         const left = block.x || 0;
@@ -236,6 +317,9 @@ export class BlockPreview implements AfterViewInit, OnChanges, OnInit, OnDestroy
     if (!this.fitToWidth || !this.previewViewport) return;
     const availableWidth = this.previewViewport.nativeElement.clientWidth - 40;
     this.zoom = Math.max(this.minZoom, Math.min(1, availableWidth / this.canvasWidth));
+    if (availableWidth > 0 && this.canvasWidth > 0) {
+      this.zoom = Math.max(this.minZoom, Math.min(1, availableWidth / this.canvasWidth));
+    }
   }
 
   // --- Dimensions par défaut ---
@@ -276,63 +360,18 @@ export class BlockPreview implements AfterViewInit, OnChanges, OnInit, OnDestroy
 
   // --- Rendu de chaque bloc avec son wrapper ---
   private renderBlockWithData(block: DesignBlock, mockData: Record<string, any>): string {
-    let innerHtml = '';
-    switch (block.type) {
-      case 'titre':
-      case 'texte': {
-        const tag = block.type === 'titre' ? 'h1' : 'p';
-        const style = `font-size:${block.style?.fontSize || 12}px; font-weight:${block.style?.bold ? 'bold' : 'normal'}; font-style:${block.style?.italic ? 'italic' : 'normal'}; text-decoration:${block.style?.underline ? 'underline' : 'none'}; text-align:${block.style?.align || 'left'}; color:${block.style?.color || '#000000'}; font-family:${block.style?.fontFamily || 'inherit'}; margin:0;`;
-        innerHtml = `<${tag} style="${style}">${this.replaceVars(block.contenu || '', mockData)}</${tag}>`;
-        break;
-      }
-      case 'tableau':
-        innerHtml = this.renderTableWithData(block, mockData);
-        break;
-      case 'ligne': {
-        const epaisseur = block.style?.epaisseur || 1;
-        const couleur = block.style?.couleur || '#000';
-        const largeur = block.style?.largeur || 100;
-        innerHtml = `<div style="height:${epaisseur}px; background-color:${couleur}; width:${largeur}%;"></div>`;
-        break;
-      }
-      case 'image': {
-        const url = this.replaceVars(block.url || '', mockData);
-        const largeur = block.style?.largeur || 100;
-        const align = block.style?.align || 'left';
-        let imgStyle = `width:${largeur}px;`;
-        if (align === 'center') imgStyle += 'display:block;margin:0 auto;';
-        else if (align === 'right') imgStyle += 'display:block;margin-left:auto;';
-        innerHtml = `<img src="${this.escape(url)}" style="${imgStyle}" alt="aperçu" />`;
-        break;
-      }
-      case 'rectangle':
-      case 'cercle': {
-        const fill = block.style?.fill || '#e5e7eb';
-        const couleur = block.style?.couleur || '#94a3b8';
-        const epaisseur = block.style?.epaisseur ?? 1;
-        const radius = block.type === 'cercle' ? '50%' : `${block.style?.borderRadius ?? 0}px`;
-        // On utilise 100% pour remplir le wrapper
-        innerHtml = `<div style="width:100%; height:100%; min-width:10px; min-height:10px; background:${fill}; border:${epaisseur}px solid ${couleur}; border-radius:${radius}; box-sizing:border-box;"></div>`;
-        break;
-      }
-      case 'qrcode':
-      case 'codebarre': {
-        const label = block.type === 'qrcode' ? 'QR Code' : 'Code-barres';
-        innerHtml = `<div style="width:100%; height:100%; border:2px dashed #d1d5db; background:#f9fafb; display:flex; align-items:center; justify-content:center; color:#6b7280; font-size:10px; font-family:Arial,sans-serif; box-sizing:border-box;">${label} (généré au PDF)</div>`;
-        break;
-      }
-      case 'signature': {
-        innerHtml = `<div style="width:100%; height:100%; border-bottom:1px solid #333; display:flex; align-items:flex-end; justify-content:center; padding-bottom:4px; font-family:cursive; color:#999; font-size:12px; box-sizing:border-box;">Signature</div>`;
-        break;
-      }
-      case 'graphique': {
-        innerHtml = this.renderGraphiqueWithData(block, mockData);
-        break;
-      }
-      default:
-        return '';
+    const context: RenderContext = {
+      mockData,
+      replaceVars: (text, data) => this.replaceVars(text, data),
+      escape: (text) => this.escape(text),
+    };
+
+    const renderer = this.renderers.find(r => r.supports(block.type));
+    if (!renderer) {
+      return '';
     }
-    // Tous les blocs sont wrappés avec leurs dimensions
+
+    const innerHtml = renderer.render(block, context);
     return this.wrapBlock(block, innerHtml);
   }
 
@@ -438,102 +477,8 @@ export class BlockPreview implements AfterViewInit, OnChanges, OnInit, OnDestroy
     return sliced;
   }
 
-  // --- Tableau ---
-  private renderTableWithData(block: DesignBlock, mockData: Record<string, any>): string {
-    const bordure = block.style?.bordureCouleur || '#d9d9d9';
-    const texteDefaut = block.style?.texteCouleurDefaut || '#000';
-    const slice = (block as any)._tableSlice as { startRow: number; endRow: number } | undefined;
+  // Note: Table and Chart HTML rendering is delegated to TableBlockRenderer and ChartBlockRenderer
 
-    if (block.lignes) {
-      // Tableau fixe : la première ligne est l'en-tête (toujours affiché)
-      const allRows = block.lignes;
-      const headerRow = allRows[0];
-      const dataRows = allRows.slice(1);
-      const startRow = slice ? slice.startRow : 0;
-      const endRow = slice ? slice.endRow : dataRows.length;
-      const visibleRows = dataRows.slice(startRow, endRow);
-
-      let table = `<table style="border-collapse:collapse;width:100%;font-family:Arial, sans-serif;font-size:14px;">`;
-      // En-tête toujours présent
-      table += '<tr>';
-      for (const cell of headerRow) {
-        if (cell.hidden) continue;
-        const bg = cell.bgColor ? `background:${cell.bgColor};` : 'background:#f5f5f6;';
-        const color = `color:${cell.textColor || texteDefaut};`;
-        const colspan = cell.colSpan && cell.colSpan > 1 ? ` colspan="${cell.colSpan}"` : '';
-        const rowspan = cell.rowSpan && cell.rowSpan > 1 ? ` rowspan="${cell.rowSpan}"` : '';
-        table += `<td${colspan}${rowspan} style="border:1px solid ${bordure};padding:3px 5px;min-width:90px;font-weight:600;${bg}${color}">${this.replaceVars(cell.value || '', mockData)}</td>`;
-      }
-      table += '</tr>';
-      // Lignes de données (slicées)
-      for (const row of visibleRows) {
-        table += '<tr>';
-        for (const cell of row) {
-          if (cell.hidden) continue;
-          const bg = cell.bgColor ? `background:${cell.bgColor};` : '';
-          const color = `color:${cell.textColor || texteDefaut};`;
-          const colspan = cell.colSpan && cell.colSpan > 1 ? ` colspan="${cell.colSpan}"` : '';
-          const rowspan = cell.rowSpan && cell.rowSpan > 1 ? ` rowspan="${cell.rowSpan}"` : '';
-          table += `<td${colspan}${rowspan} style="border:1px solid ${bordure};padding:3px 5px;min-width:90px;${bg}${color}">${this.replaceVars(cell.value || '', mockData)}</td>`;
-        }
-        table += '</tr>';
-      }
-      return table + '</table>';
-    }
-
-    // Tableau dynamique
-    const source = block.source || '';
-    const sourceClean = source.replace('{{', '').replace('}}', '').trim();
-    const allRows: any[] = mockData[sourceClean] || [];
-
-    const tableStyle = `border-collapse:collapse;width:100%;font-family:Arial, sans-serif;font-size:14px;color:${texteDefaut};font-weight:400;`;
-    const cellStyle = `border:1px solid ${bordure};padding:3px 5px;min-width:90px;text-align:left;`;
-    const headerStyle = cellStyle + 'background:#f5f5f5;font-weight:600;';
-
-    let table = `<table style="${tableStyle}">`;
-    // En-tête toujours présent
-    table += '<tr>';
-    for (const col of block.colonnes || []) {
-      table += `<td style="${headerStyle}">${this.escape(col.titre || col.variable)}</td>`;
-    }
-    table += '</tr>';
-    // Lignes de données (slicées)
-    const startRow = slice ? slice.startRow : 0;
-    const endRow = slice ? slice.endRow : allRows.length;
-    const visibleRows = allRows.slice(startRow, endRow);
-    for (const row of visibleRows) {
-      table += '<tr>';
-      for (const col of block.colonnes || []) {
-        const val = row[col.variable];
-        table += `<td style="${cellStyle}">${this.escape(String(val))}</td>`;
-      }
-      table += '</tr>';
-    }
-    return table + '</table>';
-  }
-
-  // --- Graphique ---
-  private renderGraphiqueWithData(block: DesignBlock, mockData: Record<string, any>): string {
-    const source = (block.source || '').replace('{{', '').replace('}}', '').trim();
-    const items = mockData[source];
-    const w = block.largeurBox || 300;
-    const h = block.hauteurBox || 180;
-    if (!Array.isArray(items) || items.length === 0) {
-      return `<div style="width:100%; height:100%; border:1px dashed #ccc; display:flex; align-items:center; justify-content:center; color:#999; font-size:11px; font-family:Arial,sans-serif; box-sizing:border-box;">Graphique (${source})</div>`;
-    }
-    const max = Math.max(...items.map((i: any) => Number(i.value) || 0), 1);
-    const barAreaHeight = h - 40; // on connaît h
-    let bars = '';
-    for (const item of items) {
-      const value = Number(item.value) || 0;
-      const barHeight = Math.max(2, (value / max) * barAreaHeight);
-      bars += `<div style="display:flex;flex-direction:column;align-items:center;flex:1;">
-        <div style="width:100%; background:#6d5efc; border-radius:3px 3px 0 0; height:${barHeight}px;"></div>
-        <span style="font-size:9px; color:#555; margin-top:4px; text-align:center;">${this.escape(String(item.label))}</span>
-      </div>`;
-    }
-    return `<div style="width:100%; height:100%; display:flex; align-items:flex-end; gap:6px; border-left:1px solid #ccc; border-bottom:1px solid #ccc; padding:8px; box-sizing:border-box; font-family:Arial,sans-serif;">${bars}</div>`;
-  }
 
   // --- Utilitaires ---
   private replaceVars(text: string, mockData: Record<string, any>): string {

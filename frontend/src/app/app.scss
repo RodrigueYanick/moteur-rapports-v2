@@ -1,36 +1,264 @@
-// Couleurs
-$primary: #2c3e50;
-$accent: #3498db;
-$light: #ecf0f1;
+// Design Tokens
+$accent: #6366f1;
 
 .navbar {
   display: flex;
-  gap: 1rem;
-  background-color: $primary;
-  padding: 1rem 2rem;
+  justify-content: space-between;
   align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: var(--surface-panel);
+  border-bottom: 1px solid var(--surface-border);
+  padding: 0.6rem 1.75rem;
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 
-  a {
-    color: white;
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    color: var(--text-primary);
     text-decoration: none;
-    padding: 0.5rem 1rem;
-    border-radius: 4px;
-    transition: background-color 0.2s;
+    padding: 0.4rem 0.6rem;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 1.05rem;
+    letter-spacing: -0.01em;
 
-    &:hover {
-      background-color: rgba(255, 255, 255, 0.15);
+    .brand-icon {
+      font-size: 1.25rem;
+      filter: drop-shadow(0 2px 4px rgba(99, 102, 241, 0.2));
     }
 
-    &.active {
-      background-color: $accent;
-      font-weight: bold;
+    .brand-text {
+      background: var(--brand-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 0.4rem;
+
+    a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      padding: 0.45rem 0.85rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: all 0.18s var(--ease-spring);
+
+      &:hover {
+        color: var(--text-primary);
+        background-color: var(--surface-hover);
+        transform: translateY(-1px);
+      }
+
+      &.active {
+        background: var(--brand-gradient);
+        color: #ffffff;
+        font-weight: 600;
+        box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
+      }
+    }
+  }
+
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+
+    /* Bouton Palette de commande (Ctrl+K) */
+    .nav-search-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--surface-hover);
+      border: 1px solid var(--surface-border);
+      border-radius: 20px;
+      padding: 0.35rem 0.75rem;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 0.82rem;
+      transition: all 0.15s ease;
+
+      .search-icon {
+        font-size: 0.85rem;
+        opacity: 0.8;
+      }
+
+      .search-text {
+        font-weight: 500;
+      }
+
+      .search-kbd {
+        font-family: inherit;
+        font-size: 0.68rem;
+        font-weight: 700;
+        background: var(--surface-panel);
+        border: 1px solid var(--surface-border);
+        border-radius: 4px;
+        padding: 0.1rem 0.35rem;
+        color: var(--text-muted);
+        box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
+      }
+
+      &:hover {
+        border-color: var(--brand-primary);
+        color: var(--text-primary);
+        transform: translateY(-1px);
+      }
+    }
+
+    .theme-toggle-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--surface-hover);
+      border: 1px solid var(--surface-border);
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      font-size: 0.95rem;
+      cursor: pointer;
+      line-height: 1;
+      transition: all 0.2s var(--ease-spring);
+
+      &:hover {
+        background: var(--surface-border);
+        transform: scale(1.1);
+      }
+    }
+
+    .user-info-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--surface-hover);
+      border: 1px solid var(--surface-border);
+      padding: 0.3rem 0.7rem;
+      border-radius: 20px;
+      font-size: 0.82rem;
+      color: var(--text-primary);
+
+      .user-name {
+        font-weight: 500;
+      }
+
+      .role-badge {
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        padding: 0.1rem 0.4rem;
+        border-radius: 4px;
+        background: var(--surface-border);
+        color: var(--text-secondary);
+
+        &.SUPER_ADMIN {
+          background: rgba(124, 58, 237, 0.15);
+          color: #7c3aed;
+        }
+
+        &.ADMIN_ENTREPRISE {
+          background: rgba(37, 99, 235, 0.15);
+          color: #2563eb;
+        }
+
+        &.DESIGNER {
+          background: rgba(5, 150, 105, 0.15);
+          color: #059669;
+        }
+
+        &.OPERATOR {
+          background: rgba(217, 119, 6, 0.15);
+          color: #d97706;
+        }
+      }
+    }
+
+    .company-badge-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      background: var(--surface-hover);
+      color: var(--text-primary);
+      border: 1px solid var(--surface-border);
+      border-radius: 20px;
+      padding: 0.3rem 0.7rem;
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      .badge-icon {
+        font-size: 0.9rem;
+      }
+
+      .badge-code {
+        font-weight: 600;
+        color: var(--brand-primary);
+      }
+
+      .badge-edit {
+        font-size: 0.75rem;
+        opacity: 0.7;
+      }
+
+      &:hover {
+        border-color: var(--brand-primary);
+        transform: translateY(-1px);
+      }
+    }
+
+    .logout-btn {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      color: #ef4444;
+      padding: 0.32rem 0.7rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.18s;
+
+      &:hover {
+        background: #ef4444;
+        color: white;
+      }
+    }
+
+    .login-nav-btn {
+      background: var(--brand-gradient);
+      color: white;
+      text-decoration: none;
+      padding: 0.4rem 0.9rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      transition: opacity 0.2s;
+
+      &:hover {
+        opacity: 0.92;
+      }
     }
   }
 }
 
 main {
-  padding: 2rem;
-  // max-width: 1200px;
+  padding: 1.5rem 2rem;
   margin: 0 auto;
   width: 100%;
+  box-sizing: border-box;
+
+  /* Pour les vues Studio ou Designer plein écran, réinitialiser le padding */
+  &:has(.designer-layout),
+  &:has(app-template-detail) {
+    padding: 0 !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
 }

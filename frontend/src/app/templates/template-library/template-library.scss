@@ -1,16 +1,16 @@
-$bg-dark: #14161f;
-$bg-panel: #1a1d29;
-$bg-card: #20232f;
-$bg-hover: #262a38;
-$border: #2a2e3d;
-$accent: #6d5efc;
-$accent-hover: #5b4de8;
-$text-primary: #e8e9ee;
-$text-secondary: #9498a8;
-$text-muted: #676c7f;
+$bg-dark: var(--surface-ground, #14161f);
+$bg-panel: var(--surface-panel, #1a1d29);
+$bg-card: var(--surface-card, #20232f);
+$bg-hover: var(--surface-hover, #262a38);
+$border: var(--surface-border, #2a2e3d);
+$accent: var(--brand-primary, #6d5efc);
+$accent-hover: var(--brand-primary-hover, #5b4de8);
+$text-primary: var(--text-primary, #e8e9ee);
+$text-secondary: var(--text-secondary, #9498a8);
+$text-muted: var(--text-muted, #676c7f);
 $danger: #ef4444;
-$success: #34d399;
-$warning: #f0b429;
+$success: #10b981;
+$warning: #f59e0b;
 
 .library-container {
   max-width: 95%;
@@ -518,5 +518,86 @@ $warning: #f0b429;
     background: rgba(239, 68, 68, 0.12);
     border-color: $danger;
     color: $danger;
+  }
+}
+
+/* ---------- Squelettes Shimmer ---------- */
+.skeleton-card {
+  pointer-events: none;
+  border-radius: 14px;
+  overflow: hidden;
+  background: $bg-panel;
+  border: 1px solid $border;
+
+  .skeleton-cover {
+    height: 150px;
+    width: 100%;
+  }
+
+  .card-body {
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    .skeleton-line {
+      border-radius: 4px;
+
+      &.title {
+        height: 16px;
+        width: 65%;
+      }
+
+      &.sub {
+        height: 12px;
+        width: 40%;
+      }
+
+      &.footer {
+        height: 20px;
+        width: 50%;
+        margin-top: 4px;
+      }
+    }
+  }
+}
+
+/* ---------- État Vide Élégant ---------- */
+.empty-state-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+  background: $bg-panel;
+  border: 1px dashed $border;
+  border-radius: 16px;
+  margin: 2rem 0;
+
+  .empty-icon-circle {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: var(--surface-hover);
+    color: $accent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+  }
+
+  .empty-title {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: $text-primary;
+    margin: 0 0 0.4rem 0;
+  }
+
+  .empty-subtitle {
+    font-size: 0.9rem;
+    color: $text-secondary;
+    max-width: 400px;
+    margin: 0 0 1.5rem 0;
   }
 }

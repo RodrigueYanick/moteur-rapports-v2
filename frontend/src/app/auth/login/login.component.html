@@ -1,0 +1,83 @@
+<div class="auth-container">
+  <div class="auth-card">
+    <div class="auth-header">
+      <div class="logo-circle">
+        <lucide-icon [img]="icons.lock" [size]="28"></lucide-icon>
+      </div>
+      <h1>Connexion</h1>
+      <p class="subtitle">Accédez à votre espace de conception de rapports d'entreprise</p>
+    </div>
+
+    <!-- Mode Démo 1-Clic -->
+    <div class="demo-box">
+      <div class="demo-title">
+        <lucide-icon [img]="icons.sparkles" [size]="16"></lucide-icon>
+        <span>Accès Rapide Démo</span>
+      </div>
+      <div class="demo-buttons">
+        <button type="button" class="demo-btn admin" (click)="quickLogin('admin')" [disabled]="loading">
+          <span class="badge">Admin</span>
+          <span class="email">admin@rapports.com</span>
+        </button>
+        <button type="button" class="demo-btn designer" (click)="quickLogin('designer')" [disabled]="loading">
+          <span class="badge">Designer</span>
+          <span class="email">designer@rapports.com</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="divider">
+      <span>ou avec vos identifiants</span>
+    </div>
+
+    <div *ngIf="errorMessage" class="error-banner">
+      {{ errorMessage }}
+    </div>
+
+    <form (ngSubmit)="onSubmit()" class="auth-form">
+      <div class="form-group">
+        <label for="email">Adresse email</label>
+        <div class="input-wrapper">
+          <lucide-icon [img]="icons.mail" [size]="18" class="input-icon"></lucide-icon>
+          <input
+            id="email"
+            type="email"
+            [(ngModel)]="email"
+            name="email"
+            placeholder="exemple@entreprise.com"
+            required
+            autocomplete="email"
+          />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Mot de passe</label>
+        <div class="input-wrapper">
+          <lucide-icon [img]="icons.lock" [size]="18" class="input-icon"></lucide-icon>
+          <input
+            id="password"
+            type="password"
+            [(ngModel)]="motDePasse"
+            name="password"
+            placeholder="••••••••"
+            required
+            autocomplete="current-password"
+          />
+        </div>
+      </div>
+
+      <button type="submit" class="submit-btn" [disabled]="loading">
+        <span *ngIf="!loading">Se connecter</span>
+        <span *ngIf="loading">Connexion en cours...</span>
+        <lucide-icon *ngIf="!loading" [img]="icons.arrowRight" [size]="18"></lucide-icon>
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      <span>Vous n'avez pas de compte ?</span>
+      <a routerLink="/auth/register">Créer une entreprise</a>
+    </div>
+  </div>
+</div>
+

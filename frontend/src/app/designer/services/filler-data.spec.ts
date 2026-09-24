@@ -1,30 +1,35 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-
 import { FillerDataService } from './filler-data';
-import { FormulaService } from './formular.service';
 
 describe('FillerDataService', () => {
   let service: FillerDataService;
 
   beforeEach(() => {
-    service = new FillerDataService(new FormulaService());
+    service = new FillerDataService();
   });
 
-  it('should evaluate a simple multiplication formula', () => {
-    const formulaService = new FormulaService();
-
-    expect(formulaService.evaluate('QTE1 * PU1', { QTE1: 3, PU1: 7 })).toBe(21);
+  it('devrait être initialisé avec un objet vide', () => {
+    expect(service.getValues()).toEqual({});
   });
 
-  it('should recompute calculated variables in dependency order', () => {
-    service.setCalculatedVariables([
-      { id: '1', nomVariable: 'T1', type: 'CALCULEE', obligatoire: false, description: '', formule: 'QTE1 * PU1' },
-      { id: '2', nomVariable: 'TOTAL_TTC', type: 'CALCULEE', obligatoire: false, description: '', formule: 'T1 * 1.2' },
-    ]);
+  it('devrait définir les valeurs de test', () => {
+    service.setValues({ clientNom: 'ACME Corp', montant: 1500 });
+    expect(service.getValues()).toEqual({ clientNom: 'ACME Corp', montant: 1500 });
+  });
 
-    service.setValues({ QTE1: 5, PU1: 10 });
+  it('devrait mettre à jour une valeur individuelle', () => {
+    service.setValues({ clientNom: 'ACME Corp', montant: 1500 });
+    service.updateValue('montant', 2000);
+    service.updateValue('tva', 400);
 
-    expect(service.getValues()['T1']).toBe(50);
-    expect(service.getValues()['TOTAL_TTC']).toBe(60);
+    expect(service.getValues()['montant']).toBe(2000);
+    expect(service.getValues()['tva']).toBe(400);
+    expect(service.getValues()['clientNom']).toBe('ACME Corp');
+  });
+
+  it('devrait réinitialiser les valeurs', () => {
+    service.setValues({ foo: 'bar' });
+    service.reset();
+    expect(service.getValues()).toEqual({});
   });
 });

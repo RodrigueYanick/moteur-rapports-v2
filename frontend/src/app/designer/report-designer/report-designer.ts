@@ -1,5 +1,5 @@
-import { Component, EventEmitter, Input, Output, OnInit, SimpleChanges } from '@angular/core';
-import { DesignBlock, DesignPage, BLOCK_DEFAULT_DIMENSIONS } from '../models/design-block.model';
+import { Component, EventEmitter, Input, Output, OnInit, SimpleChanges, HostListener, ChangeDetectorRef } from '@angular/core';
+import { DesignBlock, DesignPage } from '../models/design-block.model';
 import { CommonModule } from '@angular/common';
 import { BlockEditor } from "../block-editor/block-editor";
 import { BlockPreview } from '../block-preview/block-preview';
@@ -10,20 +10,31 @@ import { FormsModule } from '@angular/forms';
 import {
   LucideAngularModule, Undo2, Redo2, Grid3x3, Magnet, Ruler, Minus, Plus, Eye,
   Download, Rocket, Share2, Save, FileText, Check, Loader2, Ruler as RulerIcon,
-  Edit, X, Lock, Copy, Settings
+  Edit, X, Lock, Copy, Settings, Trash2, AlignLeft, AlignCenter, AlignRight,
+  ArrowUp, ArrowDown, Layers, MoveHorizontal, MoveVertical
 } from 'lucide-angular';
 import { Variable } from '../../models/variable.model';
 import { TemplateFiller } from "../template-filler/template-filler";
 import { FillerDataService } from '../services/filler-data';
 import { MockDataService } from '../services/mock-data.service';
 import { TemplateApiService } from '../../services/template-api';
+import { DesignerClipboardService } from '../services/designer-clipboard.service';
+import { DesignerSelectionService } from '../services/designer-selection.service';
+import { DesignerGeometryService, UsableArea } from '../services/designer-geometry.service';
+import { DesignerHistoryService } from '../services/designer-history.service';
+import { DesignerStore } from '../services/designer.store';
+import { OnboardingService } from '../../shared/services/onboarding.service';
+import { OnboardingTourComponent } from '../../shared/components/onboarding-tour/onboarding-tour.component';
+import { DesignerToolbarComponent } from '../components/designer-toolbar/designer-toolbar.component';
+import { DesignerPageTabsComponent } from '../components/designer-page-tabs/designer-page-tabs.component';
 
 @Component({
   selector: 'app-report-designer',
   standalone: true,
   imports: [
     CommonModule, BlockEditor, BlockPreview, DragDropModule,
-    DesignCanvas, Sidebar, FormsModule, LucideAngularModule, TemplateFiller
+    DesignCanvas, Sidebar, FormsModule, LucideAngularModule, TemplateFiller,
+    OnboardingTourComponent, DesignerToolbarComponent, DesignerPageTabsComponent
   ],
   templateUrl: './report-designer.html',
   styleUrl: './report-designer.scss',
@@ -42,6 +53,25 @@ export class ReportDesigner implements OnInit {
   @Input() margeBasMm: number = 10;
   @Input() margeGaucheMm: number = 10;
   @Input() margeDroiteMm: number = 10;
+  @Input() couleurFond: string = '#ffffff';
+
+  @Input() headerActif: boolean = false;
+  @Input() hauteurHeaderMm: number = 15;
+  @Input() headerContenu?: string | null = null;
+  @Input() headerAlignement: string = 'GAUCHE';
+  @Input() headerAfficherSurPremierePage: boolean = true;
+  @Input() headerLigneSeparation: boolean = true;
+  @Input() headerCouleurLigne: string = '#cccccc';
+
+  @Input() footerActif: boolean = false;
+  @Input() hauteurFooterMm: number = 12;
+  @Input() footerContenu?: string | null = null;
+  @Input() footerAlignement: string = 'CENTRE';
+  @Input() footerAfficherSurPremierePage: boolean = true;
+  @Input() footerLigneSeparation: boolean = true;
+  @Input() footerCouleurLigne: string = '#cccccc';
+  @Input() numerotationPage: boolean = true;
+  @Input() formatNumerotation: string = 'PAGE_X_SUR_Y';
 
   @Output() pagesChange = new EventEmitter<DesignPage[]>();
   @Output() pageSettingsChange = new EventEmitter<{
@@ -60,18 +90,10 @@ export class ReportDesigner implements OnInit {
 
   selectedBlock: DesignBlock | null = null;
   explicitVariables: Variable[] = [];
-
   activePageIndex = 0;
   editingPageIndex: number | null = null;
-
-  showGrid = false;
-  snapEnabled = false;
-  showGuides = false;
-  zoomPercent = 100;
-  paperFormat = 'A4';
-  fillingMode = false;
-
   showPageSettingsModal = false;
+
   editingSettings = {
     formatPapier: 'A4',
     modePagination: 'FIXED' as 'FIXED' | 'AUTO',
@@ -81,51 +103,71 @@ export class ReportDesigner implements OnInit {
     margeDroiteMm: 10
   };
 
-  lockedMessage: string | null = null;
-  private lockedMessageTimer: any;
-
-  private undoStack: DesignPage[][] = [];
-  private redoStack: DesignPage[][] = [];
   private isUndoRedoAction = false;
   private ignoreNextChange = false;
-
-  constructor(
-    private api: TemplateApiService,
-    private fillerData: FillerDataService,
-    private mockDataService: MockDataService
-  ) {}
+  private variableCounters: Record<string, number> = {};
 
   readonly icons = {
     undo: Undo2, redo: Redo2, grid: Grid3x3, snap: Magnet, guides: Ruler,
     zoomOut: Minus, zoomIn: Plus, preview: Eye, export: Download, publish: Rocket,
     share: Share2, save: Save, file: FileText, check: Check, loader: Loader2,
     Ruler: RulerIcon, edit: Edit, fileText: FileText, close: X, lock: Lock, copy: Copy,
-    settings: Settings
+    settings: Settings, trash: Trash2,
+    alignLeft: AlignLeft, alignCenter: AlignCenter, alignRight: AlignRight,
+    alignTop: ArrowUp, alignBottom: ArrowDown,
+    distributeH: MoveHorizontal, distributeV: MoveVertical,
+    layers: Layers
   };
 
-  private variableCounters: Record<string, number> = {};
+  constructor(
+    private api: TemplateApiService,
+    private fillerData: FillerDataService,
+    private mockDataService: MockDataService,
+    private clipboardService: DesignerClipboardService,
+    private selectionService: DesignerSelectionService,
+    private geometryService: DesignerGeometryService,
+    private historyService: DesignerHistoryService,
+    public designerStore: DesignerStore,
+    private onboardingService: OnboardingService,
+    private cdr: ChangeDetectorRef
+  ) {}
 
-  // ---------- Accès aux blocs de la page active ----------
+  // ---------- Getters UI délégués au Store ----------
+  get showGrid(): boolean { return this.designerStore.showGrid(); }
+  get snapEnabled(): boolean { return this.designerStore.snapEnabled(); }
+  get showGuides(): boolean { return this.designerStore.showGuides(); }
+  get zoomPercent(): number { return this.designerStore.zoomPercent(); }
+  get fillingMode(): boolean { return this.designerStore.fillingMode(); }
+  get lockedMessage(): string | null { return this.designerStore.lockedMessage(); }
+  get isLocked(): boolean { return this.templateStatus !== 'BROUILLON'; }
+  get isAutoPagination(): boolean { return this.modePagination === 'AUTO'; }
 
+  toggleGrid(): void { this.designerStore.toggleGrid(); }
+  toggleSnap(): void { this.designerStore.toggleSnap(); }
+  toggleGuides(): void { this.designerStore.toggleGuides(); }
+  toggleFillingMode(): void { this.designerStore.toggleFillingMode(); }
+  zoomIn(): void { this.designerStore.zoomIn(); }
+  zoomOut(): void { this.designerStore.zoomOut(); }
+  resetZoom(): void { this.designerStore.resetZoom(); }
+  showLockedMessage(msg?: string): void { this.designerStore.showLockedMessage(msg); }
+
+  // ---------- Accès aux blocs & pages ----------
   get blocks(): DesignBlock[] {
     return this.pages[this.activePageIndex]?.blocks || [];
   }
-  
+
   set blocks(value: DesignBlock[]) {
     if (this.pages[this.activePageIndex]) {
       this.pages[this.activePageIndex].blocks = value;
     }
   }
 
-  get isAutoPagination(): boolean {
-    return this.modePagination === 'AUTO';
+  get allBlocksFlat(): DesignBlock[] {
+    return this.pages.flatMap(p => p.blocks);
   }
 
-  // Pour le mode AUTO, on définit une hauteur virtuelle pour le canvas
   get virtualCanvasHeight(): number {
-    if (!this.isAutoPagination) {
-      return this.canvasHeight;
-    }
+    if (!this.isAutoPagination) return this.canvasHeight;
     let maxY = 0;
     for (const block of this.blocks) {
       const bottom = (block.y || 0) + (block.hauteurBox || 100);
@@ -134,46 +176,178 @@ export class ReportDesigner implements OnInit {
     return Math.max(this.canvasHeight, maxY + 200);
   }
 
-  get allBlocksFlat(): DesignBlock[] {
-    return this.pages.flatMap(p => p.blocks);
-  }
-
-  get isLocked(): boolean {
-    return this.templateStatus !== 'BROUILLON';
-  }
-
-  ngOnInit(): void {
-    if (!this.pages || this.pages.length === 0) {
-      this.pages = [{ id: crypto.randomUUID(), nom: 'Page 1', blocks: [] }];
-    }
-    this.pushUndoState();
-  }
-
-  // Supprimer ou commenter l'ancienne table paperDimensions
-  // private paperDimensions: Record<string, { width: number; height: number }> = { ... };
-
+  // ---------- Dimensions & Marges déléguées au GeometryService ----------
   get canvasWidth(): number {
-    const dims = this.getPaperDimensions(this.formatPapier, this.largeurMm, this.hauteurMm);
-    return dims.width;
+    return this.geometryService.getPaperDimensions(this.formatPapier, this.largeurMm, this.hauteurMm).width;
   }
 
   get canvasHeight(): number {
-    const dims = this.getPaperDimensions(this.formatPapier, this.largeurMm, this.hauteurMm);
-    return dims.height;
+    return this.geometryService.getPaperDimensions(this.formatPapier, this.largeurMm, this.hauteurMm).height;
   }
-
-  private readonly pxPerMm = 96 / 25.4;
 
   get effectiveMargeHautMm(): number { return (this.margeHautMm != null && this.margeHautMm > 0) ? this.margeHautMm : 10; }
   get effectiveMargeBasMm(): number { return (this.margeBasMm != null && this.margeBasMm > 0) ? this.margeBasMm : 10; }
   get effectiveMargeGaucheMm(): number { return (this.margeGaucheMm != null && this.margeGaucheMm > 0) ? this.margeGaucheMm : 10; }
   get effectiveMargeDroiteMm(): number { return (this.margeDroiteMm != null && this.margeDroiteMm > 0) ? this.margeDroiteMm : 10; }
 
-  get margeHautPx(): number { return Math.round(this.effectiveMargeHautMm * this.pxPerMm); }
-  get margeBasPx(): number { return Math.round(this.effectiveMargeBasMm * this.pxPerMm); }
-  get margeGauchePx(): number { return Math.round(this.effectiveMargeGaucheMm * this.pxPerMm); }
-  get margeDroitePx(): number { return Math.round(this.effectiveMargeDroiteMm * this.pxPerMm); }
+  get paperFormat(): string { return this.formatPapier; }
+  get margeHautPx(): number { return this.usableAreaPx.minY; }
+  get margeBasPx(): number { return this.canvasHeight - this.usableAreaPx.maxY; }
+  get margeGauchePx(): number { return this.usableAreaPx.minX; }
+  get margeDroitePx(): number { return this.canvasWidth - this.usableAreaPx.maxX; }
 
+  onCanvasPreviewChange(blocks: DesignBlock[]): void {
+    // Aperçu dynamique
+  }
+
+  get usableAreaPx(): UsableArea {
+    return this.geometryService.getUsableArea(
+      this.canvasWidth, this.canvasHeight,
+      this.margeGaucheMm, this.margeDroiteMm, this.margeHautMm, this.margeBasMm
+    );
+  }
+
+  private clampBlockToUsableArea(block: DesignBlock): void {
+    this.geometryService.clampBlockToUsableArea(block, this.usableAreaPx);
+  }
+
+  // ---------- Lifecycle Hooks ----------
+  ngOnInit(): void {
+    if (!this.pages || this.pages.length === 0) {
+      this.pages = [{ id: crypto.randomUUID(), nom: 'Page 1', blocks: [] }];
+    }
+    this.historyService.initialize(this.pages);
+    if (this.templateId) {
+      this.loadVariables(this.templateId);
+    }
+    setTimeout(() => this.onboardingService.startTour(), 150);
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['templateId'] && this.templateId) {
+      this.loadVariables(this.templateId);
+    }
+    if (changes['pages'] && !changes['pages'].firstChange) {
+      if (this.ignoreNextChange) {
+        this.ignoreNextChange = false;
+        return;
+      }
+      this.activePageIndex = 0;
+      this.historyService.initialize(this.pages);
+    }
+  }
+
+  private loadVariables(templateId: string): void {
+    this.api.getVariables(templateId).subscribe({
+      next: (vars) => {
+        queueMicrotask(() => {
+          this.explicitVariables = vars;
+          this.cdr.markForCheck();
+        });
+      },
+      error: (err) => console.error('Erreur chargement variables pour autocomplétion', err)
+    });
+  }
+
+  // ---------- Historique délégué au HistoryService ----------
+  get canUndo(): boolean { return this.historyService.canUndo; }
+  get canRedo(): boolean { return this.historyService.canRedo; }
+
+  undo(): void {
+    if (this.isLocked) { this.showLockedMessage(); return; }
+    const prev = this.historyService.undo(this.pages);
+    if (prev) {
+      this.isUndoRedoAction = true;
+      this.pages = prev;
+      if (this.activePageIndex >= this.pages.length) this.activePageIndex = this.pages.length - 1;
+      this.emitPagesChange();
+      this.isUndoRedoAction = false;
+    }
+  }
+
+  redo(): void {
+    if (this.isLocked) { this.showLockedMessage(); return; }
+    const next = this.historyService.redo(this.pages);
+    if (next) {
+      this.isUndoRedoAction = true;
+      this.pages = next;
+      if (this.activePageIndex >= this.pages.length) this.activePageIndex = this.pages.length - 1;
+      this.emitPagesChange();
+      this.isUndoRedoAction = false;
+    }
+  }
+
+  private afterPagesChanged(): void {
+    if (!this.isUndoRedoAction) {
+      this.historyService.pushState(this.pages);
+    }
+    this.emitPagesChange();
+  }
+
+  private emitPagesChange(): void {
+    this.ignoreNextChange = true;
+    this.pagesChange.emit([...this.pages]);
+  }
+
+  // ---------- Gestion des Pages ----------
+  addPage(): void {
+    if (this.isLocked || this.isAutoPagination) { this.showLockedMessage(); return; }
+    const newPage: DesignPage = { id: crypto.randomUUID(), nom: `Page ${this.pages.length + 1}`, blocks: [] };
+    this.pages = [...this.pages, newPage];
+    this.activePageIndex = this.pages.length - 1;
+    this.selectedBlock = null;
+    this.afterPagesChanged();
+  }
+
+  removePage(index: number, event: Event): void {
+    event.stopPropagation();
+    if (this.isLocked || this.isAutoPagination) { this.showLockedMessage(); return; }
+    if (this.pages.length <= 1) return;
+    this.pages = this.pages.filter((_, i) => i !== index);
+    if (this.activePageIndex >= this.pages.length) this.activePageIndex = this.pages.length - 1;
+    else if (this.activePageIndex > index) this.activePageIndex--;
+    this.selectedBlock = null;
+    this.afterPagesChanged();
+  }
+
+  duplicatePage(index: number, event: Event): void {
+    event.stopPropagation();
+    if (this.isLocked) { this.showLockedMessage(); return; }
+    const source = this.pages[index];
+    const clonedBlocks: DesignBlock[] = JSON.parse(JSON.stringify(source.blocks))
+      .map((b: DesignBlock) => ({ ...b, id: crypto.randomUUID() }));
+    clonedBlocks.forEach(b => this.clampBlockToUsableArea(b));
+    const copy: DesignPage = { id: crypto.randomUUID(), nom: `${source.nom} (copie)`, blocks: clonedBlocks };
+    this.pages = [...this.pages.slice(0, index + 1), copy, ...this.pages.slice(index + 1)];
+    this.activePageIndex = index + 1;
+    this.afterPagesChanged();
+  }
+
+  onPageRemove(evt: { index: number; event: Event }): void {
+    this.removePage(evt.index, evt.event);
+  }
+
+  onPageDuplicate(evt: { index: number; event: Event }): void {
+    this.duplicatePage(evt.index, evt.event);
+  }
+
+  switchPage(index: number): void {
+    this.activePageIndex = index;
+    this.selectedBlock = null;
+  }
+
+  startRenamePage(index: number, event: Event): void {
+    event.stopPropagation();
+    if (this.isLocked) { this.showLockedMessage(); return; }
+    this.editingPageIndex = index;
+  }
+
+  finishRenamePage(): void {
+    this.editingPageIndex = null;
+    this.afterPagesChanged();
+  }
+
+  // ---------- Paramètres de Page ----------
   openPageSettings(): void {
     this.editingSettings = {
       formatPapier: this.formatPapier || 'A4',
@@ -214,193 +388,10 @@ export class ReportDesigner implements OnInit {
     this.closePageSettings();
   }
 
-  /** Zone utilisable en pixels (hors marges) */
-  get usableAreaPx(): { minX: number; minY: number; maxX: number; maxY: number; width: number; height: number } {
-    return {
-      minX: this.margeGauchePx,
-      minY: this.margeHautPx,
-      maxX: this.canvasWidth - this.margeDroitePx,
-      maxY: this.canvasHeight - this.margeBasPx,
-      width: this.canvasWidth - this.margeGauchePx - this.margeDroitePx,
-      height: this.canvasHeight - this.margeHautPx - this.margeBasPx,
-    };
-  }
-  
-
-  /**
-   * Contraint la position et les dimensions d'un bloc pour qu'il reste
-   * entièrement dans la zone utilisable (hors marges).
-   */
-  private clampBlockToUsableArea(block: DesignBlock): void {
-    const area = this.usableAreaPx;
-    const fallback = BLOCK_DEFAULT_DIMENSIONS[block.type];
-    const w = block.largeurBox || fallback.w;
-    const h = block.hauteurBox || fallback.h;
-
-    // Limiter les dimensions si le bloc est plus grand que la zone
-    const maxW = area.width;
-    const maxH = area.height;
-    if (w > maxW) block.largeurBox = maxW;
-    if (h > maxH) block.hauteurBox = maxH;
-
-    const effectiveW = block.largeurBox || fallback.w;
-    const effectiveH = block.hauteurBox || fallback.h;
-
-    // Contraint la position horizontale
-    block.x = Math.max(area.minX, Math.min(block.x || 0, area.maxX - effectiveW));
-
-    // Pour les tableaux, on ne contraint que le haut (y >= margeHaut)
-    // car ils peuvent s'étendre sur plusieurs pages.
-    // On ne pousse PAS le bloc vers le haut en fonction de hauteurBox.
-    if (block.type === 'tableau') {
-      block.y = Math.max(area.minY, block.y || 0);
-    } else {
-      block.y = Math.max(area.minY, Math.min(block.y || 0, area.maxY - effectiveH));
-    }
-  }
-
-  private getPaperDimensions(format: string, largeurMm?: number | null, hauteurMm?: number | null): { width: number; height: number } {
-    const pxPerMm = 96 / 25.4; // 96 dpi
-    if (format === 'CUSTOM' && largeurMm && hauteurMm) {
-      return {
-        width: Math.round(largeurMm * pxPerMm),
-        height: Math.round(hauteurMm * pxPerMm),
-      };
-    }
-    // Formats prédéfinis (largeur x hauteur en mm)
-    const standardSizes: Record<string, { wMm: number; hMm: number }> = {
-      'A0': { wMm: 841, hMm: 1189 },
-      'A1': { wMm: 594, hMm: 841 },
-      'A2': { wMm: 420, hMm: 594 },
-      'A3': { wMm: 297, hMm: 420 },
-      'A4': { wMm: 210, hMm: 297 },
-      'A5': { wMm: 148, hMm: 210 },
-      'A6': { wMm: 105, hMm: 148 },
-      'A7': { wMm: 74, hMm: 105 },
-      'A8': { wMm: 52, hMm: 74 },
-      'A9': { wMm: 37, hMm: 52 },
-      'A10': { wMm: 26, hMm: 37 },
-      'Letter': { wMm: 216, hMm: 279 },
-      'Legal': { wMm: 216, hMm: 356 },
-    };
-    const size = standardSizes[format] || standardSizes['A4'];
-    return {
-      width: Math.round(size.wMm * pxPerMm),
-      height: Math.round(size.hMm * pxPerMm),
-    };
-  }
-
-
-  ngOnChanges(changes: SimpleChanges): void {
-    if (changes['pages'] && !changes['pages'].firstChange) {
-      if (this.ignoreNextChange) {
-        this.ignoreNextChange = false;
-        return;
-      }
-      this.activePageIndex = 0;
-      this.undoStack = [];
-      this.redoStack = [];
-      this.pushUndoState();
-    }
-  }
-
-  showLockedMessage(): void {
-    this.lockedMessage = 'Ce modèle est publié et ne peut plus être modifié.';
-    clearTimeout(this.lockedMessageTimer);
-    this.lockedMessageTimer = setTimeout(() => (this.lockedMessage = null), 4000);
-  }
-
-  requestDuplicate(): void {
-    this.duplicateRequest.emit();
-  }
-
-  toggleFillingMode(): void {
-    this.fillingMode = !this.fillingMode;
-  }
-
-  onExplicitVariablesChanged(vars: Variable[]): void {
-    this.explicitVariables = vars;
-  }
-
-  onFillerGenerate(data: Record<string, any>): void {
-    this.exportRequest.emit(data);
-  }
-
-  exportPdf(): void {
-    if (this.isLocked) {
-      this.exportRequest.emit(this.fillerData.getValues());
-      return;
-    }
-    if (this.fillingMode) {
-      this.exportRequest.emit(this.fillerData.getValues());
-    } else {
-      this.exportRequest.emit();
-    }
-  }
-
-  manualSave(): void {
-    this.manualSaveRequest.emit();
-  }
-
-  // ---------- Pages ----------
-
-  addPage(): void {
-    if (this.isLocked || this.isAutoPagination) { this.showLockedMessage(); return; }
-    const newPage: DesignPage = { id: crypto.randomUUID(), nom: `Page ${this.pages.length + 1}`, blocks: [] };
-    this.pages = [...this.pages, newPage];
-    this.activePageIndex = this.pages.length - 1;
-    this.selectedBlock = null;
-    this.afterPagesChanged();
-  }
-
-  removePage(index: number, event: Event): void {
-    event.stopPropagation();
-    if (this.isLocked || this.isAutoPagination) { this.showLockedMessage(); return; }
-    if (this.pages.length <= 1) return;
-    this.pages = this.pages.filter((_, i) => i !== index);
-    if (this.activePageIndex >= this.pages.length) this.activePageIndex = this.pages.length - 1;
-    else if (this.activePageIndex > index) this.activePageIndex--;
-    this.selectedBlock = null;
-    this.afterPagesChanged();
-  }
-
-  duplicatePage(index: number, event: Event): void {
-    event.stopPropagation();
-    if (this.isLocked) { this.showLockedMessage(); return; }
-    const source = this.pages[index];
-    const clonedBlocks: DesignBlock[] = JSON.parse(JSON.stringify(source.blocks))
-      .map((b: DesignBlock) => ({ ...b, id: crypto.randomUUID() }));
-    // Contraint chaque bloc cloné dans la zone utilisable
-    clonedBlocks.forEach(b => this.clampBlockToUsableArea(b));
-    const copy: DesignPage = { id: crypto.randomUUID(), nom: `${source.nom} (copie)`, blocks: clonedBlocks };
-    this.pages = [...this.pages.slice(0, index + 1), copy, ...this.pages.slice(index + 1)];
-    this.activePageIndex = index + 1;
-    this.afterPagesChanged();
-  }
-
-  switchPage(index: number): void {
-    this.activePageIndex = index;
-    this.selectedBlock = null;
-  }
-
-  startRenamePage(index: number, event: Event): void {
-    event.stopPropagation();
-    if (this.isLocked) { this.showLockedMessage(); return; }
-    this.editingPageIndex = index;
-  }
-
-  finishRenamePage(): void {
-    this.editingPageIndex = null;
-    this.afterPagesChanged();
-  }
-
-  // ---------- Blocs ----------
-
+  // ---------- Gestion des Blocs ----------
   addBlock(type: DesignBlock['type']): void {
     if (this.isLocked) { this.showLockedMessage(); return; }
-
     const area = this.usableAreaPx;
-
     const newBlock: DesignBlock = {
       id: crypto.randomUUID(), type, contenu: '', style: {},
       x: area.minX + 10, y: area.minY + 10, visible: true, locked: false, rotation: 0
@@ -416,12 +407,7 @@ export class ReportDesigner implements OnInit {
         newBlock.style = { fontSize: 12 };
         break;
       case 'tableau':
-        newBlock.lignes = [
-          [{ value: '' }, { value: '' }],
-          [{ value: '' }, { value: '' }]
-        ];
-        delete newBlock.source;
-        delete newBlock.colonnes;
+        newBlock.lignes = [[{ value: '' }, { value: '' }], [{ value: '' }, { value: '' }]];
         break;
       case 'ligne':
         newBlock.style = { epaisseur: 1, couleur: '#000000', largeur: 100 };
@@ -461,9 +447,7 @@ export class ReportDesigner implements OnInit {
         break;
     }
 
-    // Contraint le bloc dans la zone utilisable (hors marges)
     this.clampBlockToUsableArea(newBlock);
-
     this.blocks.push(newBlock);
     this.afterPagesChanged();
   }
@@ -482,16 +466,6 @@ export class ReportDesigner implements OnInit {
     this.afterPagesChanged();
   }
 
-  getBlockSummary(block: DesignBlock): string {
-    if (block.type === 'tableau') {
-      const nbColonnes = block.colonnes ? block.colonnes.length : 0;
-      return `Tableau (${nbColonnes} colonnes)`;
-    }
-    if (block.type === 'ligne') return `Ligne (${block.style?.epaisseur || 1}px)`;
-    if (block.type === 'image') return block.url || 'Aucune URL';
-    return block.contenu || '(vide)';
-  }
-
   selectBlock(block: DesignBlock): void {
     if (this.isLocked) { this.showLockedMessage(); return; }
     this.selectedBlock = block;
@@ -499,10 +473,7 @@ export class ReportDesigner implements OnInit {
 
   updateBlock(updated: DesignBlock): void {
     if (this.isLocked) { this.showLockedMessage(); return; }
-
-    // Contraint le bloc dans la zone utilisable (hors marges)
     this.clampBlockToUsableArea(updated);
-
     const index = this.blocks.findIndex(b => b.id === updated.id);
     if (index !== -1) {
       const newBlocks = [...this.blocks];
@@ -523,28 +494,11 @@ export class ReportDesigner implements OnInit {
   onCanvasBlocksChange(newBlocks: DesignBlock[]): void {
     if (this.isLocked) { this.showLockedMessage(); return; }
     this.blocks = newBlocks;
-
     if (this.selectedBlock) {
-      const matchingIndex = newBlocks.findIndex((b) => b.id === this.selectedBlock?.id);
-      if (matchingIndex !== -1) {
-        this.selectedBlock = { ...newBlocks[matchingIndex] };
-      }
+      const matching = newBlocks.find(b => b.id === this.selectedBlock?.id);
+      this.selectedBlock = matching || null;
     }
-
     this.afterPagesChanged();
-  }
-
-  onCanvasPreviewChange(newBlocks: DesignBlock[]): void {
-    if (this.isLocked || !this.pages[this.activePageIndex]) return;
-    this.pages = this.pages.map((page, index) =>
-      index === this.activePageIndex ? { ...page, blocks: newBlocks } : page
-    );
-  }
-
-  private generateVariableName(type: string): string {
-    if (!this.variableCounters[type]) this.variableCounters[type] = 0;
-    this.variableCounters[type]++;
-    return `${type}_${this.variableCounters[type]}`;
   }
 
   onToggleVisibility(block: DesignBlock): void {
@@ -561,58 +515,169 @@ export class ReportDesigner implements OnInit {
     this.afterPagesChanged();
   }
 
-  // ---------- Historique ----------
-
-  private pushUndoState(): void {
-    if (this.isUndoRedoAction) return;
-    const cloned = JSON.parse(JSON.stringify(this.pages));
-    this.undoStack.push(cloned);
-    if (this.undoStack.length > 50) this.undoStack.shift();
-    this.redoStack = [];
-  }
-
-  private restoreState(state: DesignPage[]): void {
-    this.isUndoRedoAction = true;
-    this.pages = state;
-    if (this.activePageIndex >= this.pages.length) this.activePageIndex = this.pages.length - 1;
-    this.emitPagesChange();
-    this.isUndoRedoAction = false;
-  }
-
-  undo(): void {
+  onLayersReordered(newBlocks: DesignBlock[]): void {
     if (this.isLocked) { this.showLockedMessage(); return; }
-    if (this.undoStack.length <= 1) return;
-    const current = this.undoStack.pop()!;
-    this.redoStack.push(current);
-    const previous = this.undoStack[this.undoStack.length - 1];
-    this.restoreState(previous);
+    this.blocks = newBlocks;
+    this.afterPagesChanged();
   }
 
-  redo(): void {
+  // ---------- Multi-sélection déléguée ----------
+  get selectedBlockIds(): string[] {
+    return this.selectionService.selectedBlockIds();
+  }
+
+  alignSelectedBlocks(alignment: 'left' | 'centerH' | 'right' | 'top' | 'bottom'): void {
     if (this.isLocked) { this.showLockedMessage(); return; }
-    if (this.redoStack.length === 0) return;
-    const next = this.redoStack.pop()!;
-    this.undoStack.push(next);
-    this.restoreState(next);
+    this.selectionService.alignSelected(this.blocks, alignment, b => this.clampBlockToUsableArea(b));
+    this.afterPagesChanged();
   }
 
-  private afterPagesChanged(): void {
-    if (!this.isUndoRedoAction) this.pushUndoState();
-    this.emitPagesChange();
+  distributeSelectedBlocks(direction: 'horizontal' | 'vertical'): void {
+    if (this.isLocked) { this.showLockedMessage(); return; }
+    this.selectionService.distributeSelected(this.blocks, direction, b => this.clampBlockToUsableArea(b));
+    this.afterPagesChanged();
   }
 
-  private emitPagesChange(): void {
-    this.ignoreNextChange = true;
-    this.pagesChange.emit([...this.pages]);
+  onCanvasSelectionChange(ids: string[]): void {
+    this.selectionService.setSelectionIds(ids, this.blocks);
+    this.selectedBlock = this.selectionService.selectedBlock();
   }
 
-  // ---------- Toolbar ----------
+  onCanvasBlockSelected(block: DesignBlock | null): void {
+    this.selectedBlock = block;
+    this.selectionService.select(block, false, this.blocks);
+  }
+
+  // ---------- Presse-papier délégué ----------
+  get canCopy(): boolean {
+    return this.clipboardService.canCopy(this.isLocked, this.selectedBlock);
+  }
+
+  get canPaste(): boolean {
+    return this.clipboardService.canPaste(this.isLocked);
+  }
+
+  copySelectedBlock(): void {
+    if (!this.selectedBlock || this.isLocked) return;
+    this.clipboardService.copy(this.selectedBlock);
+  }
+
+  pasteBlock(): void {
+    if (this.isLocked) return;
+    const pasted = this.clipboardService.paste(b => this.clampBlockToUsableArea(b));
+    if (pasted) {
+      this.blocks.push(pasted);
+      this.selectedBlock = pasted;
+      this.selectionService.select(pasted, false, this.blocks);
+      this.afterPagesChanged();
+    }
+  }
+
+  duplicateSelectedBlock(): void {
+    if (!this.selectedBlock || this.isLocked) return;
+    const duplicated = this.clipboardService.duplicate(this.selectedBlock, b => this.clampBlockToUsableArea(b));
+    this.blocks.push(duplicated);
+    this.selectedBlock = duplicated;
+    this.selectionService.select(duplicated, false, this.blocks);
+    this.afterPagesChanged();
+  }
+
+  deleteSelectedBlock(): void {
+    if (!this.selectedBlock || this.isLocked) return;
+    const index = this.blocks.findIndex(b => b.id === this.selectedBlock?.id);
+    if (index !== -1) {
+      this.removeBlock(index);
+      this.selectedBlock = null;
+      this.selectionService.clear();
+    }
+  }
+
+  // ---------- Insertion de Variables & Actions Métier ----------
+  insertVariableBlock(variable: Variable): void {
+    if (this.isLocked) { this.showLockedMessage(); return; }
+    const area = this.usableAreaPx;
+    const isImage = variable.type === 'IMAGE';
+    const newBlock: DesignBlock = {
+      id: crypto.randomUUID(),
+      type: isImage ? 'image' : 'texte',
+      contenu: isImage ? '' : `{{${variable.nomVariable}}}`,
+      url: isImage ? `{{${variable.nomVariable}}}` : undefined,
+      style: { fontSize: 12 },
+      x: area.minX + 20,
+      y: area.minY + 20,
+      visible: true,
+      locked: false,
+      rotation: 0,
+    };
+    this.clampBlockToUsableArea(newBlock);
+    this.blocks.push(newBlock);
+    this.selectedBlock = newBlock;
+    this.selectionService.select(newBlock, false, this.blocks);
+    this.afterPagesChanged();
+  }
+
+  startOnboarding(): void {
+    this.onboardingService.startTour(true);
+  }
+
+  requestDuplicate(): void { this.duplicateRequest.emit(); }
+  manualSave(): void { this.manualSaveRequest.emit(); }
+  preview(): void { this.previewRequest.emit(); }
+  publish(): void { this.publishRequest.emit(); }
+
+  exportPdf(): void {
+    if (this.isLocked || this.fillingMode) {
+      this.exportRequest.emit(this.fillerData.getValues());
+    } else {
+      this.exportRequest.emit();
+    }
+  }
+
+  exportHtml(): void {
+    if (!this.templateId) return;
+    if (!this.isLocked && this.templateStatus !== 'PUBLIE') {
+      alert('Le template doit être publié avant de générer un aperçu HTML.');
+      return;
+    }
+    this.api.getSchema(this.templateId).subscribe({
+      next: (schema) => {
+        const mockData = this.mockDataService.generate(this.allBlocksFlat);
+        const fillData = this.fillingMode ? this.fillerData.getValues() : {};
+        const rawData = { ...mockData, ...fillData };
+        const corrected: Record<string, any> = {};
+        for (const v of schema.variables) {
+          const raw = rawData[v.nomVariable];
+          if (v.type === 'FLOAT') {
+            const num = Number(raw);
+            corrected[v.nomVariable] = (raw == null || raw === '' || isNaN(num)) ? 0 : num;
+          } else if (v.type === 'BOOLEAN') {
+            corrected[v.nomVariable] = !!raw;
+          } else if (v.type === 'ARRAY') {
+            corrected[v.nomVariable] = Array.isArray(raw) ? raw : [];
+          } else {
+            corrected[v.nomVariable] = raw || '';
+          }
+        }
+        this.api.exportHtml(this.templateId!, corrected).subscribe({
+          next: (blob) => window.open(window.URL.createObjectURL(blob), '_blank'),
+          error: () => alert("Échec de l'export HTML.")
+        });
+      },
+      error: () => alert('Impossible de charger le schéma du template.')
+    });
+  }
+
+  onExplicitVariablesChanged(vars: Variable[]): void {
+    queueMicrotask(() => {
+      this.explicitVariables = vars;
+      this.cdr.markForCheck();
+    });
+  }
+  onFillerGenerate(data: Record<string, any>): void { this.exportRequest.emit(data); }
 
   get statusDimensions(): string {
     if (!this.selectedBlock) return '—';
-    const w = this.selectedBlock.largeurBox || 200;
-    const h = this.selectedBlock.hauteurBox || 50;
-    return `${w} × ${h} px`;
+    return `${this.selectedBlock.largeurBox || 200} × ${this.selectedBlock.hauteurBox || 50} px`;
   }
 
   get statusPosition(): string {
@@ -620,86 +685,42 @@ export class ReportDesigner implements OnInit {
     return `X: ${this.selectedBlock.x || 0}  Y: ${this.selectedBlock.y || 0}`;
   }
 
-  exportHtml(): void {
-    if (!this.templateId) return;
+  getBlockSummary(block: DesignBlock): string {
+    if (block.type === 'tableau') return `Tableau (${block.colonnes ? block.colonnes.length : 0} colonnes)`;
+    if (block.type === 'ligne') return `Ligne (${block.style?.epaisseur || 1}px)`;
+    if (block.type === 'image') return block.url || 'Aucune URL';
+    return block.contenu || '(vide)';
+  }
 
-    if (this.isLocked === false && this.templateStatus !== 'PUBLIE') {
-      alert('Le template doit être publié avant de générer un aperçu HTML.');
-      return;
+  private generateVariableName(prefix: string): string {
+    const count = (this.variableCounters[prefix] || 0) + 1;
+    this.variableCounters[prefix] = count;
+    return `${prefix}_${count}`;
+  }
+
+  // ---------- Raccourcis Clavier ----------
+  @HostListener('window:keydown', ['$event'])
+  handleKeyboardShortcuts(event: KeyboardEvent): void {
+    const target = event.target as HTMLElement;
+    if (target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) return;
+
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z' && !event.shiftKey) {
+      event.preventDefault();
+      this.undo();
+    } else if (
+      ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'y') ||
+      ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === 'z')
+    ) {
+      event.preventDefault();
+      this.redo();
+    } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'c') {
+      if (this.canCopy) { event.preventDefault(); this.copySelectedBlock(); }
+    } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'v') {
+      if (this.canPaste) { event.preventDefault(); this.pasteBlock(); }
+    } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'd') {
+      if (this.canCopy) { event.preventDefault(); this.duplicateSelectedBlock(); }
+    } else if (event.key === 'Delete' || event.key === 'Backspace') {
+      if (this.selectedBlock && !this.isLocked) { event.preventDefault(); this.deleteSelectedBlock(); }
     }
-
-    this.api.getSchema(this.templateId).subscribe({
-      next: (schema) => {
-        const mockData = this.mockDataService.generate(this.allBlocksFlat);
-        const fillData = this.fillingMode ? this.fillerData.getValues() : {};
-        const rawData = { ...mockData, ...fillData };
-
-        const correctedData: Record<string, any> = {};
-        for (const v of schema.variables) {
-          const raw = rawData[v.nomVariable];
-          if (v.type === 'FLOAT') {
-            const num = Number(raw);
-            correctedData[v.nomVariable] = (raw == null || raw === '' || isNaN(num)) ? 0 : num;
-          } else if (v.type === 'BOOLEAN') {
-            correctedData[v.nomVariable] = !!raw;
-          } else if (v.type === 'ARRAY') {
-            correctedData[v.nomVariable] = Array.isArray(raw) ? raw : [];
-          } else {
-            correctedData[v.nomVariable] = raw || '';
-          }
-        }
-
-        this.api.exportHtml(this.templateId!, correctedData).subscribe({
-          next: (blob) => {
-            const url = window.URL.createObjectURL(blob);
-            window.open(url, '_blank');
-          },
-          error: (err) => {
-            console.error('Erreur export HTML', err);
-            if (err.status === 400 && err.error instanceof Blob) {
-              err.error.text().then((text: string) => {
-                try {
-                  const body = JSON.parse(text);
-                  alert('Échec de l\'export HTML : ' + (body.message || 'Erreur de validation.'));
-                } catch {
-                  alert('Échec de l\'export HTML (erreur 400).');
-                }
-              });
-            } else {
-              alert('Échec de l\'export HTML. Voir la console pour le détail.');
-            }
-          }
-        });
-      },
-      error: (err) => {
-        console.error('Erreur chargement du schéma', err);
-        alert('Impossible de charger le schéma du template (est-il publié ?).');
-      }
-    });
   }
-
-  onLayersReordered(newBlocks: DesignBlock[]): void {
-    if (this.isLocked) { this.showLockedMessage(); return; }
-    this.blocks = newBlocks;
-    this.afterPagesChanged();
-  }
-
-  toggleGrid(): void { this.showGrid = !this.showGrid; }
-  toggleSnap(): void { this.snapEnabled = !this.snapEnabled; }
-  toggleGuides(): void { this.showGuides = !this.showGuides; }
-
-
-  onPaperFormatChange(): void {}
-
-  preview(): void { this.previewRequest.emit(); }
-  publish(): void { this.publishRequest.emit(); }
-
-  zoomIn(): void {
-    this.zoomPercent = Math.min(500, this.zoomPercent + 10);
-  }
-
-  zoomOut(): void {
-    this.zoomPercent = Math.max(10, this.zoomPercent - 10);
-  }
-  
 }

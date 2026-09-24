@@ -1,6 +1,6 @@
 import { Component, OnInit, ChangeDetectorRef, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Template } from '../../models/template.model';
+import { Template, TemplateVersionTreeDto } from '../../models/template.model';
 import { TemplateApiService } from '../../services/template-api';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { ReportDesigner } from '../../designer/report-designer/report-designer';
@@ -9,13 +9,22 @@ import { DesignSerializer } from '../../designer/services/design-serializer.serv
 import { Subject, debounceTime } from 'rxjs';
 import { MockDataService } from '../../designer/services/mock-data.service';
 import { VariableValidationForm } from '../../designer/variable-validation-form/variable-validation-form';
-import { LucideAngularModule, Archive, RefreshCw, RotateCcw } from 'lucide-angular';
-import { TemplateFiller } from '../../designer/template-filler/template-filler'; // ajuste le chemin
-
+import {
+  LucideAngularModule,
+  Archive,
+  RefreshCw,
+  RotateCcw,
+  GitBranch,
+  History,
+  Clock,
+  ArrowRight,
+  Layers,
+  ChevronRight,
+} from 'lucide-angular';
 @Component({
   selector: 'app-template-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule, ReportDesigner, VariableValidationForm, LucideAngularModule, TemplateFiller],
+  imports: [CommonModule, RouterModule, ReportDesigner, VariableValidationForm, LucideAngularModule],
   templateUrl: './template-detail.html',
   styleUrls: ['./template-detail.scss'],
 })
@@ -30,12 +39,23 @@ export class TemplateDetail implements OnInit {
   private saveSubject = new Subject<void>();
   templateId: string | null = null;
   selectedBlock: DesignBlock | null = null;
-   modePagination: 'FIXED' | 'AUTO' = 'FIXED';
+  modePagination: 'FIXED' | 'AUTO' = 'FIXED';
+
+  versionTree: TemplateVersionTreeDto | null = null;
+  loadingVersions = false;
+  versionViewMode: 'timeline' | 'tree' = 'timeline';
+  activeStudioTab: 'designer' | 'versions' | 'test' = 'designer';
 
   readonly icons = {
     archive: Archive,
     newVersion: RefreshCw,
-    restore: RotateCcw
+    restore: RotateCcw,
+    gitBranch: GitBranch,
+    history: History,
+    clock: Clock,
+    arrowRight: ArrowRight,
+    layers: Layers,
+    chevronRight: ChevronRight,
   };
 
   constructor(
@@ -48,7 +68,16 @@ export class TemplateDetail implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.loadTemplate();
+    const id = this.templateId || this.route.snapshot.paramMap.get('id');
+    if (id) {
+      this.loadTemplate(id);
+    }
+    this.route.paramMap.subscribe((params) => {
+      const routeId = params.get('id');
+      if (routeId && routeId !== this.templateId) {
+        this.loadTemplate(routeId);
+      }
+    });
     this.saveSubject.pipe(debounceTime(2000)).subscribe(() => this.doSave());
   }
 
@@ -171,6 +200,7 @@ export class TemplateDetail implements OnInit {
     this.error = '';
     this.template = null;
     this.pages = [];
+    this.loadVersionTree(templateId);
     this.api.getTemplate(templateId).subscribe({
       next: (template) => {
         template.margeHautMm = (template.margeHautMm != null && template.margeHautMm > 0) ? template.margeHautMm : 10;
@@ -187,6 +217,22 @@ export class TemplateDetail implements OnInit {
         this.error = 'Impossible de charger le modèle.';
         this.loading = false;
         console.error(err);
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  loadVersionTree(id: string): void {
+    this.loadingVersions = true;
+    this.api.getVersionTree(id).subscribe({
+      next: (tree) => {
+        this.versionTree = tree;
+        this.loadingVersions = false;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Erreur chargement arbre des versions', err);
+        this.loadingVersions = false;
         this.cdr.detectChanges();
       },
     });
@@ -329,6 +375,7 @@ export class TemplateDetail implements OnInit {
     this.api.archiveTemplate(this.template.id).subscribe({
       next: (updated) => {
         this.template = updated;
+        this.loadVersionTree(updated.id);
         this.cdr.detectChanges();
       },
       error: (err) => console.error('Erreur archivage', err)
@@ -350,6 +397,7 @@ export class TemplateDetail implements OnInit {
     this.api.restoreTemplate(this.template.id).subscribe({
       next: (updated) => {
         this.template = updated;
+        this.loadVersionTree(updated.id);
         this.cdr.detectChanges();
       },
       error: (err) => console.error('Erreur restauration', err)

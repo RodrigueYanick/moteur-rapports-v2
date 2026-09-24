@@ -1,0 +1,155 @@
+<div class="toolbar" role="toolbar" aria-label="Barre d'outils du designer">
+  <div class="toolbar-left">
+    <div class="brand-mark" title="Atelier de Conception">
+      <lucide-icon [img]="icons.file" [size]="18"></lucide-icon>
+    </div>
+    <div class="template-info">
+      <span class="template-name">{{ templateName || 'Sans titre' }}</span>
+      <div class="meta-row">
+        <span class="status-badge" [ngClass]="templateStatus">{{ templateStatus }}</span>
+        <span class="save-status saved pulse-success" *ngIf="savingStatus === 'saved'">
+          <lucide-icon [img]="icons.check" [size]="12"></lucide-icon>
+          Enregistré
+        </span>
+        <span class="save-status saving" *ngIf="savingStatus === 'saving'">
+          <lucide-icon [img]="icons.loader" [size]="12" class="spin"></lucide-icon>
+          Enregistrement...
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div class="toolbar-center">
+    <div class="tool-group">
+      <button class="icon-btn" (click)="undo.emit()" title="Annuler (Ctrl+Z)" aria-label="Annuler">
+        <lucide-icon [img]="icons.undo" [size]="18"></lucide-icon>
+      </button>
+      <button class="icon-btn" (click)="redo.emit()" title="Rétablir (Ctrl+Y)" aria-label="Rétablir">
+        <lucide-icon [img]="icons.redo" [size]="18"></lucide-icon>
+      </button>
+    </div>
+
+    <div class="tool-group" *ngIf="canCopy || canPaste">
+      <button class="icon-btn" *ngIf="canCopy" (click)="copyBlock.emit()" title="Copier le bloc (Ctrl+C)">
+        <lucide-icon [img]="icons.copy" [size]="17"></lucide-icon>
+      </button>
+      <button class="icon-btn" *ngIf="canPaste" (click)="pasteBlock.emit()" title="Coller le bloc (Ctrl+V)">
+        <lucide-icon [img]="icons.fileText" [size]="17"></lucide-icon>
+      </button>
+      <button class="icon-btn" *ngIf="canCopy" (click)="duplicateBlock.emit()" title="Dupliquer le bloc (Ctrl+D)">
+        <lucide-icon [img]="icons.share" [size]="17"></lucide-icon>
+      </button>
+      <button class="icon-btn danger" *ngIf="canCopy" (click)="deleteBlock.emit()" title="Supprimer le bloc (Suppr)">
+        <lucide-icon [img]="icons.trash" [size]="17"></lucide-icon>
+      </button>
+    </div>
+
+    <!-- Outils d'alignement rapide pour sélection multiple -->
+    <div class="tool-group alignment-tools" *ngIf="selectedBlockIds.length >= 2">
+      <span class="selection-count-badge">
+        <lucide-icon [img]="icons.layers" [size]="13"></lucide-icon>
+        {{ selectedBlockIds.length }} blocs
+      </span>
+      <button class="icon-btn" (click)="alignBlocks.emit('left')" title="Aligner à gauche">
+        <lucide-icon [img]="icons.alignLeft" [size]="16"></lucide-icon>
+      </button>
+      <button class="icon-btn" (click)="alignBlocks.emit('centerH')" title="Centrer horizontalement">
+        <lucide-icon [img]="icons.alignCenter" [size]="16"></lucide-icon>
+      </button>
+      <button class="icon-btn" (click)="alignBlocks.emit('right')" title="Aligner à droite">
+        <lucide-icon [img]="icons.alignRight" [size]="16"></lucide-icon>
+      </button>
+      <button class="icon-btn" (click)="alignBlocks.emit('top')" title="Aligner en haut">
+        <lucide-icon [img]="icons.alignTop" [size]="16"></lucide-icon>
+      </button>
+      <button class="icon-btn" (click)="alignBlocks.emit('bottom')" title="Aligner en bas">
+        <lucide-icon [img]="icons.alignBottom" [size]="16"></lucide-icon>
+      </button>
+      <button class="icon-btn" *ngIf="selectedBlockIds.length >= 3" (click)="distributeBlocks.emit('horizontal')" title="Répartir horizontalement">
+        <lucide-icon [img]="icons.distributeH" [size]="16"></lucide-icon>
+      </button>
+      <button class="icon-btn" *ngIf="selectedBlockIds.length >= 3" (click)="distributeBlocks.emit('vertical')" title="Répartir verticalement">
+        <lucide-icon [img]="icons.distributeV" [size]="16"></lucide-icon>
+      </button>
+    </div>
+
+    <div class="tool-group">
+      <button
+        class="icon-btn"
+        [class.active]="showGrid"
+        (click)="toggleGrid.emit()"
+        title="Afficher la grille"
+      >
+        <lucide-icon [img]="icons.grid" [size]="18"></lucide-icon>
+      </button>
+      <button
+        class="icon-btn"
+        [class.active]="snapEnabled"
+        (click)="toggleSnap.emit()"
+        title="Magnétisme"
+      >
+        <lucide-icon [img]="icons.snap" [size]="18"></lucide-icon>
+      </button>
+      <button
+        class="icon-btn"
+        [class.active]="showGuides"
+        (click)="toggleGuides.emit()"
+        title="Repères"
+      >
+        <lucide-icon [img]="icons.guides" [size]="18"></lucide-icon>
+      </button>
+    </div>
+
+    <div class="zoom-control">
+      <button class="icon-btn flat" (click)="zoomOut.emit()">
+        <lucide-icon [img]="icons.zoomOut" [size]="16"></lucide-icon>
+      </button>
+      <span class="zoom-value">{{ zoomPercent }}%</span>
+      <button class="icon-btn flat" (click)="zoomIn.emit()">
+        <lucide-icon [img]="icons.zoomIn" [size]="16"></lucide-icon>
+      </button>
+    </div>
+
+    <div class="paper-select" (click)="openSettings.emit()" title="Paramètres de page et marges">
+      <button class="secondary-btn" style="height:32px;padding:0 8px;">
+        <lucide-icon [img]="icons.settings" [size]="14"></lucide-icon>
+        <span>{{ formatPapier }} ({{ effectiveMargeHautMm }}mm)</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="toolbar-right">
+    <button class="secondary-btn" *ngIf="isLocked" (click)="requestDuplicate.emit()">
+      <lucide-icon [img]="icons.share" [size]="16"></lucide-icon>
+      Dupliquer
+    </button>
+    <button class="secondary-btn" *ngIf="!isLocked" (click)="toggleFilling.emit()">
+      <lucide-icon [img]="fillingMode ? icons.edit : icons.fileText" [size]="16"></lucide-icon>
+      {{ fillingMode ? 'Éditer' : 'Remplir (test)' }}
+    </button>
+    <button class="secondary-btn onboarding-btn" (click)="startTour.emit()" title="Visite guidée">
+      <span style="font-size: 15px;">🧭</span>
+      <span>Guide</span>
+    </button>
+    <button class="secondary-btn" (click)="preview.emit()">
+      <lucide-icon [img]="icons.preview" [size]="16"></lucide-icon>
+      Aperçu
+    </button>
+    <button class="secondary-btn" (click)="exportPdf.emit()">
+      <lucide-icon [img]="icons.export" [size]="16"></lucide-icon>
+      Exporter
+    </button>
+    <button class="secondary-btn" *ngIf="templateStatus === 'PUBLIE'" (click)="exportHtml.emit()">
+      <lucide-icon [img]="icons.preview" [size]="16"></lucide-icon>
+      HTML (test)
+    </button>
+    <button class="save-btn" title="Enregistrer" (click)="save.emit()">
+      <lucide-icon [img]="icons.save" [size]="16"></lucide-icon>
+    </button>
+    <button class="primary-btn" *ngIf="!isLocked" (click)="publish.emit()">
+      <lucide-icon [img]="icons.publish" [size]="16"></lucide-icon>
+      Publier
+    </button>
+  </div>
+</div>
+

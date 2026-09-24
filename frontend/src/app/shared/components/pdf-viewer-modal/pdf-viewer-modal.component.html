@@ -1,0 +1,86 @@
+<div class="pdf-modal-backdrop" *ngIf="visible" (click)="close()">
+  <div class="pdf-modal-container" (click)="$event.stopPropagation()">
+
+    <!-- ===== Barre d'outils supérieure de la visionneuse ===== -->
+    <header class="pdf-modal-header">
+      <div class="header-left">
+        <div class="doc-icon">
+          <lucide-icon [img]="icons.file" [size]="18"></lucide-icon>
+        </div>
+        <div class="doc-meta">
+          <h2 class="doc-title">{{ title }}</h2>
+          <span class="preview-badge">👁️ Visionneuse intégrée In-App</span>
+        </div>
+      </div>
+
+      <!-- Contrôles de zoom & actions -->
+      <div class="header-controls">
+        <div class="zoom-controls">
+          <button type="button" class="btn-ctrl" (click)="zoomOut()" [disabled]="zoomLevel <= 50" title="Zoom arrière">
+            <lucide-icon [img]="icons.zoomOut" [size]="15"></lucide-icon>
+          </button>
+          <span class="zoom-text">{{ zoomLevel }}%</span>
+          <button type="button" class="btn-ctrl" (click)="zoomIn()" [disabled]="zoomLevel >= 200" title="Zoom avant">
+            <lucide-icon [img]="icons.zoomIn" [size]="15"></lucide-icon>
+          </button>
+          <button type="button" class="btn-ctrl" (click)="resetZoom()" title="Réinitialiser zoom (100%)">
+            <lucide-icon [img]="icons.resetZoom" [size]="14"></lucide-icon>
+          </button>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Bouton Imprimer direct -->
+        <button type="button" class="btn-action print" (click)="printPdf()" title="Imprimer le document">
+          <lucide-icon [img]="icons.printer" [size]="15"></lucide-icon>
+          <span>Imprimer</span>
+        </button>
+
+        <!-- Bouton Télécharger -->
+        <button type="button" class="btn-action download" (click)="downloadPdf()" title="Télécharger le fichier PDF">
+          <lucide-icon [img]="icons.download" [size]="15"></lucide-icon>
+          <span>Télécharger</span>
+        </button>
+
+        <!-- Bouton Envoyer par Email -->
+        <button
+          type="button"
+          class="btn-action email"
+          *ngIf="canEmail"
+          (click)="openEmailModal()"
+          title="Envoyer ce document par email">
+          <lucide-icon [img]="icons.mail" [size]="15"></lucide-icon>
+          <span>Envoyer par email</span>
+        </button>
+
+        <button type="button" class="btn-close" (click)="close()" title="Fermer la visionneuse (Échap)">
+          <lucide-icon [img]="icons.close" [size]="18"></lucide-icon>
+        </button>
+      </div>
+    </header>
+
+    <!-- ===== Corps de la liseuse PDF ===== -->
+    <div class="pdf-modal-body">
+      <div class="pdf-loader" *ngIf="loading">
+        <lucide-icon [img]="icons.loader" [size]="28" class="spin"></lucide-icon>
+        <span>Génération du document PDF en cours...</span>
+      </div>
+
+      <div class="pdf-viewport" *ngIf="!loading && safeUrl" [style.transform]="'scale(' + (zoomLevel / 100) + ')'">
+        <iframe
+          id="inAppPdfIframe"
+          [src]="safeUrl"
+          class="pdf-iframe"
+          title="Prévisualisation PDF">
+        </iframe>
+      </div>
+
+      <div class="pdf-empty-state" *ngIf="!loading && !safeUrl">
+        <lucide-icon [img]="icons.eye" [size]="32"></lucide-icon>
+        <p>Impossible d'afficher le document PDF.</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+

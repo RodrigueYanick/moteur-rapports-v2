@@ -64,6 +64,7 @@ export class Sidebar {
   @Output() toggleLock = new EventEmitter<DesignBlock>();
   @Output() addBlock = new EventEmitter<DesignBlock['type']>();
   @Output() explicitVariablesChange = new EventEmitter<Variable[]>();
+  @Output() insertVariable = new EventEmitter<Variable>();
   /** Émet le tableau de blocs réordonné (dans l'ordre réel du canvas, pas l'ordre affiché inversé) */
   @Output() blocksReordered = new EventEmitter<DesignBlock[]>();
 

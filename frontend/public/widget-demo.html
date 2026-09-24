@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Démonstration SDK Web Component - Report Designer</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f1f5f9;
+      color: #0f172a;
+    }
+    .header {
+      max-width: 1200px;
+      margin: 0 auto 20px;
+      padding: 16px 20px;
+      background: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .header h2 { margin: 0 0 8px 0; color: #1e293b; }
+    .header p { margin: 0; color: #64748b; font-size: 0.95rem; }
+    .widget-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      height: 85vh;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #ffffff;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+    }
+  </style>
+  <!-- Chargement du bundle Angular / Web Component -->
+  <script type="module" src="/main.js"></script>
+</head>
+<body>
+  <div class="header">
+    <h2>🚀 Intégration SDK Web Component (&lt;report-designer-widget&gt;)</h2>
+    <p>Exemple d'intégration sans iframe dans une application hôte tierce (React, Vue, Symfony, Laravel ou JS Vanilla).</p>
+  </div>
+
+  <div class="widget-container">
+    <report-designer-widget
+      id="my-report-designer"
+      theme="light"
+      api-base-url="http://localhost:8082"
+    ></report-designer-widget>
+  </div>
+
+  <script>
+    const widget = document.getElementById('my-report-designer');
+    widget.addEventListener('save', (e) => {
+      console.log('✅ Événement save capturé depuis le Web Component :', e.detail);
+      alert('Modèle sauvegardé avec succès depuis le widget !');
+    });
+    widget.addEventListener('close', () => {
+      console.log('ℹ️ Événement close capturé depuis le Web Component');
+    });
+    widget.addEventListener('error', (err) => {
+      console.error('❌ Erreur capturée depuis le Web Component :', err);
+    });
+  </script>
+</body>
+</html>
+

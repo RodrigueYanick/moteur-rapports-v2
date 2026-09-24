@@ -7,6 +7,13 @@ export interface TableCell {
   hidden?: boolean;   // true si la cellule est absorbée par une fusion
 }
 
+export interface TableColumn {
+  titre: string;
+  variable: string;
+  formule?: string;
+  agregat?: 'NONE' | 'SUM' | 'AVG' | 'COUNT' | 'MIN' | 'MAX';
+}
+
 export interface DesignBlock {
   rotation: number;
   id: string;
@@ -23,6 +30,8 @@ export interface DesignBlock {
     | 'signature'
     | 'graphique';
   contenu?: string;
+  condition?: string;
+  showIf?: string;
   style?: {
     fontSize?: number;
     bold?: boolean;
@@ -49,7 +58,14 @@ export interface DesignBlock {
   url?: string;
   lignes?: TableCell[][];
   source?: string;
-  colonnes?: { titre: string; variable: string; }[];
+  colonnes?: TableColumn[];
+  groupBy?: string;
+  groupHeaderTemplate?: string;
+  afficherSousTotaux?: boolean;
+  graphiqueType?: 'bar' | 'line' | 'pie' | 'donut';
+  graphiqueLabelKey?: string;
+  graphiqueValueKey?: string;
+  graphiquePalette?: string[];
   nom?: string;
   largeurBox?: number;
   hauteurBox?: number;

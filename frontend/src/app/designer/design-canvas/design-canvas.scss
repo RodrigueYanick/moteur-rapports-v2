@@ -44,15 +44,68 @@ $text-secondary: #6b7280;
 
   &:hover {
     border-color: rgba(109, 94, 252, 0.3);
+    border-color: rgba(109, 94, 252, 0.4);
   }
   &.selected {
     border-color: $accent;
     border-style: solid;
+    box-shadow: 0 0 0 1.5px rgba(109, 94, 252, 0.35);
   }
   &.locked {
     cursor: not-allowed;
     opacity: 0.65;
   }
+}
+
+// Guides magnétiques intelligents
+.smart-guide-line {
+  position: absolute;
+  pointer-events: none;
+  z-index: 250;
+
+  &.vertical {
+    top: 0;
+    bottom: 0;
+    width: 0;
+    border-left: 1.5px dashed #06b6d4;
+    box-shadow: 0 0 6px rgba(6, 182, 212, 0.7);
+  }
+
+  &.horizontal {
+    left: 0;
+    right: 0;
+    height: 0;
+    border-top: 1.5px dashed #06b6d4;
+    box-shadow: 0 0 6px rgba(6, 182, 212, 0.7);
+  }
+}
+
+// Rectangle de sélection élastique (Marquee)
+.selection-marquee {
+  position: absolute;
+  border: 1px dashed #6d5efc;
+  background-color: rgba(109, 94, 252, 0.12);
+  pointer-events: none;
+  z-index: 200;
+  border-radius: 2px;
+}
+
+// Zone de saisie directe sur la feuille
+.in-place-input {
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1.5px solid $accent;
+  border-radius: 3px;
+  outline: none;
+  resize: none;
+  box-sizing: border-box;
+  padding: 2px 4px;
+  margin: 0;
+  box-shadow: 0 0 0 3px rgba(109, 94, 252, 0.25);
+  z-index: 100;
+  overflow: hidden;
+  cursor: text;
 }
 
 .block-content {
@@ -265,4 +318,23 @@ $text-secondary: #6b7280;
   color: #6d5efc;
   font-style: italic;
   margin-left: 3px;
+}
+
+.header-zone, .footer-zone {
+  position: absolute;
+  background: rgba(241, 245, 249, 0.6);
+  box-sizing: border-box;
+  pointer-events: none;
+  z-index: 1;
+
+  .header-footer-tag {
+    position: absolute;
+    top: 2px;
+    right: 4px;
+    font-size: 9px;
+    color: #94a3b8;
+    text-transform: uppercase;
+    font-family: Arial, sans-serif;
+    letter-spacing: 0.5px;
+  }
 }

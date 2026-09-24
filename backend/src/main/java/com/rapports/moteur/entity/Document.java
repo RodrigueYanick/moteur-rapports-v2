@@ -26,6 +26,9 @@ public class Document {
     @Column(name = "nom", nullable = false)
     private String nom;
 
+    @Column(name = "code_entreprise", nullable = false)
+    private String codeEntreprise;
+
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "donnees", columnDefinition = "jsonb")
     private String donnees;   // JSON contenant les valeurs des variables

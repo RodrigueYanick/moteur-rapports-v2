@@ -1,61 +1,91 @@
-<div *ngIf="loading" class="message">Chargement en cours...</div>
+<div *ngIf="loading" class="message loading-state">
+  <div class="skeleton-shimmer loading-box"></div>
+  <span>Chargement du modèle de rapport...</span>
+</div>
+
 <div *ngIf="error" class="message error">{{ error }}</div>
 
 <ng-container *ngIf="!loading && !error && template">
-  <header class="detail-header">
-    <h1>{{ template.nom }}</h1>
-    <span class="badge" [ngClass]="template.statut">{{ template.statut }}</span>
-  </header>
-
-  <section class="card">
-    <h2>Informations générales</h2>
-    <dl class="info-list">
-      <dt>Description</dt>
-      <dd>{{ template.description || 'Aucune description' }}</dd>
-      <dt>Version</dt>
-      <dd>{{ template.version }}</dd>
-      <dt>Dernière modification</dt>
-      <dd>{{ template.dateModification | date: 'dd/MM/yyyy HH:mm' }}</dd>
-      <dt>Catégorie</dt>
-      <dd>{{ template.categorie || 'AUTRES' }}</dd>
-      <dt>Format</dt>
-      <dd>{{ template.formatPapier || 'A4' }}</dd>
-      <dt>Mode de pagination</dt>
-      <dd>{{ template.modePagination === 'AUTO' ? 'Automatique (Flux continu)' : 'Fixe (Multi-pages)' }}</dd>
-      <dt>Marges (H / B / G / D)</dt>
-      <dd>{{ template.margeHautMm ?? 10 }}mm / {{ template.margeBasMm ?? 10 }}mm / {{ template.margeGaucheMm ?? 10 }}mm / {{ template.margeDroiteMm ?? 10 }}mm</dd>
-    </dl>
-    <button
-      *ngIf="template.statut === 'BROUILLON'"
-      class="btn btn-primary"
-      (click)="publish()"
-      [disabled]="publishing"
-    >
-      {{ publishing ? 'Publication...' : 'Publier' }}
-    </button>
-
-    <!-- Nouveaux boutons d'action -->
-    <div class="actions-bar" *ngIf="template">
-      <button *ngIf="template.statut === 'PUBLIE'" (click)="archive()" class="btn btn-warning">
-        <lucide-icon [img]="icons.archive" [size]="16"></lucide-icon> Archiver
-      </button>
-      <button *ngIf="template.statut === 'PUBLIE'" (click)="newVersion()" class="btn btn-primary">
-        <lucide-icon [img]="icons.newVersion" [size]="16"></lucide-icon> Nouvelle version
-      </button>
-      <button *ngIf="template.statut === 'ARCHIVE'" (click)="restore()" class="btn btn-success">
-        <lucide-icon [img]="icons.restore" [size]="16"></lucide-icon> Restaurer
-      </button>
+  <!-- Barre d'en-tête de studio -->
+  <div class="studio-subbar">
+    <div class="subbar-left detail-header">
+      <a routerLink="/bibliotheque" class="back-link" title="Retour à la bibliothèque">
+        ← Modèles
+      </a>
+      <span class="divider">/</span>
+      <h1>{{ template.nom }}</h1>
+      <span class="badge" [ngClass]="template.statut">{{ template.statut }}</span>
+      <span class="version-tag">v{{ template.version }}</span>
     </div>
 
-    <!-- Lien vers la version précédente -->
-    <div *ngIf="template.parentTemplateId" class="parent-link">
-      <a [routerLink]="['/templates', template.parentTemplateId]">← Voir la version précédente</a>
+    <div class="subbar-center">
+      <div class="segmented-control" aria-label="Modes de vue">
+        <button
+          type="button"
+          class="segment-btn"
+          [class.active]="activeStudioTab === 'designer'"
+          (click)="activeStudioTab = 'designer'">
+          🎨 Atelier Designer
+        </button>
+        <button
+          type="button"
+          class="segment-btn"
+          [class.active]="activeStudioTab === 'versions'"
+          (click)="activeStudioTab = 'versions'">
+          📜 Propriétés & Versions
+        </button>
+        <button
+          type="button"
+          class="segment-btn"
+          [class.active]="activeStudioTab === 'test'"
+          (click)="activeStudioTab = 'test'">
+          ⚡ Formulaire de Test
+        </button>
+      </div>
     </div>
-  </section>
 
-  <app-variable-validation-form [templateId]="templateId" [active]="template.statut === 'PUBLIE'">
-  </app-variable-validation-form>
+    <div class="subbar-right actions-bar">
+      <button
+        *ngIf="template.statut === 'BROUILLON'"
+        class="btn btn-primary btn-sm"
+        (click)="publish()"
+        [disabled]="publishing">
+        {{ publishing ? 'Publication...' : 'Publier' }}
+      </button>
+      <a
+        *ngIf="template.statut === 'PUBLIE'"
+        [routerLink]="['/batches']"
+        [queryParams]="{ templateId: template.id, new: 'true' }"
+        class="btn btn-secondary btn-sm">
+        <lucide-icon [img]="icons.layers" [size]="14"></lucide-icon>
+        Générer par lot
+      </a>
+      <button
+        *ngIf="template.statut === 'PUBLIE'"
+        class="btn btn-warning btn-sm"
+        (click)="archive()">
+        <lucide-icon [img]="icons.archive" [size]="14"></lucide-icon>
+        Archiver
+      </button>
+      <button
+        *ngIf="template.statut === 'PUBLIE'"
+        class="btn btn-primary btn-sm"
+        (click)="newVersion()">
+        <lucide-icon [img]="icons.newVersion" [size]="14"></lucide-icon>
+        Nouvelle version
+      </button>
+      <button
+        *ngIf="template.statut === 'ARCHIVE'"
+        class="btn btn-success btn-sm"
+        (click)="restore()">
+        <lucide-icon [img]="icons.restore" [size]="14"></lucide-icon>
+        Restaurer
+      </button>
+    </div>
+  </div>
 
+  <!-- VUE 1 : Atelier Designer (Plein écran & interactif) -->
+  <div class="studio-view-designer" [hidden]="activeStudioTab !== 'designer'">
     <app-report-designer
       [pages]="pages"
       [templateId]="templateId"
@@ -69,6 +99,23 @@
       [margeBasMm]="template.margeBasMm ?? 10"
       [margeGaucheMm]="template.margeGaucheMm ?? 10"
       [margeDroiteMm]="template.margeDroiteMm ?? 10"
+      [couleurFond]="template.couleurFond || '#ffffff'"
+      [headerActif]="template.headerActif ?? false"
+      [hauteurHeaderMm]="template.hauteurHeaderMm ?? 15"
+      [headerContenu]="template.headerContenu || null"
+      [headerAlignement]="template.headerAlignement || 'GAUCHE'"
+      [headerAfficherSurPremierePage]="template.headerAfficherSurPremierePage ?? true"
+      [headerLigneSeparation]="template.headerLigneSeparation ?? true"
+      [headerCouleurLigne]="template.headerCouleurLigne || '#cccccc'"
+      [footerActif]="template.footerActif ?? false"
+      [hauteurFooterMm]="template.hauteurFooterMm ?? 12"
+      [footerContenu]="template.footerContenu || null"
+      [footerAlignement]="template.footerAlignement || 'CENTRE'"
+      [footerAfficherSurPremierePage]="template.footerAfficherSurPremierePage ?? true"
+      [footerLigneSeparation]="template.footerLigneSeparation ?? true"
+      [footerCouleurLigne]="template.footerCouleurLigne || '#cccccc'"
+      [numerotationPage]="template.numerotationPage ?? true"
+      [formatNumerotation]="template.formatNumerotation || 'PAGE_X_SUR_Y'"
       [savingStatus]="savingStatus"
       (exportRequest)="onExportRequest($event)"
       (pagesChange)="onPagesChange($event)"
@@ -78,18 +125,171 @@
       (manualSaveRequest)="saveNow()"
       (previewRequest)="openPreview()">
     </app-report-designer>
+  </div>
 
-  <app-template-filler
-    [templateId]="templateId"
-    [selectedBlock]="selectedBlock"
-    [allBlocks]="allBlocksFlat">
-  </app-template-filler>
+  <!-- VUE 2 : Informations Générales & Arbre des Versions -->
+  <div class="studio-view-content" *ngIf="activeStudioTab === 'versions'">
+    <div class="content-container">
+      <section class="card">
+        <h2>Informations générales</h2>
+        <dl class="info-list">
+          <dt>Description</dt>
+          <dd>{{ template.description || 'Aucune description' }}</dd>
+          <dt>Version</dt>
+          <dd>{{ template.version }}</dd>
+          <dt>Dernière modification</dt>
+          <dd>{{ template.dateModification | date: 'dd/MM/yyyy HH:mm' }}</dd>
+          <dt>Catégorie</dt>
+          <dd>{{ template.categorie || 'AUTRES' }}</dd>
+          <dt>Format</dt>
+          <dd>{{ template.formatPapier || 'A4' }}</dd>
+          <dt>Mode de pagination</dt>
+          <dd>{{ template.modePagination === 'AUTO' ? 'Automatique (Flux continu)' : 'Fixe (Multi-pages)' }}</dd>
+          <dt>Marges (H / B / G / D)</dt>
+          <dd>{{ template.margeHautMm ?? 10 }}mm / {{ template.margeBasMm ?? 10 }}mm / {{ template.margeGaucheMm ?? 10 }}mm / {{ template.margeDroiteMm ?? 10 }}mm</dd>
+        </dl>
 
-  <app-variable-validation-form
-    [templateId]="templateId"
-    [active]="template.statut === 'PUBLIE'"
-    [pages]="pages">
-  </app-variable-validation-form>
+        <div class="actions-bar" *ngIf="template">
+          <a *ngIf="template.statut === 'PUBLIE'" [routerLink]="['/batches']" [queryParams]="{ templateId: template.id, new: 'true' }" class="btn btn-secondary">
+            <lucide-icon [img]="icons.layers" [size]="16"></lucide-icon> Générer par lot
+          </a>
+          <button *ngIf="template.statut === 'PUBLIE'" (click)="archive()" class="btn btn-warning">
+            <lucide-icon [img]="icons.archive" [size]="16"></lucide-icon> Archiver
+          </button>
+          <button *ngIf="template.statut === 'PUBLIE'" (click)="newVersion()" class="btn btn-primary">
+            <lucide-icon [img]="icons.newVersion" [size]="16"></lucide-icon> Nouvelle version
+          </button>
+          <button *ngIf="template.statut === 'ARCHIVE'" (click)="restore()" class="btn btn-success">
+            <lucide-icon [img]="icons.restore" [size]="16"></lucide-icon> Restaurer
+          </button>
+        </div>
 
-  <div class="generation-error" *ngIf="generationError">{{ generationError }}</div>
+        <div *ngIf="template.parentTemplateId" class="parent-link">
+          <a [routerLink]="['/templates', template.parentTemplateId]">← Voir la version précédente</a>
+        </div>
+
+        <!-- Section Historique & Arbre des Versions -->
+        <div class="version-genealogy-card" *ngIf="versionTree">
+          <div class="version-card-header">
+            <div class="header-left">
+              <lucide-icon [img]="icons.gitBranch" [size]="20" class="branch-icon"></lucide-icon>
+              <div>
+                <h3>Historique & Arbre des Versions</h3>
+                <p class="subtitle">
+                  <span *ngIf="versionTree.totalVersions > 1">{{ versionTree.totalVersions }} versions dans cette lignée généalogique</span>
+                  <span *ngIf="versionTree.totalVersions <= 1">Version initiale unique</span>
+                </p>
+              </div>
+            </div>
+            <div class="view-toggles" *ngIf="versionTree.totalVersions > 1">
+              <button 
+                type="button" 
+                class="toggle-btn" 
+                [class.active]="versionViewMode === 'timeline'"
+                (click)="versionViewMode = 'timeline'">
+                <lucide-icon [img]="icons.history" [size]="14"></lucide-icon> Chronologie
+              </button>
+              <button 
+                type="button" 
+                class="toggle-btn" 
+                [class.active]="versionViewMode === 'tree'"
+                (click)="versionViewMode = 'tree'">
+                <lucide-icon [img]="icons.layers" [size]="14"></lucide-icon> Arborescence
+              </button>
+            </div>
+          </div>
+
+          <!-- Vue Chronologie (Timeline) -->
+          <div class="version-timeline" *ngIf="versionViewMode === 'timeline'">
+            <div 
+              *ngFor="let v of versionTree.flatHistory" 
+              class="timeline-item" 
+              [class.current]="v.isCurrent">
+              
+              <div class="timeline-indicator">
+                <div class="dot" [class.active]="v.isCurrent"></div>
+                <div class="line"></div>
+              </div>
+
+              <div class="timeline-content">
+                <div class="timeline-header">
+                  <div class="version-title">
+                    <span class="version-tag">v{{ v.version }}</span>
+                    <span class="version-name">{{ v.nom }}</span>
+                    <span *ngIf="v.isCurrent" class="badge-current">Actuelle</span>
+                  </div>
+                  <span class="badge small" [ngClass]="v.statut">{{ v.statut }}</span>
+                </div>
+
+                <div class="timeline-meta">
+                  <span class="meta-item">
+                    <lucide-icon [img]="icons.clock" [size]="12"></lucide-icon>
+                    {{ v.dateModification | date:'dd/MM/yyyy à HH:mm' }}
+                  </span>
+                  <span *ngIf="v.parentTemplateId" class="parent-hint">
+                    • Dérivé du parent
+                  </span>
+                </div>
+
+                <div class="timeline-actions" *ngIf="!v.isCurrent">
+                  <a [routerLink]="['/templates', v.id]" class="btn-switch-version">
+                    Charger cette version <lucide-icon [img]="icons.arrowRight" [size]="12"></lucide-icon>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Vue Arbre Hiérarchique (Tree Graph) -->
+          <div class="version-tree-view" *ngIf="versionViewMode === 'tree'">
+            <ng-container *ngTemplateOutlet="treeNodeTpl; context: { $implicit: versionTree.tree, depth: 0 }"></ng-container>
+          </div>
+        </div>
+
+        <!-- Template récursif pour l'arbre généalogique -->
+        <ng-template #treeNodeTpl let-node let-depth="depth">
+          <div class="tree-node" [style.padding-left.px]="depth * 28">
+            <div class="tree-node-content" [class.current]="node.isCurrent">
+              <div class="tree-connector" *ngIf="depth > 0"></div>
+              <div class="node-main">
+                <div class="node-info">
+                  <span class="version-badge">v{{ node.version }}</span>
+                  <span class="node-nom">{{ node.nom }}</span>
+                  <span *ngIf="node.isCurrent" class="badge-current">Actuelle</span>
+                  <span class="badge small" [ngClass]="node.statut">{{ node.statut }}</span>
+                </div>
+                <div class="node-date">
+                  {{ node.dateModification | date:'dd/MM/yyyy HH:mm' }}
+                </div>
+              </div>
+              <div class="node-actions" *ngIf="!node.isCurrent">
+                <a [routerLink]="['/templates', node.id]" class="btn-node-link" title="Consulter cette version">
+                  Basculer <lucide-icon [img]="icons.arrowRight" [size]="12"></lucide-icon>
+                </a>
+              </div>
+            </div>
+
+            <div class="tree-children" *ngIf="node.children && node.children.length > 0">
+              <ng-container *ngFor="let child of node.children">
+                <ng-container *ngTemplateOutlet="treeNodeTpl; context: { $implicit: child, depth: depth + 1 }"></ng-container>
+              </ng-container>
+            </div>
+          </div>
+        </ng-template>
+      </section>
+    </div>
+  </div>
+
+  <!-- VUE 3 : Formulaire de Test & Génération -->
+  <div class="studio-view-content" *ngIf="activeStudioTab === 'test'">
+    <div class="content-container">
+      <app-variable-validation-form
+        [templateId]="templateId"
+        [active]="template.statut === 'PUBLIE'"
+        [pages]="pages">
+      </app-variable-validation-form>
+
+      <div class="generation-error" *ngIf="generationError">{{ generationError }}</div>
+    </div>
+  </div>
 </ng-container>

@@ -1,0 +1,364 @@
+<div class="workspace-page-container">
+  <!-- En-tête de la page -->
+  <div class="page-top-bar">
+    <div>
+      <h1>Personnaliser la feuille de travail</h1>
+      <p class="subtitle">
+        Définissez les paramètres par défaut appliqués à la création de chaque modèle pour l'entreprise
+        <span class="code-badge">🏢 {{ codeEntreprise }}</span>.
+      </p>
+    </div>
+    <div class="top-actions">
+      <button type="button" class="btn btn-outline-danger" (click)="resetToDefaults()" [disabled]="loading || saving">
+        ↺ Réinitialiser par défaut
+      </button>
+      <button type="button" class="btn btn-primary" (click)="saveConfig()" [disabled]="loading || saving || form.invalid">
+        {{ saving ? 'Enregistrement...' : '💾 Enregistrer les modifications' }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Messages d'alerte -->
+  <div *ngIf="successMessage" class="alert alert-success">
+    ✓ {{ successMessage }}
+  </div>
+  <div *ngIf="errorMessage" class="alert alert-danger">
+    ⚠ {{ errorMessage }}
+  </div>
+
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Chargement de la configuration de travail...</p>
+  </div>
+
+  <div class="config-grid" *ngIf="!loading">
+    <!-- Colonne Gauche : Formulaire de configuration -->
+    <div class="config-form-col">
+      <form [formGroup]="form" (ngSubmit)="saveConfig()">
+
+        <!-- Section 1 : Format & Dimensions -->
+        <div class="card config-card">
+          <div class="card-header">
+            <h3>📄 Format & Dimensions du papier</h3>
+          </div>
+          <div class="card-body">
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label for="formatPapier">Format de papier</label>
+                <select id="formatPapier" formControlName="formatPapier" class="form-control">
+                  <option value="A4">A4 (210 × 297 mm)</option>
+                  <option value="A3">A3 (297 × 420 mm)</option>
+                  <option value="A5">A5 (148 × 210 mm)</option>
+                  <option value="A6">A6 (105 × 148 mm)</option>
+                  <option value="Letter">Letter US (216 × 279 mm)</option>
+                  <option value="Legal">Legal US (216 × 356 mm)</option>
+                  <option value="CUSTOM">Personnalisé (dimensions libres)</option>
+                </select>
+              </div>
+
+              <div class="form-group flex-1">
+                <label for="modePagination">Mode de pagination</label>
+                <select id="modePagination" formControlName="modePagination" class="form-control">
+                  <option value="FIXED">Pages fixes (conception manuelle)</option>
+                  <option value="AUTO">Pagination automatique</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Dimensions personnalisées -->
+            <div *ngIf="form.get('formatPapier')?.value === 'CUSTOM'" class="form-row custom-dims-row">
+              <div class="form-group flex-1">
+                <label for="largeurMm">Largeur personnalisée (mm) *</label>
+                <input id="largeurMm" type="number" formControlName="largeurMm" class="form-control" min="20" placeholder="ex: 210" />
+              </div>
+              <div class="form-group flex-1">
+                <label for="hauteurMm">Hauteur personnalisée (mm) *</label>
+                <input id="hauteurMm" type="number" formControlName="hauteurMm" class="form-control" min="20" placeholder="ex: 297" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 2 : Marges de la feuille -->
+        <div class="card config-card">
+          <div class="card-header">
+            <h3>📐 Marges de la feuille (mm)</h3>
+          </div>
+          <div class="card-body">
+            <p class="section-help">Ces marges isolent le contenu physique des bords de la page.</p>
+            <div class="margins-grid-4">
+              <div class="margin-box">
+                <label for="margeHautMm">Haut</label>
+                <div class="input-with-unit">
+                  <input id="margeHautMm" type="number" formControlName="margeHautMm" class="form-control" min="0" />
+                  <span class="unit">mm</span>
+                </div>
+              </div>
+              <div class="margin-box">
+                <label for="margeBasMm">Bas</label>
+                <div class="input-with-unit">
+                  <input id="margeBasMm" type="number" formControlName="margeBasMm" class="form-control" min="0" />
+                  <span class="unit">mm</span>
+                </div>
+              </div>
+              <div class="margin-box">
+                <label for="margeGaucheMm">Gauche</label>
+                <div class="input-with-unit">
+                  <input id="margeGaucheMm" type="number" formControlName="margeGaucheMm" class="form-control" min="0" />
+                  <span class="unit">mm</span>
+                </div>
+              </div>
+              <div class="margin-box">
+                <label for="margeDroiteMm">Droite</label>
+                <div class="input-with-unit">
+                  <input id="margeDroiteMm" type="number" formControlName="margeDroiteMm" class="form-control" min="0" />
+                  <span class="unit">mm</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 3 : Arrière-plan -->
+        <div class="card config-card">
+          <div class="card-header">
+            <h3>🎨 Couleur de fond de la feuille</h3>
+          </div>
+          <div class="card-body">
+            <div class="color-picker-row">
+              <input type="color" formControlName="couleurFond" class="color-input" />
+              <input type="text" formControlName="couleurFond" class="form-control hex-input" placeholder="#ffffff" />
+              <div class="color-presets">
+                <button type="button" class="preset-btn" style="background:#ffffff" (click)="form.get('couleurFond')?.setValue('#ffffff')"></button>
+                <button type="button" class="preset-btn" style="background:#f8f9fa" (click)="form.get('couleurFond')?.setValue('#f8f9fa')"></button>
+                <button type="button" class="preset-btn" style="background:#fdfefe" (click)="form.get('couleurFond')?.setValue('#fdfefe')"></button>
+                <button type="button" class="preset-btn" style="background:#f4f6f7" (click)="form.get('couleurFond')?.setValue('#f4f6f7')"></button>
+                <button type="button" class="preset-btn" style="background:#eaf2f8" (click)="form.get('couleurFond')?.setValue('#eaf2f8')"></button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 4 : En-tête récurrent -->
+        <div class="card config-card">
+          <div class="card-header flex-between">
+            <h3>🔝 En-tête de page</h3>
+            <label class="switch-toggle">
+              <input type="checkbox" formControlName="headerActif" />
+              <span class="slider"></span>
+              <span class="toggle-label">{{ form.get('headerActif')?.value ? 'Actif' : 'Inactif' }}</span>
+            </label>
+          </div>
+          <div class="card-body" *ngIf="form.get('headerActif')?.value">
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label for="hauteurHeaderMm">Hauteur de l'en-tête</label>
+                <div class="input-with-unit">
+                  <input id="hauteurHeaderMm" type="number" formControlName="hauteurHeaderMm" class="form-control" min="5" />
+                  <span class="unit">mm</span>
+                </div>
+              </div>
+              <div class="form-group flex-1">
+                <label for="headerAlignement">Alignement du texte</label>
+                <select id="headerAlignement" formControlName="headerAlignement" class="form-control">
+                  <option value="GAUCHE">Aligné à gauche</option>
+                  <option value="CENTRE">Centré</option>
+                  <option value="DROITE">Aligné à droite</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <div class="flex-between">
+                <label for="headerContenu">Contenu de l'en-tête</label>
+                <div class="token-chips">
+                  <span class="chip" (click)="insertToken('headerContenu', '{date}')">+ Date</span>
+                  <span class="chip" (click)="insertToken('headerContenu', '{page}')">+ Page</span>
+                  <span class="chip" (click)="insertToken('headerContenu', '{pages}')">+ Total pages</span>
+                </div>
+              </div>
+              <input id="headerContenu" type="text" formControlName="headerContenu" class="form-control" placeholder="ex: Rapport d'activité | {date}" />
+              <small class="form-hint">Vous pouvez insérer les balises <code>&#123;date&#125;</code>, <code>&#123;page&#125;</code>, <code>&#123;pages&#125;</code>.</small>
+            </div>
+
+            <div class="checkbox-options-grid">
+              <label class="checkbox-label">
+                <input type="checkbox" formControlName="headerAfficherSurPremierePage" />
+                <span>Afficher l'en-tête sur la première page</span>
+              </label>
+
+              <div class="flex-row-align">
+                <label class="checkbox-label">
+                  <input type="checkbox" formControlName="headerLigneSeparation" />
+                  <span>Ligne de séparation inférieure</span>
+                </label>
+                <input *ngIf="form.get('headerLigneSeparation')?.value" type="color" formControlName="headerCouleurLigne" class="mini-color-input" title="Couleur de la ligne" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 5 : Pied de page & Pagination -->
+        <div class="card config-card">
+          <div class="card-header flex-between">
+            <h3>🔻 Pied de page & Pagination</h3>
+            <label class="switch-toggle">
+              <input type="checkbox" formControlName="footerActif" />
+              <span class="slider"></span>
+              <span class="toggle-label">{{ form.get('footerActif')?.value ? 'Actif' : 'Inactif' }}</span>
+            </label>
+          </div>
+          <div class="card-body" *ngIf="form.get('footerActif')?.value">
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label for="hauteurFooterMm">Hauteur du pied de page</label>
+                <div class="input-with-unit">
+                  <input id="hauteurFooterMm" type="number" formControlName="hauteurFooterMm" class="form-control" min="5" />
+                  <span class="unit">mm</span>
+                </div>
+              </div>
+              <div class="form-group flex-1">
+                <label for="footerAlignement">Alignement</label>
+                <select id="footerAlignement" formControlName="footerAlignement" class="form-control">
+                  <option value="GAUCHE">Aligné à gauche</option>
+                  <option value="CENTRE">Centré</option>
+                  <option value="DROITE">Aligné à droite</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <div class="flex-between">
+                <label for="footerContenu">Contenu du pied de page</label>
+                <div class="token-chips">
+                  <span class="chip" (click)="insertToken('footerContenu', '{page}')">+ Page</span>
+                  <span class="chip" (click)="insertToken('footerContenu', '{pages}')">+ Total pages</span>
+                  <span class="chip" (click)="insertToken('footerContenu', '{date}')">+ Date</span>
+                </div>
+              </div>
+              <input id="footerContenu" type="text" formControlName="footerContenu" class="form-control" placeholder="ex: Page {page} sur {pages} — Document confidentiel" />
+            </div>
+
+            <div class="checkbox-options-grid">
+              <label class="checkbox-label">
+                <input type="checkbox" formControlName="footerAfficherSurPremierePage" />
+                <span>Afficher le pied de page sur la première page</span>
+              </label>
+
+              <div class="flex-row-align">
+                <label class="checkbox-label">
+                  <input type="checkbox" formControlName="footerLigneSeparation" />
+                  <span>Ligne de séparation supérieure</span>
+                </label>
+                <input *ngIf="form.get('footerLigneSeparation')?.value" type="color" formControlName="footerCouleurLigne" class="mini-color-input" title="Couleur de la ligne" />
+              </div>
+
+              <div class="flex-row-align">
+                <label class="checkbox-label">
+                  <input type="checkbox" formControlName="numerotationPage" />
+                  <span>Activer la numérotation automatique</span>
+                </label>
+                <select *ngIf="form.get('numerotationPage')?.value" formControlName="formatNumerotation" class="form-control mini-select">
+                  <option value="PAGE_X_SUR_Y">Page X / Y</option>
+                  <option value="PAGE_X">Page X</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </form>
+    </div>
+
+    <!-- Colonne Droite : Aperçu visuel en direct (Sticky) -->
+    <div class="config-preview-col">
+      <div class="preview-panel">
+        <div class="preview-panel-header">
+          <h4>Aperçu en direct de la feuille</h4>
+          <span class="badge-format">{{ form.get('formatPapier')?.value }} ({{ previewWidthMm }} × {{ previewHeightMm }} mm)</span>
+        </div>
+
+        <!-- Alerte si dimensions invalides -->
+        <div *ngIf="isDimensionsInvalid" class="alert alert-danger preview-alert">
+          ⚠ Les marges et en-têtes cumulés dépassent les dimensions de la page ! Réduisez-les pour libérer de l'espace utile.
+        </div>
+
+        <!-- Métriques utiles -->
+        <div class="metrics-bar">
+          <div class="metric-item">
+            <span class="m-label">Largeur utile</span>
+            <span class="m-val">{{ usableWidthMm }} mm</span>
+          </div>
+          <div class="metric-item">
+            <span class="m-label">Hauteur utile</span>
+            <span class="m-val">{{ usableHeightMm }} mm</span>
+          </div>
+          <div class="metric-item">
+            <span class="m-label">Surface utile</span>
+            <span class="m-val" [class.danger-val]="usableSurfacePercent < 30">{{ usableSurfacePercent }}%</span>
+          </div>
+        </div>
+
+        <!-- Cadre de rendu de la feuille virtuelle -->
+        <div class="sheet-viewport">
+          <div class="sheet-paper"
+               [style.aspectRatio]="previewWidthMm + ' / ' + previewHeightMm"
+               [style.backgroundColor]="form.get('couleurFond')?.value">
+
+            <!-- Zone de marge extérieure (guides visuels) -->
+            <div class="sheet-content-bounds"
+                 [style.top]="mTop + 'mm'"
+                 [style.bottom]="mBottom + 'mm'"
+                 [style.left]="mLeft + 'mm'"
+                 [style.right]="mRight + 'mm'">
+
+              <!-- En-tête visible -->
+              <div *ngIf="headerActif"
+                   class="preview-header-zone"
+                   [style.height]="headerHeight + 'mm'"
+                   [style.textAlign]="form.get('headerAlignement')?.value === 'DROITE' ? 'right' : (form.get('headerAlignement')?.value === 'CENTRE' ? 'center' : 'left')"
+                   [style.borderBottom]="form.get('headerLigneSeparation')?.value ? ('1px solid ' + form.get('headerCouleurLigne')?.value) : '1px dashed #ccc'">
+                <span class="zone-tag">En-tête ({{ headerHeight }}mm)</span>
+                <div class="preview-text">{{ formattedHeaderText }}</div>
+              </div>
+
+              <!-- Zone de contenu utile -->
+              <div class="preview-usable-body">
+                <div class="usable-indicator">
+                  <div class="usable-icon">📝</div>
+                  <div class="usable-title">Zone de travail utile</div>
+                  <div class="usable-sub">{{ usableWidthMm }} × {{ usableHeightMm }} mm</div>
+                  <div class="mock-content-lines">
+                    <div class="mock-line w-80"></div>
+                    <div class="mock-line w-100"></div>
+                    <div class="mock-line w-60"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Pied de page visible -->
+              <div *ngIf="footerActif"
+                   class="preview-footer-zone"
+                   [style.height]="footerHeight + 'mm'"
+                   [style.textAlign]="form.get('footerAlignement')?.value === 'DROITE' ? 'right' : (form.get('footerAlignement')?.value === 'CENTRE' ? 'center' : 'left')"
+                   [style.borderTop]="form.get('footerLigneSeparation')?.value ? ('1px solid ' + form.get('footerCouleurLigne')?.value) : '1px dashed #ccc'">
+                <span class="zone-tag">Pied de page ({{ footerHeight }}mm)</span>
+                <div class="preview-text">{{ formattedFooterText }}</div>
+              </div>
+
+            </div>
+
+            <!-- Indicateurs de marge extérieure -->
+            <div class="margin-indicator top-label" [style.height]="mTop + 'mm'">Marge haut : {{ mTop }} mm</div>
+            <div class="margin-indicator bottom-label" [style.height]="mBottom + 'mm'">Marge bas : {{ mBottom }} mm</div>
+          </div>
+        </div>
+
+        <p class="preview-legend">
+          💡 Cet aperçu illustre l'agencement réel de vos pages. Lors de la conception et de la génération PDF, les blocs ne déborderont jamais sur l'en-tête ni sur le pied de page.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+

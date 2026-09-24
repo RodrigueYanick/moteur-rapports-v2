@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.rapports.moteur.dto.dtoTemplate.TemplateCreate;
 import com.rapports.moteur.dto.dtoTemplate.TemplateResponse;
+import com.rapports.moteur.dto.dtoTemplate.TemplateVersionDto;
+import com.rapports.moteur.dto.dtoTemplate.TemplateVersionTreeDto;
 import com.rapports.moteur.dto.dtoVariable.ExtractedVariable;
 import com.rapports.moteur.entity.Categorie;
 import com.rapports.moteur.entity.PaginationMode;
@@ -13,6 +15,7 @@ import com.rapports.moteur.entity.ReportTemplate;
 import com.rapports.moteur.entity.ReportVariable;
 import com.rapports.moteur.entity.TemplateStatus;
 import com.rapports.moteur.entity.Visibilite;
+import java.util.Comparator;
 import com.rapports.moteur.exceptions.TemplateNotFoundException;
 import com.rapports.moteur.exceptions.ValidationException;
 import com.rapports.moteur.mapper.TemplateMapper;
@@ -40,6 +43,7 @@ public class ReportTemplateService {
     private final ObjectMapper objectMapper;
     private final ReportVariableRepository variableRepository;
     private final EntrepriseService entrepriseService;
+    private final CompanyWorkspaceConfigService workspaceConfigService;
     
 
     // ============================================================
@@ -146,6 +150,35 @@ public class ReportTemplateService {
         if (entity.getMargeDroiteMm() == null) entity.setMargeDroiteMm(10);
         if (entity.getMargeHautMm() == null) entity.setMargeHautMm(10);
         if (entity.getMargeBasMm() == null) entity.setMargeBasMm(10);
+
+        // Héritage automatique des paramètres de feuille de travail de l'entreprise
+        com.rapports.moteur.entity.CompanyWorkspaceConfig defaultCfg = workspaceConfigService.getEntityForCurrentEntreprise();
+        if (request.getFormatPapier() == null) entity.setFormatPapier(defaultCfg.getFormatPapier());
+        if (request.getLargeurMm() == null) entity.setLargeurMm(defaultCfg.getLargeurMm());
+        if (request.getHauteurMm() == null) entity.setHauteurMm(defaultCfg.getHauteurMm());
+        if (request.getModePagination() == null) entity.setModePagination(defaultCfg.getModePagination());
+        if (request.getMargeGaucheMm() == null) entity.setMargeGaucheMm(defaultCfg.getMargeGaucheMm());
+        if (request.getMargeDroiteMm() == null) entity.setMargeDroiteMm(defaultCfg.getMargeDroiteMm());
+        if (request.getMargeHautMm() == null) entity.setMargeHautMm(defaultCfg.getMargeHautMm());
+        if (request.getMargeBasMm() == null) entity.setMargeBasMm(defaultCfg.getMargeBasMm());
+        if (request.getCouleurFond() == null) entity.setCouleurFond(defaultCfg.getCouleurFond());
+        if (request.getHeaderActif() == null) entity.setHeaderActif(defaultCfg.getHeaderActif());
+        if (request.getHauteurHeaderMm() == null) entity.setHauteurHeaderMm(defaultCfg.getHauteurHeaderMm());
+        if (request.getHeaderContenu() == null) entity.setHeaderContenu(defaultCfg.getHeaderContenu());
+        if (request.getHeaderAlignement() == null) entity.setHeaderAlignement(defaultCfg.getHeaderAlignement());
+        if (request.getHeaderAfficherSurPremierePage() == null) entity.setHeaderAfficherSurPremierePage(defaultCfg.getHeaderAfficherSurPremierePage());
+        if (request.getHeaderLigneSeparation() == null) entity.setHeaderLigneSeparation(defaultCfg.getHeaderLigneSeparation());
+        if (request.getHeaderCouleurLigne() == null) entity.setHeaderCouleurLigne(defaultCfg.getHeaderCouleurLigne());
+        if (request.getFooterActif() == null) entity.setFooterActif(defaultCfg.getFooterActif());
+        if (request.getHauteurFooterMm() == null) entity.setHauteurFooterMm(defaultCfg.getHauteurFooterMm());
+        if (request.getFooterContenu() == null) entity.setFooterContenu(defaultCfg.getFooterContenu());
+        if (request.getFooterAlignement() == null) entity.setFooterAlignement(defaultCfg.getFooterAlignement());
+        if (request.getFooterAfficherSurPremierePage() == null) entity.setFooterAfficherSurPremierePage(defaultCfg.getFooterAfficherSurPremierePage());
+        if (request.getFooterLigneSeparation() == null) entity.setFooterLigneSeparation(defaultCfg.getFooterLigneSeparation());
+        if (request.getFooterCouleurLigne() == null) entity.setFooterCouleurLigne(defaultCfg.getFooterCouleurLigne());
+        if (request.getNumerotationPage() == null) entity.setNumerotationPage(defaultCfg.getNumerotationPage());
+        if (request.getFormatNumerotation() == null) entity.setFormatNumerotation(defaultCfg.getFormatNumerotation());
+
         validateFormat(entity);
 
         if (entity.getContenuDesign() == null || entity.getContenuDesign().isBlank()) {
@@ -173,6 +206,7 @@ public class ReportTemplateService {
     /**
      * Publie un template : extrait automatiquement le schéma des variables depuis
      * contenuDesign, change le statut en PUBLIE et incrémente la version.
+     * contenuDesign et change le statut en PUBLIE.
      * Seul un template en BROUILLON peut être publié.
      */
     @Transactional
@@ -251,6 +285,28 @@ public class ReportTemplateService {
         if (request.getMargeDroiteMm() != null) entity.setMargeDroiteMm(request.getMargeDroiteMm());
         if (request.getMargeHautMm() != null) entity.setMargeHautMm(request.getMargeHautMm());
         if (request.getMargeBasMm() != null) entity.setMargeBasMm(request.getMargeBasMm());
+        if (request.getCouleurFond() != null) entity.setCouleurFond(request.getCouleurFond());
+
+        // Header
+        if (request.getHeaderActif() != null) entity.setHeaderActif(request.getHeaderActif());
+        if (request.getHauteurHeaderMm() != null) entity.setHauteurHeaderMm(request.getHauteurHeaderMm());
+        if (request.getHeaderContenu() != null) entity.setHeaderContenu(request.getHeaderContenu());
+        if (request.getHeaderAlignement() != null) entity.setHeaderAlignement(request.getHeaderAlignement());
+        if (request.getHeaderAfficherSurPremierePage() != null) entity.setHeaderAfficherSurPremierePage(request.getHeaderAfficherSurPremierePage());
+        if (request.getHeaderLigneSeparation() != null) entity.setHeaderLigneSeparation(request.getHeaderLigneSeparation());
+        if (request.getHeaderCouleurLigne() != null) entity.setHeaderCouleurLigne(request.getHeaderCouleurLigne());
+
+        // Footer
+        if (request.getFooterActif() != null) entity.setFooterActif(request.getFooterActif());
+        if (request.getHauteurFooterMm() != null) entity.setHauteurFooterMm(request.getHauteurFooterMm());
+        if (request.getFooterContenu() != null) entity.setFooterContenu(request.getFooterContenu());
+        if (request.getFooterAlignement() != null) entity.setFooterAlignement(request.getFooterAlignement());
+        if (request.getFooterAfficherSurPremierePage() != null) entity.setFooterAfficherSurPremierePage(request.getFooterAfficherSurPremierePage());
+        if (request.getFooterLigneSeparation() != null) entity.setFooterLigneSeparation(request.getFooterLigneSeparation());
+        if (request.getFooterCouleurLigne() != null) entity.setFooterCouleurLigne(request.getFooterCouleurLigne());
+        if (request.getNumerotationPage() != null) entity.setNumerotationPage(request.getNumerotationPage());
+        if (request.getFormatNumerotation() != null) entity.setFormatNumerotation(request.getFormatNumerotation());
+
         validateFormat(entity);
 
         repository.save(entity);
@@ -275,6 +331,28 @@ public class ReportTemplateService {
         copy.setMargeDroiteMm(original.getMargeDroiteMm() != null && original.getMargeDroiteMm() > 0 ? original.getMargeDroiteMm() : 10);
         copy.setMargeHautMm(original.getMargeHautMm() != null && original.getMargeHautMm() > 0 ? original.getMargeHautMm() : 10);
         copy.setMargeBasMm(original.getMargeBasMm() != null && original.getMargeBasMm() > 0 ? original.getMargeBasMm() : 10);
+        copy.setCouleurFond(original.getCouleurFond() != null ? original.getCouleurFond() : "#ffffff");
+
+        // Header
+        copy.setHeaderActif(original.getHeaderActif() != null ? original.getHeaderActif() : false);
+        copy.setHauteurHeaderMm(original.getHauteurHeaderMm() != null ? original.getHauteurHeaderMm() : 15);
+        copy.setHeaderContenu(original.getHeaderContenu());
+        copy.setHeaderAlignement(original.getHeaderAlignement() != null ? original.getHeaderAlignement() : "LEFT");
+        copy.setHeaderAfficherSurPremierePage(original.getHeaderAfficherSurPremierePage() != null ? original.getHeaderAfficherSurPremierePage() : true);
+        copy.setHeaderLigneSeparation(original.getHeaderLigneSeparation() != null ? original.getHeaderLigneSeparation() : false);
+        copy.setHeaderCouleurLigne(original.getHeaderCouleurLigne() != null ? original.getHeaderCouleurLigne() : "#d1d5db");
+
+        // Footer
+        copy.setFooterActif(original.getFooterActif() != null ? original.getFooterActif() : false);
+        copy.setHauteurFooterMm(original.getHauteurFooterMm() != null ? original.getHauteurFooterMm() : 15);
+        copy.setFooterContenu(original.getFooterContenu());
+        copy.setFooterAlignement(original.getFooterAlignement() != null ? original.getFooterAlignement() : "LEFT");
+        copy.setFooterAfficherSurPremierePage(original.getFooterAfficherSurPremierePage() != null ? original.getFooterAfficherSurPremierePage() : true);
+        copy.setFooterLigneSeparation(original.getFooterLigneSeparation() != null ? original.getFooterLigneSeparation() : false);
+        copy.setFooterCouleurLigne(original.getFooterCouleurLigne() != null ? original.getFooterCouleurLigne() : "#d1d5db");
+        copy.setNumerotationPage(original.getNumerotationPage() != null ? original.getNumerotationPage() : true);
+        copy.setFormatNumerotation(original.getFormatNumerotation() != null ? original.getFormatNumerotation() : "PAGE_X_SUR_Y");
+
         copy.setStatut(TemplateStatus.BROUILLON);
         copy.setVersion(1);
 
@@ -317,8 +395,12 @@ public class ReportTemplateService {
             repository.save(original);
         }
 
+        String baseName = original.getNom().replaceAll("\\s*\\(V\\d+\\)$", "").trim();
+        int nextVersion = original.getVersion() + 1;
+
         ReportTemplate newVersion = new ReportTemplate();
         newVersion.setNom(original.getNom() + " (V" + (original.getVersion() + 1) + ")");
+        newVersion.setNom(baseName + " (V" + nextVersion + ")");
         newVersion.setDescription(original.getDescription());
         newVersion.setContenuDesign(original.getContenuDesign());
         newVersion.setCategorie(original.getCategorie());
@@ -331,8 +413,31 @@ public class ReportTemplateService {
         newVersion.setMargeDroiteMm(original.getMargeDroiteMm() != null && original.getMargeDroiteMm() > 0 ? original.getMargeDroiteMm() : 10);
         newVersion.setMargeHautMm(original.getMargeHautMm() != null && original.getMargeHautMm() > 0 ? original.getMargeHautMm() : 10);
         newVersion.setMargeBasMm(original.getMargeBasMm() != null && original.getMargeBasMm() > 0 ? original.getMargeBasMm() : 10);
+        newVersion.setCouleurFond(original.getCouleurFond() != null ? original.getCouleurFond() : "#ffffff");
+
+        // Header
+        newVersion.setHeaderActif(original.getHeaderActif() != null ? original.getHeaderActif() : false);
+        newVersion.setHauteurHeaderMm(original.getHauteurHeaderMm() != null ? original.getHauteurHeaderMm() : 15);
+        newVersion.setHeaderContenu(original.getHeaderContenu());
+        newVersion.setHeaderAlignement(original.getHeaderAlignement() != null ? original.getHeaderAlignement() : "LEFT");
+        newVersion.setHeaderAfficherSurPremierePage(original.getHeaderAfficherSurPremierePage() != null ? original.getHeaderAfficherSurPremierePage() : true);
+        newVersion.setHeaderLigneSeparation(original.getHeaderLigneSeparation() != null ? original.getHeaderLigneSeparation() : false);
+        newVersion.setHeaderCouleurLigne(original.getHeaderCouleurLigne() != null ? original.getHeaderCouleurLigne() : "#d1d5db");
+
+        // Footer
+        newVersion.setFooterActif(original.getFooterActif() != null ? original.getFooterActif() : false);
+        newVersion.setHauteurFooterMm(original.getHauteurFooterMm() != null ? original.getHauteurFooterMm() : 15);
+        newVersion.setFooterContenu(original.getFooterContenu());
+        newVersion.setFooterAlignement(original.getFooterAlignement() != null ? original.getFooterAlignement() : "LEFT");
+        newVersion.setFooterAfficherSurPremierePage(original.getFooterAfficherSurPremierePage() != null ? original.getFooterAfficherSurPremierePage() : true);
+        newVersion.setFooterLigneSeparation(original.getFooterLigneSeparation() != null ? original.getFooterLigneSeparation() : false);
+        newVersion.setFooterCouleurLigne(original.getFooterCouleurLigne() != null ? original.getFooterCouleurLigne() : "#d1d5db");
+        newVersion.setNumerotationPage(original.getNumerotationPage() != null ? original.getNumerotationPage() : true);
+        newVersion.setFormatNumerotation(original.getFormatNumerotation() != null ? original.getFormatNumerotation() : "PAGE_X_SUR_Y");
+
         newVersion.setStatut(TemplateStatus.BROUILLON);
         newVersion.setVersion(original.getVersion() + 1);
+        newVersion.setVersion(nextVersion);
         newVersion.setParentTemplate(original);
 
         ReportTemplate savedNew = repository.save(newVersion);
@@ -363,5 +468,65 @@ public class ReportTemplateService {
         entity.setStatut(TemplateStatus.BROUILLON);
         repository.save(entity);
         return mapper.toDto(entity);
+    }
+
+    /**
+     * Récupère l'arbre généalogique et l'historique complet des versions du modèle.
+     * Remonte d'abord la chaîne parentale jusqu'à la racine de la famille,
+     * puis explore récursivement tous les enfants pour produire à la fois l'arborescence
+     * hiérarchique et la chronologie ordonnée de toutes les versions.
+     */
+    @Transactional
+    public TemplateVersionTreeDto getVersionTree(UUID id) {
+        ReportTemplate current = loadTemplateForCurrentEntreprise(id);
+
+        // 1. Remonter la chaîne parentale jusqu'à la racine
+        ReportTemplate root = current;
+        while (root.getParentTemplate() != null) {
+            root = root.getParentTemplate();
+        }
+
+        // 2. Construire l'arbre récursif et collecter les versions
+        List<TemplateVersionDto> flatList = new ArrayList<>();
+        TemplateVersionDto tree = buildVersionNode(root, current.getId(), flatList);
+
+        // Trier la chronologie par version puis date
+        flatList.sort(Comparator.comparing(TemplateVersionDto::getVersion)
+                .thenComparing(TemplateVersionDto::getDateCreation));
+
+        return TemplateVersionTreeDto.builder()
+                .rootId(root.getId())
+                .currentId(current.getId())
+                .totalVersions(flatList.size())
+                .tree(tree)
+                .flatHistory(flatList)
+                .build();
+    }
+
+    private TemplateVersionDto buildVersionNode(ReportTemplate entity, UUID currentId, List<TemplateVersionDto> flatList) {
+        boolean isCurrent = entity.getId().equals(currentId);
+
+        List<ReportTemplate> childrenEntities = repository.findByParentTemplate_Id(entity.getId());
+        List<TemplateVersionDto> childrenDtos = new ArrayList<>();
+
+        TemplateVersionDto dto = TemplateVersionDto.builder()
+                .id(entity.getId())
+                .nom(entity.getNom())
+                .version(entity.getVersion())
+                .statut(entity.getStatut())
+                .dateCreation(entity.getDateCreation())
+                .dateModification(entity.getDateModification())
+                .parentTemplateId(entity.getParentTemplate() != null ? entity.getParentTemplate().getId() : null)
+                .isCurrent(isCurrent)
+                .children(childrenDtos)
+                .build();
+
+        flatList.add(dto);
+
+        for (ReportTemplate child : childrenEntities) {
+            childrenDtos.add(buildVersionNode(child, currentId, flatList));
+        }
+
+        return dto;
     }
 }

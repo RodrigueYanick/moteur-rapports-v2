@@ -1,11 +1,11 @@
-$bg-panel: #1a1d29;
-$bg-input: #14161f;
-$bg-hover: #23273580;
-$border: #2a2e3d;
-$accent: #6d5efc;
-$text-primary: #e8e9ee;
-$text-secondary: #9498a8;
-$text-muted: #676c7f;
+$bg-panel: var(--surface-panel, #1a1d29);
+$bg-input: var(--surface-ground, #14161f);
+$bg-hover: var(--surface-hover, rgba(35, 39, 53, 0.5));
+$border: var(--surface-border, #2a2e3d);
+$accent: var(--brand-primary, #6d5efc);
+$text-primary: var(--text-primary, #e8e9ee);
+$text-secondary: var(--text-secondary, #9498a8);
+$text-muted: var(--text-muted, #676c7f);
 
 .editor-panel {
   background: $bg-panel;
@@ -615,4 +615,45 @@ select {
   font-size: 13px;
 
   &:focus { outline: none; border-color: $accent; }
+}
+
+.expression-helpers {
+  margin-top: 6px;
+}
+
+.helper-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.helper-btn {
+  background: $bg-input;
+  border: 1px solid $border;
+  color: $text-secondary;
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-family: monospace;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    border-color: $accent;
+    color: $accent;
+    background: rgba(109, 94, 252, 0.1);
+  }
+}
+
+.colonne-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 6px;
+
+  input, select {
+    font-size: 11px;
+    padding: 5px 6px;
+  }
 }

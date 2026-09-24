@@ -16,6 +16,8 @@ public interface ReportTemplateRepository extends JpaRepository<ReportTemplate, 
     List<ReportTemplate> findByCodeEntrepriseOrCodeEntrepriseIsNull(String codeEntreprise);
     List<ReportTemplate> findByCodeEntrepriseIsNull();
 
+    List<ReportTemplate> findByParentTemplate_Id(UUID parentId);
+
     // Recherche avec filtre de visibilité et texte
     @Query("SELECT t FROM ReportTemplate t WHERE t.codeEntreprise = :code AND LOWER(t.nom) LIKE LOWER(CONCAT('%', :q, '%'))")
     List<ReportTemplate> findByCodeEntrepriseAndNomContaining(@Param("code") String code, @Param("q") String q);

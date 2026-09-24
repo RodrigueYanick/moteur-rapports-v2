@@ -12,7 +12,7 @@ $danger: #ef4444;
 $success: #34d399;
 
 .filler-panel {
-  margin-left: -35px;
+  margin-left: 35px;
   padding: 25px;
   background: $bg-panel;
   height: 100%;
@@ -25,15 +25,43 @@ $success: #34d399;
 .filler-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
   color: $accent;
   margin-bottom: 14px;
 
-  h3 {
-    font-size: 14px;
+  .header-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: $text-primary;
+      margin: 0;
+    }
+  }
+
+  .btn-import-excel {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 9px;
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    border-radius: 6px;
+    color: #34d399;
+    font-size: 11px;
     font-weight: 600;
-    color: $text-primary;
-    margin: 0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: rgba(16, 185, 129, 0.25);
+      border-color: #34d399;
+      transform: translateY(-1px);
+    }
   }
 }
 
@@ -318,6 +346,31 @@ $success: #34d399;
   }
 }
 
+.btn-success {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  background: #10b981;
+  color: white;
+  transition: background 0.15s ease, transform 0.1s ease;
+
+  &:hover:not(:disabled) {
+    background: #059669;
+  }
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  &:active { transform: scale(0.97); }
+}
+
 .btn-secondary {
   background: transparent;
   border: 1px solid $border;
@@ -417,6 +470,11 @@ $success: #34d399;
       &:hover {
         background: rgba(255, 255, 255, 0.06);
         color: $accent;
+      }
+
+      &.excel-btn:hover {
+        color: #10b981;
+        background: rgba(16, 185, 129, 0.12);
       }
 
       &.danger:hover {

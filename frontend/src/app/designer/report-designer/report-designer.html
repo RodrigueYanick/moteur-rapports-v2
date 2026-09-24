@@ -1,116 +1,42 @@
 <div class="designer-layout">
-  <div class="toolbar">
-    <div class="toolbar-left">
-      <div class="brand-mark">
-        <lucide-icon [img]="icons.file" [size]="18"></lucide-icon>
-      </div>
-      <div class="template-info">
-        <span class="template-name">{{ templateName || 'Sans titre' }}</span>
-        <span class="save-status saved" *ngIf="savingStatus === 'saved'">
-          <lucide-icon [img]="icons.check" [size]="12"></lucide-icon>
-          Enregistré
-        </span>
-        <span class="save-status saving" *ngIf="savingStatus === 'saving'">
-          <lucide-icon [img]="icons.loader" [size]="12" class="spin"></lucide-icon>
-          Enregistrement...
-        </span>
-      </div>
-      <button class="secondary-btn" *ngIf="isLocked" (click)="requestDuplicate()">
-        <lucide-icon [img]="icons.share" [size]="16"></lucide-icon>
-        Dupliquer
-      </button>
-      <button class="secondary-btn" *ngIf="!isLocked" (click)="toggleFillingMode()">
-        <lucide-icon [img]="fillingMode ? icons.edit : icons.fileText" [size]="16"></lucide-icon>
-        {{ fillingMode ? 'Éditer' : 'Remplir (test)' }}
-      </button>
-      <span class="status-badge" [ngClass]="templateStatus">{{ templateStatus }}</span>
-    </div>
-
-    <div class="toolbar-center">
-      <div class="tool-group">
-        <button class="icon-btn" (click)="undo()" title="Annuler">
-          <lucide-icon [img]="icons.undo" [size]="18"></lucide-icon>
-        </button>
-        <button class="icon-btn" (click)="redo()" title="Rétablir">
-          <lucide-icon [img]="icons.redo" [size]="18"></lucide-icon>
-        </button>
-      </div>
-
-      <div class="tool-group">
-        <button
-          class="icon-btn"
-          [class.active]="showGrid"
-          (click)="toggleGrid()"
-          title="Afficher la grille"
-        >
-          <lucide-icon [img]="icons.grid" [size]="18"></lucide-icon>
-        </button>
-        <button
-          class="icon-btn"
-          [class.active]="snapEnabled"
-          (click)="toggleSnap()"
-          title="Magnétisme"
-        >
-          <lucide-icon [img]="icons.snap" [size]="18"></lucide-icon>
-        </button>
-        <button
-          class="icon-btn"
-          [class.active]="showGuides"
-          (click)="toggleGuides()"
-          title="Repères"
-        >
-          <lucide-icon [img]="icons.guides" [size]="18"></lucide-icon>
-        </button>
-      </div>
-
-      <div class="zoom-control">
-        <button class="icon-btn flat" (click)="zoomOut()">
-          <lucide-icon [img]="icons.zoomOut" [size]="16"></lucide-icon>
-        </button>
-        <span class="zoom-value">{{ zoomPercent }}%</span>
-        <button class="icon-btn flat" (click)="zoomIn()">
-          <lucide-icon [img]="icons.zoomIn" [size]="16"></lucide-icon>
-        </button>
-      </div>
-
-      <div class="paper-select" (click)="openPageSettings()" title="Paramètres de page et marges">
-        <button class="secondary-btn" style="height:32px;padding:0 8px;">
-          <lucide-icon [img]="icons.settings" [size]="14"></lucide-icon>
-          <span>{{ formatPapier }} ({{ effectiveMargeHautMm }}mm)</span>
-        </button>
-      </div>
-    </div>
-
-    <div class="toolbar-right">
-      <button class="secondary-btn" *ngIf="isLocked" (click)="requestDuplicate()">
-        <lucide-icon [img]="icons.share" [size]="16"></lucide-icon>
-        Dupliquer
-      </button>
-      <button class="secondary-btn" *ngIf="!isLocked" (click)="toggleFillingMode()">
-        <lucide-icon [img]="fillingMode ? icons.edit : icons.fileText" [size]="16"></lucide-icon>
-        {{ fillingMode ? 'Éditer' : 'Remplir (test)' }}
-      </button>
-      <button class="secondary-btn" (click)="preview()">
-        <lucide-icon [img]="icons.preview" [size]="16"></lucide-icon>
-        Aperçu
-      </button>
-      <button class="secondary-btn" (click)="exportPdf()">
-        <lucide-icon [img]="icons.export" [size]="16"></lucide-icon>
-        Exporter
-      </button>
-      <button class="secondary-btn" *ngIf="templateStatus === 'PUBLIE'" (click)="exportHtml()">
-        <lucide-icon [img]="icons.preview" [size]="16"></lucide-icon>
-        HTML (test)
-      </button>
-      <button class="save-btn" title="Enregistrer" (click)="manualSave()">
-        <lucide-icon [img]="icons.save" [size]="16"></lucide-icon>
-      </button>
-      <button class="primary-btn" *ngIf="!isLocked" (click)="publish()">
-        <lucide-icon [img]="icons.publish" [size]="16"></lucide-icon>
-        Publier
-      </button>
-    </div>
-  </div>
+  <app-designer-toolbar
+    [templateName]="templateName"
+    [templateStatus]="templateStatus"
+    [savingStatus]="savingStatus"
+    [canCopy]="canCopy"
+    [canPaste]="canPaste"
+    [selectedBlockIds]="selectedBlockIds"
+    [showGrid]="showGrid"
+    [snapEnabled]="snapEnabled"
+    [showGuides]="showGuides"
+    [zoomPercent]="zoomPercent"
+    [formatPapier]="formatPapier"
+    [effectiveMargeHautMm]="effectiveMargeHautMm"
+    [isLocked]="isLocked"
+    [fillingMode]="fillingMode"
+    (undo)="undo()"
+    (redo)="redo()"
+    (copyBlock)="copySelectedBlock()"
+    (pasteBlock)="pasteBlock()"
+    (duplicateBlock)="duplicateSelectedBlock()"
+    (deleteBlock)="deleteSelectedBlock()"
+    (alignBlocks)="alignSelectedBlocks($event)"
+    (distributeBlocks)="distributeSelectedBlocks($event)"
+    (toggleGrid)="toggleGrid()"
+    (toggleSnap)="toggleSnap()"
+    (toggleGuides)="toggleGuides()"
+    (zoomIn)="zoomIn()"
+    (zoomOut)="zoomOut()"
+    (openSettings)="openPageSettings()"
+    (requestDuplicate)="requestDuplicate()"
+    (toggleFilling)="toggleFillingMode()"
+    (startTour)="startOnboarding()"
+    (preview)="preview()"
+    (exportPdf)="exportPdf()"
+    (exportHtml)="exportHtml()"
+    (save)="manualSave()"
+    (publish)="publish()"
+  ></app-designer-toolbar>
 
   <ng-template #fillingPanel>
     <app-template-filler
@@ -121,22 +47,18 @@
     </app-template-filler>
   </ng-template>
 
-  <div class="page-tabs" *ngIf="!isAutoPagination">
-    <button *ngFor="let page of pages; let i = index"
-            class="page-tab"
-            [class.active]="i === activePageIndex"
-            (click)="switchPage(i)">
-      <span *ngIf="editingPageIndex !== i" (dblclick)="startRenamePage(i, $event)">{{ page.nom }}</span>
-      <input *ngIf="editingPageIndex === i" type="text" [(ngModel)]="page.nom"
-            (blur)="finishRenamePage()" (keyup.enter)="finishRenamePage()"
-            (click)="$event.stopPropagation()" />
-      <lucide-icon [img]="icons.copy" [size]="12" class="page-tab-icon" (click)="duplicatePage(i, $event)" title="Dupliquer"></lucide-icon>
-      <lucide-icon *ngIf="pages.length > 1" [img]="icons.close" [size]="12" class="page-tab-icon" (click)="removePage(i, $event)" title="Supprimer"></lucide-icon>
-    </button>
-    <button class="page-tab-add" (click)="addPage()" title="Ajouter une page">
-      <lucide-icon [img]="icons.zoomIn" [size]="14"></lucide-icon>
-    </button>
-  </div>
+  <app-designer-page-tabs
+    [pages]="pages"
+    [activePageIndex]="activePageIndex"
+    [isAutoPagination]="isAutoPagination"
+    [isLocked]="isLocked"
+    (pageSelect)="switchPage($event)"
+    (pageAdd)="addPage()"
+    (pageRemove)="onPageRemove($event)"
+    (pageDuplicate)="onPageDuplicate($event)"
+    (pageRename)="finishRenamePage()"
+    (lockedAction)="showLockedMessage()"
+  ></app-designer-page-tabs>
 
   <div class="main-area">
     <div class="left-panel">
@@ -151,6 +73,7 @@
         (toggleVisibility)="onToggleVisibility($event)"
         (toggleLock)="onToggleLock($event)"
         (addBlock)="addBlock($event)"
+        (insertVariable)="insertVariableBlock($event)"
         (blocksReordered)="onLayersReordered($event)">
       </app-sidebar>
     </div>
@@ -169,10 +92,26 @@
         [margeBasPx]="margeBasPx"
         [margeGauchePx]="margeGauchePx"
         [margeDroitePx]="margeDroitePx"
+        [couleurFond]="couleurFond"
+        [headerActif]="headerActif"
+        [hauteurHeaderMm]="hauteurHeaderMm"
+        [headerContenu]="headerContenu"
+        [headerAlignement]="headerAlignement"
+        [headerLigneSeparation]="headerLigneSeparation"
+        [headerCouleurLigne]="headerCouleurLigne"
+        [footerActif]="footerActif"
+        [hauteurFooterMm]="hauteurFooterMm"
+        [footerContenu]="footerContenu"
+        [footerAlignement]="footerAlignement"
+        [footerLigneSeparation]="footerLigneSeparation"
+        [footerCouleurLigne]="footerCouleurLigne"
+        [selectedBlockIds]="selectedBlockIds"
+        [explicitVariables]="explicitVariables"
         (lockedInteraction)="showLockedMessage()"
         (blocksPreviewChange)="onCanvasPreviewChange($event)"
         (blocksChange)="onCanvasBlocksChange($event)"
-        (blockSelected)="selectBlock($event)">
+        (blockSelected)="onCanvasBlockSelected($event)"
+        (selectionChange)="onCanvasSelectionChange($event)">
       </app-design-canvas>
     </div>
 
@@ -201,6 +140,24 @@
           [margeHautPx]="margeHautPx"
           [margeBasPx]="margeBasPx"
           [margeGauchePx]="margeGauchePx"
+          [margeDroitePx]="margeDroitePx"
+          [couleurFond]="couleurFond"
+          [headerActif]="headerActif"
+          [hauteurHeaderMm]="hauteurHeaderMm"
+          [headerContenu]="headerContenu"
+          [headerAlignement]="headerAlignement"
+          [headerAfficherSurPremierePage]="headerAfficherSurPremierePage"
+          [headerLigneSeparation]="headerLigneSeparation"
+          [headerCouleurLigne]="headerCouleurLigne"
+          [footerActif]="footerActif"
+          [hauteurFooterMm]="hauteurFooterMm"
+          [footerContenu]="footerContenu"
+          [footerAlignement]="footerAlignement"
+          [footerAfficherSurPremierePage]="footerAfficherSurPremierePage"
+          [footerLigneSeparation]="footerLigneSeparation"
+          [footerCouleurLigne]="footerCouleurLigne"
+          [numerotationPage]="numerotationPage"
+          [formatNumerotation]="formatNumerotation">
           [margeDroitePx]="margeDroitePx">
         </app-block-preview>
       </ng-container>
@@ -295,3 +252,6 @@
     </div>
   </div>
 </div>
+
+<app-onboarding-tour></app-onboarding-tour>
+
