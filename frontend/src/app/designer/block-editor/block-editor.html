@@ -529,8 +529,6 @@
           <div class="colonnes-section">
             <label class="subtle-label">Colonnes</label>
             <div *ngFor="let col of colonnes.controls; let i = index" class="colonne-row">
-              <input placeholder="Titre" [formControl]="asFormControl(col.get('titre'))" />
-              <input placeholder="Variable" [formControl]="asFormControl(col.get('variable'))" />
               <input placeholder="Titre" [formControl]="asFormControl(col.get('titre'))" style="flex: 1.2;" />
               <input placeholder="Variable" [formControl]="asFormControl(col.get('variable'))" style="flex: 1;" />
               <input placeholder="Formule (ex: qte * pu)" [formControl]="asFormControl(col.get('formule'))" style="flex: 1.2;" title="Formule SpEL optionnelle" />
@@ -572,6 +570,25 @@
             </div>
           </div>
         </ng-template>
+
+        <!-- Ruptures de Page & Répétition d'En-têtes -->
+        <div class="pagination-section page-breaks-section" style="margin-top: 14px; padding-top: 12px; border-top: 1px dashed #e2e8f0;">
+          <label class="subtle-label" style="font-weight: 600; color: #0284c7;">📄 Gestion des Ruptures de Page</label>
+          <div class="switch-row" style="margin-top: 8px;">
+            <span>Répéter l'en-tête sur chaque page</span>
+            <label class="switch">
+              <input type="checkbox" formControlName="repeterEnTeteChaquePage" />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="switch-row" style="margin-top: 6px;">
+            <span>Éviter la coupure des lignes (break-inside: avoid)</span>
+            <label class="switch">
+              <input type="checkbox" formControlName="eviterCoupureLignes" />
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
       </div>
     </div>
 

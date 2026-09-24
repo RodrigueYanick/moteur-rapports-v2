@@ -262,6 +262,106 @@ public class TemplateHtmlBuilderTest {
         byte[] pdfBytes = out.toByteArray();
         org.junit.jupiter.api.Assertions.assertTrue(pdfBytes.length > 1000, "Le PDF généré avec styles conditionnels doit être valide");
     }
+
+    @Test
+    void testTablePageBreaksAndHeaderRepeat() throws Exception {
+        TemplateHtmlBuilder builder = new TemplateHtmlBuilder(new CodeGeneratorService());
+
+        String designJson = """
+            {
+              "pages": [
+                {
+                  "nom": "Page 1",
+                  "blocs": [
+                    {
+                      "id": "b-table-dynamic",
+                      "type": "tableau",
+                      "source": "{{factures}}",
+                      "x": 10,
+                      "y": 10,
+                      "largeurBox": 180,
+                      "hauteurBox": 100,
+                      "repeterEnTeteChaquePage": true,
+                      "eviterCoupureLignes": true,
+                      "colonnes": [
+                        { "variable": "ref", "titre": "Référence" },
+                        { "variable": "montant", "titre": "Montant" }
+                      ]
+                    },
+                    {
+                      "id": "b-table-static",
+                      "type": "tableau",
+                      "x": 10,
+                      "y": 120,
+                      "largeurBox": 180,
+                      "hauteurBox": 60,
+                      "repeterEnTeteChaquePage": true,
+                      "eviterCoupureLignes": true,
+                      "lignes": [
+                        [ { "value": "Article" }, { "value": "Prix" } ],
+                        [ { "value": "Abonnement" }, { "value": "50€" } ]
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            """;
+
+        com.rapports.moteur.entity.ReportTemplate template = com.rapports.moteur.entity.ReportTemplate.builder()
+                .nom("Rapport avec Ruptures de Page")
+                .contenuDesign(designJson)
+                .formatPapier("A4")
+                .statut(com.rapports.moteur.entity.TemplateStatus.BROUILLON)
+                .version(1)
+                .build();
+
+        java.util.Map<String, Object> data = java.util.Map.of(
+            "factures", java.util.List.of(
+                java.util.Map.of("ref", "FAC-001", "montant", 150),
+                java.util.Map.of("ref", "FAC-002", "montant", 250)
+            )
+        );
+
+        String html = builder.build(template, data);
+
+        // 1. Structure sémantique thead / tbody
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("<thead>"), "Doit contenir la balise thead pour la répétition");
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("<tbody>"), "Doit contenir la balise tbody");
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("<th style="), "Les en-têtes doivent utiliser th");
+
+        // 2. Éviter coupure des lignes
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("page-break-inside:avoid;break-inside:avoid;"),
+            "Les lignes doivent avoir les styles d'évitement de coupure");
+
+        // 3. Validation de non-régression Flying Saucer PDF
+        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+        ITextRenderer renderer = new ITextRenderer();
+        renderer.setDocumentFromString(html);
+        renderer.layout();
+        renderer.createPDF(out);
+
+        byte[] pdfBytes = out.toByteArray();
+        org.junit.jupiter.api.Assertions.assertTrue(pdfBytes.length > 1000, "Le PDF multi-page généré par Flying Saucer doit être valide");
+
+        // 4. Test avec options désactivées
+        String disabledDesign = designJson
+            .replace("\"repeterEnTeteChaquePage\": true", "\"repeterEnTeteChaquePage\": false")
+            .replace("\"eviterCoupureLignes\": true", "\"eviterCoupureLignes\": false");
+
+        com.rapports.moteur.entity.ReportTemplate disabledTemplate = com.rapports.moteur.entity.ReportTemplate.builder()
+                .nom("Rapport sans Ruptures")
+                .contenuDesign(disabledDesign)
+                .formatPapier("A4")
+                .statut(com.rapports.moteur.entity.TemplateStatus.BROUILLON)
+                .version(1)
+                .build();
+
+        String disabledHtml = builder.build(disabledTemplate, data);
+        org.junit.jupiter.api.Assertions.assertFalse(disabledHtml.contains("page-break-inside:avoid;break-inside:avoid;"),
+            "Ne doit pas contenir page-break-inside si désactivé");
+    }
 }
+
 
 

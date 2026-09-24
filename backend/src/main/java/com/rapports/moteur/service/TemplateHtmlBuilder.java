@@ -573,8 +573,10 @@ public class TemplateHtmlBuilder {
                         // Premier fragment : on inclut les lignes telles quelles (header inclus)
                         for (int i = currentIndex; i < end; i++) subArray.add(lignes.get(i));
                     } else {
-                        // Fragments suivants : on répète l'en-tête en première ligne
-                        subArray.add(headerRow);
+                        // Fragments suivants : on répète l'en-tête en première ligne si repeterEnTeteChaquePage != false
+                        if (bloc.path("repeterEnTeteChaquePage").asBoolean(true)) {
+                            subArray.add(headerRow);
+                        }
                         for (int i = currentIndex; i < end; i++) subArray.add(lignes.get(i));
                     }
                     fragments.add(fragment);
@@ -876,39 +878,62 @@ public class TemplateHtmlBuilder {
         String bordure = bloc.path("style").path("bordureCouleur").asText("#d9d9d9");
         String texteDefaut = bloc.path("style").path("texteCouleurDefaut").asText("#000000");
         boolean isTableFragment = bloc.path("_tableFragment").asBoolean(false);
+        boolean repeterEnTete = bloc.path("repeterEnTeteChaquePage").asBoolean(true);
+        boolean eviterCoupureLignes = bloc.path("eviterCoupureLignes").asBoolean(true);
+        String rowBreakCss = eviterCoupureLignes ? "page-break-inside:avoid;break-inside:avoid;" : "";
 
         StringBuilder table = new StringBuilder(
             "<table style='border-collapse:collapse;width:100%;font-family:Arial, sans-serif;font-size:14px;'>"
         );
-        int rowIndex = 0;
-        for (JsonNode row : bloc.path("lignes")) {
-            // Dans un tableau fragmenté, la première ligne est l'en-tête (fond gris, gras)
-            boolean isHeaderRow = isTableFragment && rowIndex == 0;
-            table.append("<tr>");
-            for (JsonNode cell : row) {
-                if (cell.path("hidden").asBoolean(false)) continue;
-                String value = cell.path("value").asText("");
-                String bgColor = cell.has("bgColor") && !cell.path("bgColor").isNull() ? cell.path("bgColor").asText() : null;
-                String textColor = cell.has("textColor") && !cell.path("textColor").isNull() ? cell.path("textColor").asText() : texteDefaut;
-                int colSpan = cell.path("colSpan").asInt(1);
-                int rowSpan = cell.path("rowSpan").asInt(1);
+        ArrayNode lignes = (bloc.has("lignes") && bloc.get("lignes").isArray()) ? (ArrayNode) bloc.get("lignes") : objectMapper.createArrayNode();
+        if (lignes.size() > 0) {
+            JsonNode headerRow = lignes.get(0);
+            if (repeterEnTete || !isTableFragment) {
+                table.append("<thead><tr style='").append(rowBreakCss).append("'>");
+                for (JsonNode cell : headerRow) {
+                    if (cell.path("hidden").asBoolean(false)) continue;
+                    String value = cell.path("value").asText("");
+                    String bgColor = cell.has("bgColor") && !cell.path("bgColor").isNull() ? cell.path("bgColor").asText() : "#f5f5f5";
+                    String textColor = cell.has("textColor") && !cell.path("textColor").isNull() ? cell.path("textColor").asText() : texteDefaut;
+                    int colSpan = cell.path("colSpan").asInt(1);
+                    int rowSpan = cell.path("rowSpan").asInt(1);
 
-                String style = "border:1px solid " + escape(bordure) + ";padding:3px 5px;min-width:90px;color:" + escape(textColor) + ";";
-                if (isHeaderRow) {
-                    style += "background:#f5f5f5;font-weight:600;";
-                } else if (bgColor != null) {
-                    style += "background:" + escape(bgColor) + ";";
+                    String style = "border:1px solid " + escape(bordure) + ";padding:3px 5px;min-width:90px;color:" + escape(textColor) + ";background:" + escape(bgColor) + ";font-weight:600;";
+                    table.append("<th");
+                    if (colSpan > 1) table.append(" colspan='").append(colSpan).append("'");
+                    if (rowSpan > 1) table.append(" rowspan='").append(rowSpan).append("'");
+                    table.append(" style='").append(style).append("'>")
+                        .append(escape(replaceVars(value, data))).append("</th>");
                 }
-
-                String tag = isHeaderRow ? "th" : "td";
-                table.append("<").append(tag);
-                if (colSpan > 1) table.append(" colspan='").append(colSpan).append("'");
-                if (rowSpan > 1) table.append(" rowspan='").append(rowSpan).append("'");
-                table.append(" style='").append(style).append("'>")
-                    .append(escape(replaceVars(value, data))).append("</").append(tag).append(">");
+                table.append("</tr></thead>");
             }
-            table.append("</tr>");
-            rowIndex++;
+
+            table.append("<tbody>");
+            for (int i = 1; i < lignes.size(); i++) {
+                JsonNode row = lignes.get(i);
+                table.append("<tr style='").append(rowBreakCss).append("'>");
+                for (JsonNode cell : row) {
+                    if (cell.path("hidden").asBoolean(false)) continue;
+                    String value = cell.path("value").asText("");
+                    String bgColor = cell.has("bgColor") && !cell.path("bgColor").isNull() ? cell.path("bgColor").asText() : null;
+                    String textColor = cell.has("textColor") && !cell.path("textColor").isNull() ? cell.path("textColor").asText() : texteDefaut;
+                    int colSpan = cell.path("colSpan").asInt(1);
+                    int rowSpan = cell.path("rowSpan").asInt(1);
+
+                    String style = "border:1px solid " + escape(bordure) + ";padding:3px 5px;min-width:90px;color:" + escape(textColor) + ";";
+                    if (bgColor != null) {
+                        style += "background:" + escape(bgColor) + ";";
+                    }
+
+                    table.append("<td");
+                    if (colSpan > 1) table.append(" colspan='").append(colSpan).append("'");
+                    if (rowSpan > 1) table.append(" rowspan='").append(rowSpan).append("'");
+                    table.append(" style='").append(style).append("'>")
+                        .append(escape(replaceVars(value, data))).append("</td>");
+                }
+                table.append("</tr>");
+            }
+            table.append("</tbody>");
         }
         return table.append("</table>").toString();
     }
@@ -918,6 +943,11 @@ public class TemplateHtmlBuilder {
         Object rowsObj = data.get(source);
         String bordure = bloc.path("style").path("bordureCouleur").asText("#d9d9d9");
         String texteDefaut = bloc.path("style").path("texteCouleurDefaut").asText("#000000");
+        boolean repeterEnTete = bloc.path("repeterEnTeteChaquePage").asBoolean(true);
+        boolean eviterCoupureLignes = bloc.path("eviterCoupureLignes").asBoolean(true);
+        String rowBreakCss = eviterCoupureLignes ? "page-break-inside:avoid;break-inside:avoid;" : "";
+        boolean isTableFragment = bloc.path("_tableFragment").asBoolean(false);
+        int dataStart = bloc.path("_data_start").asInt(0);
 
         StringBuilder table = new StringBuilder(
             "<table style='border-collapse:collapse;width:100%;font-family:Arial, sans-serif;"
@@ -926,12 +956,14 @@ public class TemplateHtmlBuilder {
         String cellStyle = "border:1px solid " + escape(bordure) + ";padding:3px 5px;min-width:90px;text-align:left;";
         String headerStyle = cellStyle + "background:#f5f5f5;font-weight:600;";
 
-        table.append("<thead><tr>");
-        for (JsonNode col : bloc.path("colonnes")) {
-            table.append("<th style='").append(headerStyle).append("'>")
-                .append(escape(col.path("titre").asText(""))).append("</th>");
+        if (repeterEnTete || !isTableFragment || dataStart == 0) {
+            table.append("<thead><tr style='").append(rowBreakCss).append("'>");
+            for (JsonNode col : bloc.path("colonnes")) {
+                table.append("<th style='").append(headerStyle).append("'>")
+                    .append(escape(col.path("titre").asText(""))).append("</th>");
+            }
+            table.append("</tr></thead>");
         }
-        table.append("</tr></thead>");
 
         table.append("<tbody>");
         String groupBy = bloc.path("groupBy").asText("").trim();
@@ -992,7 +1024,7 @@ public class TemplateHtmlBuilder {
                         groupTitle = groupKey;
                     }
 
-                    table.append("<tr class='group-header'>")
+                    table.append("<tr class='group-header' style='").append(rowBreakCss).append("'>")
                          .append("<td colspan='").append(numCols).append("' style='")
                          .append(cellStyle).append("background:#f1f5f9;font-weight:bold;font-size:13px;color:#1e293b;padding:6px 8px;'>")
                          .append(escape(groupTitle)).append("</td></tr>");
@@ -1005,6 +1037,7 @@ public class TemplateHtmlBuilder {
                         StyleEffect rowEffect = resolveConditionalStyles(bloc.path("conditionalStyles"), mergedContext, null);
                         String rowStyle = (rowEffect != null && rowEffect.backgroundColor != null)
                             ? "background-color:" + rowEffect.backgroundColor + ";" : "";
+                        rowStyle += rowBreakCss;
 
                         table.append("<tr style='").append(rowStyle).append("'>");
                         for (JsonNode col : bloc.path("colonnes")) {
@@ -1036,7 +1069,7 @@ public class TemplateHtmlBuilder {
 
                     // 3. Pied de groupe (Sous-totaux / Group Footer)
                     if (afficherSousTotaux && hasAnyAggregate) {
-                        table.append("<tr class='group-footer' style='background:#f8fafc;'>");
+                        table.append("<tr class='group-footer' style='background:#f8fafc;").append(rowBreakCss).append("'>");
                         boolean firstCol = true;
                         for (JsonNode col : bloc.path("colonnes")) {
                             String varName = col.path("variable").asText();
@@ -1096,6 +1129,7 @@ public class TemplateHtmlBuilder {
                     StyleEffect rowEffect = resolveConditionalStyles(bloc.path("conditionalStyles"), mergedContext, null);
                     String rowStyle = (rowEffect != null && rowEffect.backgroundColor != null)
                         ? "background-color:" + rowEffect.backgroundColor + ";" : "";
+                    rowStyle += rowBreakCss;
 
                     table.append("<tr style='").append(rowStyle).append("'>");
                     for (JsonNode col : bloc.path("colonnes")) {
@@ -1133,7 +1167,7 @@ public class TemplateHtmlBuilder {
                 || (rowsObj instanceof List<?> rList && bloc.path("_data_end").asInt(0) >= rList.size());
 
         if (hasAnyAggregate && isLastTableFragment && rowsObj instanceof List<?> allRows) {
-            table.append("<tfoot><tr style='font-weight:bold;background:#f9fafb;'>");
+            table.append("<tfoot><tr style='font-weight:bold;background:#f9fafb;").append(rowBreakCss).append("'>");
             boolean firstCol = true;
             for (JsonNode col : bloc.path("colonnes")) {
                 String varName = col.path("variable").asText();

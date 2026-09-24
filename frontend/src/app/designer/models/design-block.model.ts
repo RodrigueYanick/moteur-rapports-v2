@@ -105,6 +105,8 @@ export interface DesignBlock {
     valeurDefaut?: string;
   };
   conditionalStyles?: ConditionalStyleRule[];
+  repeterEnTeteChaquePage?: boolean;
+  eviterCoupureLignes?: boolean;
 }
 
 export const BLOCK_DEFAULT_DIMENSIONS: Record<DesignBlock['type'], { w: number; h: number }> = {

@@ -29,8 +29,12 @@ export class TableBlockRenderer implements BlockHtmlRenderer {
     const texteDefaut = block.style?.texteCouleurDefaut || '#000';
     const slice = (block as any)._tableSlice as { startRow: number; endRow: number } | undefined;
 
+    const repeterEnTete = block.repeterEnTeteChaquePage !== false;
+    const eviterCoupure = block.eviterCoupureLignes !== false;
+    const breakAvoidStyle = eviterCoupure ? 'page-break-inside:avoid;break-inside:avoid;' : '';
+
     if (block.lignes) {
-      // Tableau fixe : la première ligne est l'en-tête (toujours affiché)
+      // Tableau fixe : la première ligne est l'en-tête
       const allRows = block.lignes;
       const headerRow = allRows[0];
       const dataRows = allRows.slice(1);
@@ -39,20 +43,22 @@ export class TableBlockRenderer implements BlockHtmlRenderer {
       const visibleRows = dataRows.slice(startRow, endRow);
 
       let table = `<table style="border-collapse:collapse;width:100%;font-family:Arial, sans-serif;font-size:14px;">`;
-      // En-tête toujours présent
-      table += '<tr>';
-      for (const cell of headerRow) {
-        if (cell.hidden) continue;
-        const bg = cell.bgColor ? `background:${cell.bgColor};` : 'background:#f5f5f6;';
-        const color = `color:${cell.textColor || texteDefaut};`;
-        const colspan = cell.colSpan && cell.colSpan > 1 ? ` colspan="${cell.colSpan}"` : '';
-        const rowspan = cell.rowSpan && cell.rowSpan > 1 ? ` rowspan="${cell.rowSpan}"` : '';
-        table += `<td${colspan}${rowspan} style="border:1px solid ${bordure};padding:3px 5px;min-width:90px;font-weight:600;${bg}${color}">${context.replaceVars(cell.value || '', context.mockData)}</td>`;
+      if (repeterEnTete || !slice || slice.startRow === 0) {
+        table += '<thead><tr style="' + breakAvoidStyle + '">';
+        for (const cell of headerRow) {
+          if (cell.hidden) continue;
+          const bg = cell.bgColor ? `background:${cell.bgColor};` : 'background:#f5f5f6;';
+          const color = `color:${cell.textColor || texteDefaut};`;
+          const colspan = cell.colSpan && cell.colSpan > 1 ? ` colspan="${cell.colSpan}"` : '';
+          const rowspan = cell.rowSpan && cell.rowSpan > 1 ? ` rowspan="${cell.rowSpan}"` : '';
+          table += `<th${colspan}${rowspan} style="border:1px solid ${bordure};padding:3px 5px;min-width:90px;font-weight:600;${bg}${color}">${context.replaceVars(cell.value || '', context.mockData)}</th>`;
+        }
+        table += '</tr></thead>';
       }
-      table += '</tr>';
+      table += '<tbody>';
       // Lignes de données (slicées)
       for (const row of visibleRows) {
-        table += '<tr>';
+        table += `<tr style="${breakAvoidStyle}">`;
         for (const cell of row) {
           if (cell.hidden) continue;
           const bg = cell.bgColor ? `background:${cell.bgColor};` : '';
@@ -63,6 +69,7 @@ export class TableBlockRenderer implements BlockHtmlRenderer {
         }
         table += '</tr>';
       }
+      table += '</tbody>';
       return table + '</table>';
     }
 
@@ -76,12 +83,14 @@ export class TableBlockRenderer implements BlockHtmlRenderer {
     const headerStyle = cellStyle + 'background:#f5f5f5;font-weight:600;';
 
     let table = `<table style="${tableStyle}">`;
-    // En-tête toujours présent
-    table += '<tr>';
-    for (const col of block.colonnes || []) {
-      table += `<td style="${headerStyle}">${context.escape(col.titre || col.variable)}</td>`;
+    if (repeterEnTete || !slice || slice.startRow === 0) {
+      table += '<thead><tr style="' + breakAvoidStyle + '">';
+      for (const col of block.colonnes || []) {
+        table += `<th style="${headerStyle}">${context.escape(col.titre || col.variable)}</th>`;
+      }
+      table += '</tr></thead>';
     }
-    table += '</tr>';
+    table += '<tbody>';
     // Lignes de données (slicées)
     const startRow = slice ? slice.startRow : 0;
     const endRow = slice ? slice.endRow : allRows.length;
@@ -91,7 +100,7 @@ export class TableBlockRenderer implements BlockHtmlRenderer {
       const rowEffect = this.evaluator.resolveStyles(block.conditionalStyles, rowData);
       const rowBg = rowEffect?.backgroundColor ? `background-color:${rowEffect.backgroundColor};` : '';
 
-      table += `<tr style="${rowBg}">`;
+      table += `<tr style="${rowBg}${breakAvoidStyle}">`;
       for (const col of block.colonnes || []) {
         const val = row[col.variable] ?? '';
         const cellEffect = this.evaluator.resolveStyles(col.conditionalStyles, rowData);
@@ -112,6 +121,7 @@ export class TableBlockRenderer implements BlockHtmlRenderer {
       }
       table += '</tr>';
     }
+    table += '</tbody>';
     return table + '</table>';
   }
 }
