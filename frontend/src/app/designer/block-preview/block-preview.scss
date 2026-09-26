@@ -285,3 +285,19 @@ $shadow: 0 12px 40px rgba(0,0,0,0.35), 0 0 2px rgba(0,0,0,0.2);
 // Affichage des marges (optionnel) : on peut ajouter un padding à l'intérieur de la feuille
 // Pour afficher les marges en pointillés, on peut ajouter un pseudo-élément ou un div interne.
 // Pour l'instant, on garde simple.
+
+.watermark-layer {
+  position: absolute;
+  top: 35%;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  pointer-events: none;
+  user-select: none;
+  z-index: 1;
+  transform-origin: center center;
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: 800;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+}

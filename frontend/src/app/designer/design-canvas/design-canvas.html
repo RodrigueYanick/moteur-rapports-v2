@@ -58,6 +58,19 @@
   <!-- Zone de contenu utilisable (bordure délimitant la zone autorisée) -->
   <div class="content-area-indicator" [ngStyle]="contentAreaStyle"></div>
 
+  <!-- Filigrane dynamique en arrière-plan (Watermark) -->
+  <div class="watermark-layer" *ngIf="watermark?.actif && shouldShowWatermark(pageIndex)"
+       [style.opacity]="(watermark?.opacite ?? 15) / 100"
+       [style.transform]="'rotate(' + (watermark?.rotation ?? -45) + 'deg)'">
+    <span *ngIf="watermark?.type !== 'IMAGE'"
+          [style.color]="watermark?.couleur || '#94a3b8'"
+          [style.font-size.px]="watermark?.fontSize || 54">
+      {{ watermark?.texte || 'CONFIDENTIEL' }}
+    </span>
+    <img *ngIf="watermark?.type === 'IMAGE' && watermark?.imageUrl"
+         [src]="watermark?.imageUrl" alt="Filigrane" style="max-width: 60%; max-height: 60%;" />
+  </div>
+
   <ng-container *ngFor="let block of blocks; trackBy: trackByBlockId">
     <div
       class="canvas-block"

@@ -5,6 +5,7 @@ import { TemplateApiService } from '../../services/template-api';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { ReportDesigner } from '../../designer/report-designer/report-designer';
 import { DesignBlock, DesignPage } from '../../designer/models/design-block.model';
+import { WatermarkConfig } from '../../designer/models/watermark.model';
 import { DesignSerializer } from '../../designer/services/design-serializer.service';
 import { Subject, debounceTime } from 'rxjs';
 import { MockDataService } from '../../designer/services/mock-data.service';
@@ -35,6 +36,16 @@ export class TemplateDetail implements OnInit {
   error = '';
   publishing = false;
   pages: DesignPage[] = [];
+  watermark: WatermarkConfig = {
+    actif: false,
+    texte: 'CONFIDENTIEL',
+    type: 'TEXTE',
+    rotation: -45,
+    opacite: 15,
+    couleur: '#94a3b8',
+    fontSize: 54,
+    afficherSur: 'TOUTES'
+  };
   savingStatus: 'idle' | 'saving' | 'saved' = 'idle';
   private saveSubject = new Subject<void>();
   templateId: string | null = null;
@@ -240,7 +251,7 @@ export class TemplateDetail implements OnInit {
 
   private buildSavePayload(): any {
     if (!this.template) return null;
-    const contenuDesign = this.serializer.serialize(this.pages);
+    const contenuDesign = this.serializer.serialize(this.pages, this.watermark);
     const updateData: any = {
       nom: this.template.nom,
       description: this.template.description,
@@ -296,9 +307,15 @@ export class TemplateDetail implements OnInit {
   }
 
   loadDesign(): void {
-    this.pages = this.template?.contenuDesign
-      ? this.serializer.deserialize(this.template.contenuDesign)
-      : [this.serializer.createEmptyPage('Page 1')];
+    if (this.template?.contenuDesign) {
+      this.pages = this.serializer.deserialize(this.template.contenuDesign);
+      const wm = this.serializer.deserializeWatermark(this.template.contenuDesign);
+      if (wm) {
+        this.watermark = wm;
+      }
+    } else {
+      this.pages = [this.serializer.createEmptyPage('Page 1')];
+    }
     this.cdr.detectChanges();
   }
 
@@ -366,6 +383,11 @@ export class TemplateDetail implements OnInit {
 
   onPagesChange(newPages: DesignPage[]): void {
     this.pages = newPages;
+    this.triggerSave();
+  }
+
+  onWatermarkChange(newWatermark: WatermarkConfig): void {
+    this.watermark = newWatermark;
     this.triggerSave();
   }
 

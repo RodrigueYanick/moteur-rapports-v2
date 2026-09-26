@@ -15,6 +15,7 @@ import { FillerDataService } from '../services/filler-data';
 import { Subscription } from 'rxjs';
 import { LucideAngularModule, ImageOff, QrCode, Barcode, PenTool, Table2 } from 'lucide-angular';
 import { DesignBlock, BLOCK_DEFAULT_DIMENSIONS } from '../models/design-block.model';
+import { WatermarkConfig } from '../models/watermark.model';
 
 import { FormsModule } from '@angular/forms';
 import { VariableAutocompleteDirective } from '../../shared/directives/variable-autocomplete.directive';
@@ -58,6 +59,16 @@ export class DesignCanvas implements OnInit, OnDestroy {
   @Input() footerAlignement: string = 'CENTRE';
   @Input() footerLigneSeparation: boolean = true;
   @Input() footerCouleurLigne: string = '#cccccc';
+  @Input() watermark?: WatermarkConfig;
+  @Input() pageIndex: number = 0;
+
+  shouldShowWatermark(pageIdx: number): boolean {
+    if (!this.watermark || !this.watermark.actif) return false;
+    const rule = this.watermark.afficherSur || 'TOUTES';
+    if (rule === 'PREMIERE_PAGE') return pageIdx === 0;
+    if (rule === 'SAUF_PREMIERE_PAGE') return pageIdx > 0;
+    return true;
+  }
 
   private readonly defaultMarginPx = Math.round(10 * 96 / 25.4); // ~38px
 

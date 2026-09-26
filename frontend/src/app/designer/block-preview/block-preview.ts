@@ -1,6 +1,7 @@
 import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, Input, OnChanges, OnDestroy, OnInit, SimpleChanges, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DesignBlock, DesignPage } from '../models/design-block.model';
+import { WatermarkConfig } from '../models/watermark.model';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { MockDataService } from '../services/mock-data.service';
 import { LucideAngularModule, Sparkles, Plus, Minus, RotateCcw, ArrowLeft, ArrowRight } from 'lucide-angular';
@@ -53,6 +54,27 @@ export class BlockPreview implements AfterViewInit, OnChanges, OnInit, OnDestroy
   @Input() footerCouleurLigne: string = '#cccccc';
   @Input() numerotationPage: boolean = true;
   @Input() formatNumerotation: string = 'PAGE_X_SUR_Y';
+  @Input() watermark?: WatermarkConfig;
+
+  shouldShowWatermark(pageIdx: number): boolean {
+    if (!this.watermark || !this.watermark.actif) return false;
+    const rule = this.watermark.afficherSur || 'TOUTES';
+    if (rule === 'PREMIERE_PAGE') return pageIdx === 0;
+    if (rule === 'SAUF_PREMIERE_PAGE') return pageIdx > 0;
+    return true;
+  }
+
+  resolveWatermarkText(): string {
+    if (!this.watermark) return '';
+    const text = this.watermark.texte || 'CONFIDENTIEL';
+    const allBlocks = this.pages ? this.pages.flatMap(p => p.blocks) : [];
+    const mockData = this.mockDataService.generate(allBlocks);
+    const realValues = this.fillerdata?.getValues() || {};
+    const mergedData: Record<string, any> = { ...mockData, ...realValues };
+    return text.replace(/\{\{\s*([\w.-]+)\s*\}\}/g, (_, key) => {
+      return mergedData[key] !== undefined ? String(mergedData[key]) : `{{${key}}}`;
+    });
+  }
 
   private readonly defaultMarginPx = Math.round(10 * 96 / 25.4); // ~38px
 

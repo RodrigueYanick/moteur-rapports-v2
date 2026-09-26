@@ -58,6 +58,18 @@
           [style.height.px]="canvasHeight"
           [style.transform]="'scale(' + zoom + ')'"
           [style.transform-origin]="'top left'">
+          <!-- Filigrane dynamique (Watermark) -->
+          <div class="watermark-layer" *ngIf="watermark?.actif && shouldShowWatermark(currentPreviewPageIndex)"
+               [style.opacity]="(watermark?.opacite ?? 15) / 100"
+               [style.transform]="'rotate(' + (watermark?.rotation ?? -45) + 'deg)'">
+            <span *ngIf="watermark?.type !== 'IMAGE'"
+                  [style.color]="watermark?.couleur || '#94a3b8'"
+                  [style.font-size.px]="watermark?.fontSize || 54">
+              {{ resolveWatermarkText() }}
+            </span>
+            <img *ngIf="watermark?.type === 'IMAGE' && watermark?.imageUrl"
+                 [src]="watermark?.imageUrl" alt="Filigrane" style="max-width: 60%; max-height: 60%;" />
+          </div>
           <!-- Contenu de la page -->
           <div [innerHTML]="p.html"></div>
           <!-- Numéro de page en bas -->

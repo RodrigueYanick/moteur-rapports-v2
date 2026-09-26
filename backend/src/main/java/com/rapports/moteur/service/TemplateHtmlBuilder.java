@@ -137,6 +137,29 @@ public class TemplateHtmlBuilder {
                     String footerAlignement, Boolean footerAfficherSurPremierePage,
                     Boolean footerLigneSeparation, String footerCouleurLigne,
                     Boolean numerotationPage, String formatNumerotation) {
+        return build(contenuDesignJson, data, formatPapier, largeurMm, hauteurMm,
+                     modePagination, margeGaucheMm, margeDroiteMm, margeHautMm, margeBasMm,
+                     couleurFond, headerActif, hauteurHeaderMm, headerContenu,
+                     headerAlignement, headerAfficherSurPremierePage, headerLigneSeparation, headerCouleurLigne,
+                     footerActif, hauteurFooterMm, footerContenu, footerAlignement, footerAfficherSurPremierePage,
+                     footerLigneSeparation, footerCouleurLigne, numerotationPage, formatNumerotation,
+                     null);
+    }
+
+    public String build(String contenuDesignJson, Map<String, Object> data,
+                    String formatPapier, Integer largeurMm, Integer hauteurMm,
+                    PaginationMode modePagination,
+                    Integer margeGaucheMm, Integer margeDroiteMm,
+                    Integer margeHautMm, Integer margeBasMm,
+                    String couleurFond,
+                    Boolean headerActif, Integer hauteurHeaderMm, String headerContenu,
+                    String headerAlignement, Boolean headerAfficherSurPremierePage,
+                    Boolean headerLigneSeparation, String headerCouleurLigne,
+                    Boolean footerActif, Integer hauteurFooterMm, String footerContenu,
+                    String footerAlignement, Boolean footerAfficherSurPremierePage,
+                    Boolean footerLigneSeparation, String footerCouleurLigne,
+                    Boolean numerotationPage, String formatNumerotation,
+                    WatermarkConfig watermark) {
 
         int widthMm, heightMm;
         if ("CUSTOM".equalsIgnoreCase(formatPapier)) {
@@ -177,6 +200,9 @@ public class TemplateHtmlBuilder {
 
         try {
             JsonNode root = objectMapper.readTree(contenuDesignJson);
+            JsonNode wmNode = root.has("watermark") ? root.path("watermark") : root.path("filigrane");
+            WatermarkConfig globalWatermark = watermark != null ? watermark : WatermarkConfig.fromJson(wmNode);
+
             PageContext ctx = new PageContext(data, widthMm, heightMm,
                                              mLeft, mRight, mTop, mBottom,
                                              widthPx, heightPx,
@@ -187,7 +213,8 @@ public class TemplateHtmlBuilder {
                                              footerActif, hauteurFooterMm, footerContenu,
                                              footerAlignement, footerAfficherSurPremierePage,
                                              footerLigneSeparation, footerCouleurLigne,
-                                             numerotationPage, formatNumerotation);
+                                             numerotationPage, formatNumerotation,
+                                             globalWatermark);
 
             if (modePagination == PaginationMode.AUTO) {
                 ArrayNode autoBlocs = objectMapper.createArrayNode();
@@ -267,6 +294,7 @@ public class TemplateHtmlBuilder {
 
         final Boolean numerotationPage;
         final String formatNumerotation;
+        final WatermarkConfig watermark;
 
         PageContext(Map<String, Object> data,
                     int widthMm, int heightMm,
@@ -279,7 +307,8 @@ public class TemplateHtmlBuilder {
                     Boolean footerActif, Integer hauteurFooterMm, String footerContenu,
                     String footerAlignement, Boolean footerAfficherSurPremierePage,
                     Boolean footerLigneSeparation, String footerCouleurLigne,
-                    Boolean numerotationPage, String formatNumerotation) {
+                    Boolean numerotationPage, String formatNumerotation,
+                    WatermarkConfig watermark) {
             this.data = data;
             this.widthMm = widthMm;
             this.heightMm = heightMm;
@@ -314,6 +343,7 @@ public class TemplateHtmlBuilder {
 
             this.numerotationPage = numerotationPage == null || numerotationPage;
             this.formatNumerotation = formatNumerotation != null ? formatNumerotation : "PAGE_X_SUR_Y";
+            this.watermark = watermark;
 
             // Zone utile (mm)
             this.effectiveTopMm = mTopMm + hH;
@@ -682,6 +712,9 @@ public class TemplateHtmlBuilder {
             + "mm;background:" + escape(ctx.couleurFond) + ";overflow:hidden;box-sizing:border-box;margin:0;padding:0;"
             + breakStyle + "'>"
         );
+
+        // Filigrane dynamique (Watermark)
+        page.append(buildWatermarkHtml(ctx, pageNum - 1, totalPages, ctx.data));
 
         // En-tête
         boolean showHeader = Boolean.TRUE.equals(ctx.headerActif) &&
@@ -1827,5 +1860,78 @@ public class TemplateHtmlBuilder {
         if (input == null) return "";
         return input.replace("&", "&amp;").replace("<", "&lt;")
                 .replace(">", "&gt;").replace("\"", "&quot;").replace("'", "&#39;");
+    }
+
+    // ============================================================
+    // FILIGRANES DYNAMIQUES (WATERMARKS)
+    // ============================================================
+
+    private String buildWatermarkHtml(PageContext ctx, int pageIndex, int totalPages, Map<String, Object> data) {
+        WatermarkConfig wm = ctx.watermark;
+        if (wm == null || !wm.actif) return "";
+        if (!wm.shouldDisplayOnPage(pageIndex, totalPages)) return "";
+
+        int opacity = wm.opacite != null ? wm.opacite : 15;
+        double opVal = opacity / 100.0;
+        int rotation = wm.rotation != null ? wm.rotation : -45;
+        String color = wm.couleur != null ? wm.couleur : "#94a3b8";
+        int fontSize = wm.fontSize != null ? wm.fontSize : 54;
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("<div class='watermark' style='position:absolute;top:50%;left:0;right:0;margin:auto;");
+        sb.append("transform:rotate(").append(rotation).append("deg);");
+        sb.append("-webkit-transform:rotate(").append(rotation).append("deg);");
+        sb.append("opacity:").append(opVal).append(";pointer-events:none;z-index:0;text-align:center;width:100%;'>");
+
+        if ("IMAGE".equalsIgnoreCase(wm.type) && wm.imageUrl != null && !wm.imageUrl.isBlank()) {
+            String imgUrl = replaceVars(wm.imageUrl, data);
+            sb.append("<img src='").append(escape(imgUrl)).append("' style='max-width:60%;max-height:60%;' />");
+        } else {
+            String text = wm.texte != null ? replaceVars(wm.texte, data) : "CONFIDENTIEL";
+            sb.append("<span style='font-size:").append(fontSize).append("pt;font-weight:bold;color:")
+              .append(escape(color)).append(";font-family:Arial,Helvetica,sans-serif;letter-spacing:6px;text-transform:uppercase;'>")
+              .append(escape(text)).append("</span>");
+        }
+        sb.append("</div>");
+        return sb.toString();
+    }
+
+    public static class WatermarkConfig {
+        public boolean actif;
+        public String texte;
+        public String type; // TEXTE ou IMAGE
+        public String imageUrl;
+        public Integer rotation;
+        public Integer opacite;
+        public String couleur;
+        public Integer fontSize;
+        public String afficherSur; // TOUTES, PREMIERE_PAGE, SAUF_PREMIERE_PAGE
+
+        public static WatermarkConfig fromJson(JsonNode node) {
+            if (node == null || node.isMissingNode() || node.isNull()) {
+                return null;
+            }
+            WatermarkConfig wm = new WatermarkConfig();
+            wm.actif = node.path("actif").asBoolean(false);
+            wm.texte = node.has("texte") ? node.path("texte").asText() : "CONFIDENTIEL";
+            wm.type = node.has("type") ? node.path("type").asText() : "TEXTE";
+            wm.imageUrl = node.has("imageUrl") ? node.path("imageUrl").asText() : null;
+            wm.rotation = node.has("rotation") ? node.path("rotation").asInt(-45) : -45;
+            wm.opacite = node.has("opacite") ? node.path("opacite").asInt(15) : 15;
+            wm.couleur = node.has("couleur") ? node.path("couleur").asText("#94a3b8") : "#94a3b8";
+            wm.fontSize = node.has("fontSize") ? node.path("fontSize").asInt(54) : 54;
+            wm.afficherSur = node.has("afficherSur") ? node.path("afficherSur").asText("TOUTES") : "TOUTES";
+            return wm;
+        }
+
+        public boolean shouldDisplayOnPage(int pageIndex, int totalPages) {
+            if (!actif) return false;
+            if ("PREMIERE_PAGE".equalsIgnoreCase(afficherSur)) {
+                return pageIndex == 0;
+            } else if ("SAUF_PREMIERE_PAGE".equalsIgnoreCase(afficherSur)) {
+                return pageIndex > 0;
+            }
+            return true;
+        }
     }
 }

@@ -361,7 +361,86 @@ public class TemplateHtmlBuilderTest {
         org.junit.jupiter.api.Assertions.assertFalse(disabledHtml.contains("page-break-inside:avoid;break-inside:avoid;"),
             "Ne doit pas contenir page-break-inside si désactivé");
     }
+
+    @Test
+    void testWatermarkDynamic() throws Exception {
+        TemplateHtmlBuilder builder = new TemplateHtmlBuilder(new CodeGeneratorService());
+
+        String designJson = """
+            {
+              "watermark": {
+                "actif": true,
+                "texte": "RAPPORT {{statut}}",
+                "rotation": -45,
+                "opacite": 20,
+                "couleur": "#dc2626",
+                "fontSize": 50,
+                "afficherSur": "TOUTES"
+              },
+              "pages": [
+                {
+                  "nom": "Page 1",
+                  "blocs": [
+                    {
+                      "id": "b-texte",
+                      "type": "texte",
+                      "contenu": "Contenu de la page 1",
+                      "x": 10,
+                      "y": 10,
+                      "largeurBox": 150,
+                      "hauteurBox": 30
+                    }
+                  ]
+                }
+              ]
+            }
+            """;
+
+        com.rapports.moteur.entity.ReportTemplate template = com.rapports.moteur.entity.ReportTemplate.builder()
+                .nom("Rapport avec Filigrane")
+                .contenuDesign(designJson)
+                .formatPapier("A4")
+                .statut(com.rapports.moteur.entity.TemplateStatus.BROUILLON)
+                .version(1)
+                .build();
+
+        java.util.Map<String, Object> data = java.util.Map.of("statut", "CONFIDENTIEL");
+
+        String html = builder.build(template, data);
+
+        // 1. Assertions HTML
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("class='watermark'"), "Doit contenir le conteneur du filigrane");
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("RAPPORT CONFIDENTIEL"), "Doit avoir substitué la variable {{statut}}");
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("opacity:0.2"), "L'opacité doit être calculée à 0.2");
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("transform:rotate(-45deg)"), "Doit appliquer la rotation -45deg");
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("color:#dc2626"), "Doit appliquer la couleur configurée");
+
+        // 2. Compilation Flying Saucer PDF
+        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+        ITextRenderer renderer = new ITextRenderer();
+        renderer.setDocumentFromString(html);
+        renderer.layout();
+        renderer.createPDF(out);
+
+        byte[] pdfBytes = out.toByteArray();
+        org.junit.jupiter.api.Assertions.assertTrue(pdfBytes.length > 1000, "Le PDF avec filigrane doit être généré correctement");
+
+        // 3. Test avec filigrane inactif
+        String inactiveJson = designJson.replace("\"actif\": true", "\"actif\": false");
+        com.rapports.moteur.entity.ReportTemplate inactiveTemplate = com.rapports.moteur.entity.ReportTemplate.builder()
+                .nom("Rapport sans Filigrane")
+                .contenuDesign(inactiveJson)
+                .formatPapier("A4")
+                .statut(com.rapports.moteur.entity.TemplateStatus.BROUILLON)
+                .version(1)
+                .build();
+
+        String inactiveHtml = builder.build(inactiveTemplate, data);
+        org.junit.jupiter.api.Assertions.assertFalse(inactiveHtml.contains("class='watermark'"),
+            "Ne doit pas contenir de filigrane lorsque actif=false");
+    }
 }
+
 
 
 

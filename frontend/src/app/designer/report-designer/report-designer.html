@@ -107,6 +107,8 @@
         [footerCouleurLigne]="footerCouleurLigne"
         [selectedBlockIds]="selectedBlockIds"
         [explicitVariables]="explicitVariables"
+        [watermark]="watermark"
+        [pageIndex]="activePageIndex"
         (lockedInteraction)="showLockedMessage()"
         (blocksPreviewChange)="onCanvasPreviewChange($event)"
         (blocksChange)="onCanvasBlocksChange($event)"
@@ -159,6 +161,8 @@
           [numerotationPage]="numerotationPage"
           [formatNumerotation]="formatNumerotation">
           [margeDroitePx]="margeDroitePx">
+          [formatNumerotation]="formatNumerotation"
+          [watermark]="watermark">
         </app-block-preview>
       </ng-container>
       <ng-template #fillingPanel>
@@ -243,6 +247,54 @@
         <div class="form-group">
           <label>Droite (mm)</label>
           <input type="number" min="0" max="100" [(ngModel)]="editingSettings.margeDroiteMm" [disabled]="isLocked" />
+        </div>
+      </div>
+
+      <div class="watermark-settings-section" style="margin-top: 16px; border-top: 1px solid #2d3142; padding-top: 14px;">
+        <div class="switch-row" style="margin-bottom: 12px;">
+          <span style="font-size: 13px; font-weight: 600; color: #e2e8f0;">Filigrane (Watermark)</span>
+          <label class="switch">
+            <input type="checkbox" [(ngModel)]="editingSettings.watermarkActif" [disabled]="isLocked" data-testid="watermark-toggle" />
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div *ngIf="editingSettings.watermarkActif" class="watermark-fields" style="display: flex; flex-direction: column; gap: 10px;">
+          <div class="form-group">
+            <label ngNonBindable>Texte du filigrane (supporte les variables {{var}})</label>
+            <input type="text" [(ngModel)]="editingSettings.watermarkTexte" [placeholder]="'Ex: CONFIDENTIEL ou {{statut}}'" [disabled]="isLocked" data-testid="watermark-text-input" />
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div class="form-group">
+              <label>Rotation (°)</label>
+              <input type="number" [(ngModel)]="editingSettings.watermarkRotation" min="-180" max="180" [disabled]="isLocked" />
+            </div>
+            <div class="form-group">
+              <label>Opacité (%)</label>
+              <input type="number" [(ngModel)]="editingSettings.watermarkOpacite" min="5" max="100" [disabled]="isLocked" />
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div class="form-group">
+              <label>Couleur</label>
+              <input type="color" [(ngModel)]="editingSettings.watermarkCouleur" [disabled]="isLocked" style="height: 34px; padding: 2px; width: 100%;" />
+            </div>
+            <div class="form-group">
+              <label>Taille police (px)</label>
+              <input type="number" [(ngModel)]="editingSettings.watermarkFontSize" min="12" max="150" [disabled]="isLocked" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Afficher sur</label>
+            <select [(ngModel)]="editingSettings.watermarkAfficherSur" [disabled]="isLocked">
+              <option value="TOUTES">Toutes les pages</option>
+              <option value="PREMIERE_PAGE">Première page uniquement</option>
+              <option value="SAUF_PREMIERE_PAGE">Toutes sauf la première</option>
+            </select>
+          </div>
         </div>
       </div>
     </div>

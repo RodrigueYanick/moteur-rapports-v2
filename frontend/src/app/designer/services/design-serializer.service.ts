@@ -1,15 +1,30 @@
 import { Injectable } from '@angular/core';
 import { DesignBlock, DesignPage, TableCell } from '../models/design-block.model';
+import { WatermarkConfig } from '../models/watermark.model';
 
 @Injectable({ providedIn: 'root' })
 export class DesignSerializer {
   /** DesignBlock[] → JSON string (contenuDesign) */
-  serialize(pages: DesignPage[]): string {
+  serialize(pages: DesignPage[], watermark?: WatermarkConfig): string {
     const outPages = pages.map(p => ({
       nom: p.nom,
       blocs: p.blocks.map(b => this.serializeBlock(b))
     }));
-    return JSON.stringify({ pages: outPages });
+    const out: any = { pages: outPages };
+    if (watermark) {
+      out.watermark = watermark;
+    }
+    return JSON.stringify(out);
+  }
+
+  deserializeWatermark(json: string): WatermarkConfig | null {
+    if (!json) return null;
+    try {
+      const root = JSON.parse(json);
+      return root.watermark || root.filigrane || null;
+    } catch {
+      return null;
+    }
   }
 
   deserialize(json: string): DesignPage[] {
@@ -94,6 +109,8 @@ export class DesignSerializer {
         break;
 
       case 'tableau':
+        if (block.repeterEnTeteChaquePage !== undefined) b.repeterEnTeteChaquePage = block.repeterEnTeteChaquePage;
+        if (block.eviterCoupureLignes !== undefined) b.eviterCoupureLignes = block.eviterCoupureLignes;
         if (block.lignes) {
           b.lignes = block.lignes;
         } else {
@@ -192,6 +209,8 @@ export class DesignSerializer {
         break;
 
       case 'tableau':
+        if (b.repeterEnTeteChaquePage !== undefined) block.repeterEnTeteChaquePage = b.repeterEnTeteChaquePage;
+        if (b.eviterCoupureLignes !== undefined) block.eviterCoupureLignes = b.eviterCoupureLignes;
         if (b.lignes) {
           block.lignes = this.migrateLignes(b.lignes);
         } else {

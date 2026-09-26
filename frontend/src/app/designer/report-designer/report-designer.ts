@@ -14,6 +14,7 @@ import {
   ArrowUp, ArrowDown, Layers, MoveHorizontal, MoveVertical
 } from 'lucide-angular';
 import { Variable } from '../../models/variable.model';
+import { WatermarkConfig } from '../models/watermark.model';
 import { TemplateFiller } from "../template-filler/template-filler";
 import { FillerDataService } from '../services/filler-data';
 import { MockDataService } from '../services/mock-data.service';
@@ -72,8 +73,19 @@ export class ReportDesigner implements OnInit {
   @Input() footerCouleurLigne: string = '#cccccc';
   @Input() numerotationPage: boolean = true;
   @Input() formatNumerotation: string = 'PAGE_X_SUR_Y';
+  @Input() watermark: WatermarkConfig = {
+    actif: false,
+    texte: 'CONFIDENTIEL',
+    type: 'TEXTE',
+    rotation: -45,
+    opacite: 15,
+    couleur: '#94a3b8',
+    fontSize: 54,
+    afficherSur: 'TOUTES'
+  };
 
   @Output() pagesChange = new EventEmitter<DesignPage[]>();
+  @Output() watermarkChange = new EventEmitter<WatermarkConfig>();
   @Output() pageSettingsChange = new EventEmitter<{
     formatPapier?: string;
     modePagination?: 'FIXED' | 'AUTO';
@@ -100,7 +112,16 @@ export class ReportDesigner implements OnInit {
     margeHautMm: 10,
     margeBasMm: 10,
     margeGaucheMm: 10,
-    margeDroiteMm: 10
+    margeDroiteMm: 10,
+    watermarkActif: false,
+    watermarkTexte: 'CONFIDENTIEL',
+    watermarkType: 'TEXTE' as 'TEXTE' | 'IMAGE',
+    watermarkImageUrl: '',
+    watermarkRotation: -45,
+    watermarkOpacite: 15,
+    watermarkCouleur: '#94a3b8',
+    watermarkFontSize: 54,
+    watermarkAfficherSur: 'TOUTES' as 'TOUTES' | 'PREMIERE_PAGE' | 'SAUF_PREMIERE_PAGE'
   };
 
   private isUndoRedoAction = false;
@@ -356,6 +377,15 @@ export class ReportDesigner implements OnInit {
       margeBasMm: this.effectiveMargeBasMm,
       margeGaucheMm: this.effectiveMargeGaucheMm,
       margeDroiteMm: this.effectiveMargeDroiteMm,
+      watermarkActif: this.watermark?.actif ?? false,
+      watermarkTexte: this.watermark?.texte || 'CONFIDENTIEL',
+      watermarkType: this.watermark?.type || 'TEXTE',
+      watermarkImageUrl: this.watermark?.imageUrl || '',
+      watermarkRotation: this.watermark?.rotation ?? -45,
+      watermarkOpacite: this.watermark?.opacite ?? 15,
+      watermarkCouleur: this.watermark?.couleur || '#94a3b8',
+      watermarkFontSize: this.watermark?.fontSize || 54,
+      watermarkAfficherSur: this.watermark?.afficherSur || 'TOUTES',
     };
     this.showPageSettingsModal = true;
   }
@@ -377,6 +407,19 @@ export class ReportDesigner implements OnInit {
     this.margeGaucheMm = Number(this.editingSettings.margeGaucheMm) || 10;
     this.margeDroiteMm = Number(this.editingSettings.margeDroiteMm) || 10;
 
+    this.watermark = {
+      actif: !!this.editingSettings.watermarkActif,
+      texte: this.editingSettings.watermarkTexte || 'CONFIDENTIEL',
+      type: this.editingSettings.watermarkType || 'TEXTE',
+      imageUrl: this.editingSettings.watermarkImageUrl || '',
+      rotation: Number(this.editingSettings.watermarkRotation) ?? -45,
+      opacite: Number(this.editingSettings.watermarkOpacite) ?? 15,
+      couleur: this.editingSettings.watermarkCouleur || '#94a3b8',
+      fontSize: Number(this.editingSettings.watermarkFontSize) || 54,
+      afficherSur: this.editingSettings.watermarkAfficherSur || 'TOUTES',
+    };
+    this.watermarkChange.emit(this.watermark);
+
     this.pageSettingsChange.emit({
       formatPapier: this.formatPapier,
       modePagination: this.modePagination,
@@ -385,6 +428,7 @@ export class ReportDesigner implements OnInit {
       margeGaucheMm: this.margeGaucheMm,
       margeDroiteMm: this.margeDroiteMm,
     });
+    this.afterPagesChanged();
     this.closePageSettings();
   }
 
