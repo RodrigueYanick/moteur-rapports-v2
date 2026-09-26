@@ -150,7 +150,12 @@ export class DesignSerializer {
         break;
 
       case 'signature':
-        // Pas de champ spécifique pour l'instant (largeurBox/hauteurBox suffisent)
+        if (block.signatureConfig) {
+          b.signatureConfig = { ...block.signatureConfig };
+        }
+        if (block.url) {
+          b.url = block.url;
+        }
         break;
 
       case 'graphique':
@@ -258,6 +263,12 @@ export class DesignSerializer {
         break;
 
       case 'signature':
+        if (b.signatureConfig) {
+          block.signatureConfig = { ...b.signatureConfig };
+        }
+        if (b.url) {
+          block.url = b.url;
+        }
         break;
 
       case 'graphique':

@@ -481,8 +481,17 @@ export class ReportDesigner implements OnInit {
         newBlock.hauteurBox = 60;
         break;
       case 'signature':
-        newBlock.largeurBox = 180;
-        newBlock.hauteurBox = 70;
+        newBlock.largeurBox = 220;
+        newBlock.hauteurBox = 110;
+        newBlock.signatureConfig = {
+          mentionLegale: 'Lu et approuvé, bon pour accord',
+          signataireNom: `{{${this.generateVariableName('signataire_nom')}}}`,
+          signataireQualite: 'Directeur Général',
+          dateSignature: `{{${this.generateVariableName('date_signature')}}}`,
+          modeSignature: 'MANUSCRITE',
+          afficherCadre: true,
+          cadrePointille: true,
+        };
         break;
       case 'graphique':
         newBlock.source = `{{${this.generateVariableName('graphique')}}}`;
@@ -733,6 +742,7 @@ export class ReportDesigner implements OnInit {
     if (block.type === 'tableau') return `Tableau (${block.colonnes ? block.colonnes.length : 0} colonnes)`;
     if (block.type === 'ligne') return `Ligne (${block.style?.epaisseur || 1}px)`;
     if (block.type === 'image') return block.url || 'Aucune URL';
+    if (block.type === 'signature') return block.signatureConfig?.signataireNom ? `Signature (${block.signatureConfig.signataireNom})` : 'Signature';
     return block.contenu || '(vide)';
   }
 

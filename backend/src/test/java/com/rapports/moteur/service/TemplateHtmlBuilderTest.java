@@ -439,6 +439,73 @@ public class TemplateHtmlBuilderTest {
         org.junit.jupiter.api.Assertions.assertFalse(inactiveHtml.contains("class='watermark'"),
             "Ne doit pas contenir de filigrane lorsque actif=false");
     }
+
+    @Test
+    void testRenderSignatureBlockWithConfigAndFlyingSaucer() throws Exception {
+        TemplateHtmlBuilder builder = new TemplateHtmlBuilder(new CodeGeneratorService());
+
+        String designJson = """
+            {
+              "pages": [
+                {
+                  "nom": "Page 1",
+                  "blocs": [
+                    {
+                      "id": "b-sig-1",
+                      "type": "signature",
+                      "x": 40,
+                      "y": 150,
+                      "largeurBox": 240,
+                      "hauteurBox": 120,
+                      "signatureConfig": {
+                        "mentionLegale": "Bon pour accord, lu et approuvé le {{date_doc}}",
+                        "signataireNom": "{{nom_signataire}}",
+                        "signataireQualite": "Directeur Financier",
+                        "dateSignature": "{{date_doc}}",
+                        "modeSignature": "MANUSCRITE",
+                        "afficherCadre": true,
+                        "cadrePointille": true
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+            """;
+
+        com.rapports.moteur.entity.ReportTemplate template = com.rapports.moteur.entity.ReportTemplate.builder()
+                .nom("Rapport avec Signature Etape 4")
+                .contenuDesign(designJson)
+                .formatPapier("A4")
+                .statut(com.rapports.moteur.entity.TemplateStatus.BROUILLON)
+                .version(1)
+                .build();
+
+        java.util.Map<String, Object> data = java.util.Map.of(
+            "nom_signataire", "Jean Dupont",
+            "date_doc", "26/09/2026"
+        );
+
+        String html = builder.build(template, data);
+
+        // 1. Assertions HTML
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("signature-block"), "Doit contenir la classe signature-block");
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("border:1px dashed #94a3b8"), "Doit avoir un cadre en pointillés");
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("Bon pour accord, lu et approuvé le 26/09/2026"), "La mention légale doit avoir la date substituée");
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("Jean Dupont"), "Le nom du signataire doit être présent");
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("Directeur Financier"), "La qualité du signataire doit être présente");
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("Signature manuscrite"), "Le mode manuscrite doit afficher la mention correspondante");
+
+        // 2. Compilation Flying Saucer PDF
+        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+        ITextRenderer renderer = new ITextRenderer();
+        renderer.setDocumentFromString(html);
+        renderer.layout();
+        renderer.createPDF(out);
+
+        byte[] pdfBytes = out.toByteArray();
+        org.junit.jupiter.api.Assertions.assertTrue(pdfBytes.length > 1000, "Le PDF avec bloc signature doit être généré correctement");
+    }
 }
 
 

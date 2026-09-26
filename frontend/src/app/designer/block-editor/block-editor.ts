@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnChanges, DoCheck, SimpleChanges } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, DoCheck, SimpleChanges, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   ReactiveFormsModule,
@@ -47,7 +47,7 @@ import { VariableAutocompleteDirective, AutocompleteVariableItem } from '../../s
   templateUrl: './block-editor.html',
   styleUrls: ['./block-editor.scss'],
 })
-export class BlockEditor implements OnChanges, DoCheck {
+export class BlockEditor implements OnChanges, DoCheck, AfterViewInit {
   @Input() block: DesignBlock | null = null;
   @Input() allBlocks: DesignBlock[] = [];
   @Input() explicitVariables: Variable[] = []; // MODIFIÉ : type Variable[] au lieu de { nomVariable: string }[]
@@ -112,6 +112,7 @@ export class BlockEditor implements OnChanges, DoCheck {
     tableauStyle: true,
     grouping: true,
     graphique: true,
+    signature: true,
     condition: false,
     conditionalStyles: false,
   };
@@ -165,6 +166,14 @@ export class BlockEditor implements OnChanges, DoCheck {
       shapeBorderColor: ['#94a3b8'],
       shapeBorderWidth: [1],
       shapeBorderRadius: [0],
+      signatureMentionLegale: ['Lu et approuvé, bon pour accord'],
+      signatureSignataireNom: [''],
+      signatureSignataireQualite: [''],
+      signatureDate: [''],
+      signatureMode: ['MANUSCRITE'],
+      signatureImageUrl: [''],
+      signatureAfficherCadre: [true],
+      signatureCadrePointille: [true],
     });
 
     this.tableChange$.pipe(debounceTime(300)).subscribe(() => {
@@ -374,11 +383,22 @@ export class BlockEditor implements OnChanges, DoCheck {
           shapeBorderColor: this.block.style?.couleur || '#94a3b8',
           shapeBorderWidth: this.block.style?.epaisseur ?? 1,
           shapeBorderRadius: this.block.style?.borderRadius ?? 0,
+          signatureMentionLegale: this.block.signatureConfig?.mentionLegale ?? 'Lu et approuvé, bon pour accord',
+          signatureSignataireNom: this.block.signatureConfig?.signataireNom ?? '',
+          signatureSignataireQualite: this.block.signatureConfig?.signataireQualite ?? '',
+          signatureDate: this.block.signatureConfig?.dateSignature ?? '',
+          signatureMode: this.block.signatureConfig?.modeSignature ?? 'MANUSCRITE',
+          signatureImageUrl: this.block.signatureConfig?.signatureImageUrl || this.block.url || '',
+          signatureAfficherCadre: this.block.signatureConfig?.afficherCadre ?? true,
+          signatureCadrePointille: this.block.signatureConfig?.cadrePointille ?? true,
         },
         { emitEvent: false },
       );
       this.buildColonnesArray(this.block.colonnes || []);
       this.selectedRow = null;
+      if (this.block.type === 'signature') {
+        setTimeout(() => this.initSigPad(), 50);
+      }
     }
 
     if (changes['block']) {
@@ -703,6 +723,21 @@ export class BlockEditor implements OnChanges, DoCheck {
           borderRadius: val.shapeBorderRadius,
         };
         break;
+      case 'signature':
+        updatedBlock.signatureConfig = {
+          mentionLegale: val.signatureMentionLegale,
+          signataireNom: val.signatureSignataireNom || undefined,
+          signataireQualite: val.signatureSignataireQualite || undefined,
+          dateSignature: val.signatureDate || undefined,
+          modeSignature: val.signatureMode || 'MANUSCRITE',
+          signatureImageUrl: val.signatureImageUrl || undefined,
+          afficherCadre: val.signatureAfficherCadre ?? true,
+          cadrePointille: val.signatureCadrePointille ?? true,
+        };
+        if (val.signatureImageUrl) {
+          updatedBlock.url = val.signatureImageUrl;
+        }
+        break;
     }
 
     this.updated.emit(updatedBlock);
@@ -843,5 +878,104 @@ export class BlockEditor implements OnChanges, DoCheck {
 
     this.block.lignes = newLignes;
     this.tableChange$.next();
+  }
+
+  // ==================== SIGNATURE INTERACTIVE PAD ====================
+  @ViewChild('sigPadCanvas') sigPadCanvas?: ElementRef<HTMLCanvasElement>;
+  private isDrawingSig = false;
+  private sigCtx: CanvasRenderingContext2D | null = null;
+
+  ngAfterViewInit(): void {
+    if (this.block?.type === 'signature') {
+      setTimeout(() => this.initSigPad(), 50);
+    }
+  }
+
+  onSignatureModeChange(): void {
+    if (this.form.get('signatureMode')?.value === 'MANUSCRITE') {
+      setTimeout(() => this.initSigPad(), 50);
+    }
+  }
+
+  initSigPad(): void {
+    if (!this.sigPadCanvas) return;
+    const canvas = this.sigPadCanvas.nativeElement;
+    this.sigCtx = canvas.getContext('2d');
+    if (!this.sigCtx) return;
+    this.sigCtx.strokeStyle = '#0284c7';
+    this.sigCtx.lineWidth = 2.5;
+    this.sigCtx.lineCap = 'round';
+    this.sigCtx.lineJoin = 'round';
+
+    const currentImg = this.form.get('signatureImageUrl')?.value;
+    if (currentImg && currentImg.startsWith('data:image')) {
+      const img = new Image();
+      img.onload = () => {
+        this.sigCtx?.clearRect(0, 0, canvas.width, canvas.height);
+        this.sigCtx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+      };
+      img.src = currentImg;
+    } else {
+      this.sigCtx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+  }
+
+  private getSigCoords(e: MouseEvent | TouchEvent): { x: number; y: number } {
+    const canvas = this.sigPadCanvas!.nativeElement;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    if ('touches' in e && e.touches.length > 0) {
+      return {
+        x: (e.touches[0].clientX - rect.left) * scaleX,
+        y: (e.touches[0].clientY - rect.top) * scaleY,
+      };
+    }
+    const me = e as MouseEvent;
+    return {
+      x: (me.clientX - rect.left) * scaleX,
+      y: (me.clientY - rect.top) * scaleY,
+    };
+  }
+
+  startSigDrawing(e: MouseEvent | TouchEvent): void {
+    if (e.cancelable) e.preventDefault();
+    if (!this.sigPadCanvas || !this.sigCtx) this.initSigPad();
+    if (!this.sigCtx) return;
+    this.isDrawingSig = true;
+    const coords = this.getSigCoords(e);
+    this.sigCtx.beginPath();
+    this.sigCtx.moveTo(coords.x, coords.y);
+  }
+
+  drawSig(e: MouseEvent | TouchEvent): void {
+    if (!this.isDrawingSig || !this.sigCtx) return;
+    if (e.cancelable) e.preventDefault();
+    const coords = this.getSigCoords(e);
+    this.sigCtx.lineTo(coords.x, coords.y);
+    this.sigCtx.stroke();
+  }
+
+  stopSigDrawing(): void {
+    if (!this.isDrawingSig) return;
+    this.isDrawingSig = false;
+    this.saveSigPad();
+  }
+
+  saveSigPad(): void {
+    if (!this.sigPadCanvas) return;
+    const canvas = this.sigPadCanvas.nativeElement;
+    const dataUrl = canvas.toDataURL('image/png');
+    this.form.get('signatureImageUrl')?.setValue(dataUrl);
+    this.save();
+  }
+
+  clearSigPad(): void {
+    if (this.sigPadCanvas && this.sigCtx) {
+      const canvas = this.sigPadCanvas.nativeElement;
+      this.sigCtx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+    this.form.get('signatureImageUrl')?.setValue('');
+    this.save();
   }
 }

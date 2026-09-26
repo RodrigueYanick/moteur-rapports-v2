@@ -189,9 +189,36 @@
           <span>{{ block.url || 'Code-barres' }}</span>
         </div>
 
-        <div *ngIf="block.type === 'signature'" class="signature-placeholder">
-          <lucide-icon [img]="icons.penTool" [size]="18"></lucide-icon>
-          <span>Signature</span>
+        <div *ngIf="block.type === 'signature'" class="canvas-signature"
+             [style.border]="(block.signatureConfig?.afficherCadre ?? true) ? ((block.signatureConfig?.cadrePointille ?? true) ? '1px dashed #94a3b8' : '1px solid #94a3b8') : 'none'"
+             [style.background]="(block.signatureConfig?.afficherCadre ?? true) ? '#f8fafc' : 'transparent'"
+             style="width: 100%; height: 100%; box-sizing: border-box; padding: 6px 10px; display: flex; flex-direction: column; justify-content: space-between; border-radius: 4px; overflow: hidden;">
+          <div class="sig-mention" style="font-size: 10px; font-style: italic; color: #64748b; line-height: 1.2; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            {{ block.signatureConfig?.mentionLegale || 'Lu et approuvé, bon pour accord' }}
+          </div>
+          <div class="sig-body" style="flex: 1; display: flex; align-items: center; justify-content: center; min-height: 30px; margin: 2px 0;">
+            <img *ngIf="(block.signatureConfig?.modeSignature === 'IMAGE' || block.signatureConfig?.modeSignature === 'MANUSCRITE') && (block.signatureConfig?.signatureImageUrl || block.url)"
+                 [src]="block.signatureConfig?.signatureImageUrl || block.url"
+                 alt="Signature"
+                 style="max-height: 100%; max-width: 100%; object-fit: contain;" />
+            <span *ngIf="block.signatureConfig?.modeSignature === 'MANUSCRITE' && !block.signatureConfig?.signatureImageUrl && !block.url"
+                  style="font-family: cursive; font-size: 13px; color: #0284c7;">
+              ✍️ Signature manuscrite
+            </span>
+            <div *ngIf="block.signatureConfig?.modeSignature === 'CADRE_VIERGE' || (!block.signatureConfig && !block.url)"
+                 style="width: 80%; border-bottom: 1px dashed #94a3b8; height: 12px;"></div>
+          </div>
+          <div class="sig-footer" style="font-size: 9px; color: #334155; line-height: 1.2; border-top: 1px solid #e2e8f0; padding-top: 2px; display: flex; justify-content: space-between;">
+            <div style="font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+              {{ block.signatureConfig?.signataireNom || '{{ signataire_nom }}' }}
+              <span *ngIf="block.signatureConfig?.signataireQualite" style="font-weight: normal; color: #64748b;">
+                ({{ block.signatureConfig?.signataireQualite }})
+              </span>
+            </div>
+            <div *ngIf="block.signatureConfig?.dateSignature" style="color: #64748b; font-size: 9px;">
+              {{ block.signatureConfig?.dateSignature }}
+            </div>
+          </div>
         </div>
 
         <!-- Graphique Vectoriel SVG Interactif -->
