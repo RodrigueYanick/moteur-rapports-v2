@@ -1302,93 +1302,16 @@ public class TemplateHtmlBuilder {
     }
 
     private String renderSignature(JsonNode bloc, Map<String, Object> data) {
-        int largeur = bloc.path("largeurBox").asInt(220);
-        int hauteur = bloc.path("hauteurBox").asInt(110);
-        JsonNode sigConfig = bloc.path("signatureConfig");
-
-        if (sigConfig.isMissingNode() || sigConfig.isNull()) {
-            String url = bloc.has("url") ? replaceVarsRaw(bloc.path("url").asText(""), data) : "";
-            if (!url.isBlank()) {
-                return "<img src='" + escape(url) + "' style='width:" + largeur + "px;height:" + hauteur + "px;object-fit:contain;' />";
-            }
-            return "<table style='width:" + largeur + "px;height:" + hauteur + "px;border-bottom:1px solid #333;"
-                    + "border-collapse:collapse;margin:0;padding:0;box-sizing:border-box;'>"
-                    + "<tr><td style='vertical-align:bottom;text-align:center;padding-bottom:4px;"
-                    + "font-family:cursive;color:#999;font-size:12px;'>Signature</td></tr></table>";
+        int largeur = bloc.path("largeurBox").asInt(180);
+        int hauteur = bloc.path("hauteurBox").asInt(70);
+        String url = bloc.has("url") ? replaceVarsRaw(bloc.path("url").asText(""), data) : "";
+        if (!url.isBlank()) {
+            return "<img src='" + escape(url) + "' style='width:" + largeur + "px;height:" + hauteur + "px;object-fit:contain;' />";
         }
-
-        String mentionLegale = sigConfig.path("mentionLegale").asText("Lu et approuvé, bon pour accord");
-        mentionLegale = replaceVars(mentionLegale, data);
-
-        String signataireNom = sigConfig.path("signataireNom").asText("");
-        signataireNom = replaceVars(signataireNom, data);
-
-        String signataireQualite = sigConfig.path("signataireQualite").asText("");
-        signataireQualite = replaceVars(signataireQualite, data);
-
-        String dateSignature = sigConfig.path("dateSignature").asText("");
-        dateSignature = replaceVars(dateSignature, data);
-
-        String mode = sigConfig.path("modeSignature").asText("MANUSCRITE");
-        String imageUrl = sigConfig.path("signatureImageUrl").asText("");
-        if (imageUrl.isBlank() && bloc.has("url")) {
-            imageUrl = bloc.path("url").asText("");
-        }
-        imageUrl = replaceVarsRaw(imageUrl, data);
-
-        boolean afficherCadre = sigConfig.path("afficherCadre").asBoolean(true);
-        boolean cadrePointille = sigConfig.path("cadrePointille").asBoolean(true);
-
-        String borderStyle = "border:none;";
-        if (afficherCadre) {
-            String borderType = cadrePointille ? "dashed" : "solid";
-            borderStyle = "border:1px " + borderType + " #94a3b8;background-color:#f8fafc;";
-        }
-
-        StringBuilder sb = new StringBuilder();
-        sb.append("<table class='signature-block' style='width:").append(largeur).append("px;height:").append(hauteur)
-          .append("px;").append(borderStyle)
-          .append("border-collapse:collapse;margin:0;padding:0;box-sizing:border-box;font-family:Helvetica,Arial,sans-serif;'>");
-
-        // 1. Mention légale
-        if (!mentionLegale.isBlank()) {
-            sb.append("<tr><td style='padding:4px 8px;font-size:9px;font-style:italic;color:#64748b;text-align:left;vertical-align:top;height:16px;'>")
-              .append(escape(mentionLegale))
-              .append("</td></tr>");
-        }
-
-        // 2. Zone de signature centrale
-        sb.append("<tr><td style='vertical-align:middle;text-align:center;padding:4px 8px;'>");
-        if (!imageUrl.isBlank() && ("IMAGE".equalsIgnoreCase(mode) || "MANUSCRITE".equalsIgnoreCase(mode))) {
-            sb.append("<img src='").append(escape(imageUrl))
-              .append("' style='max-width:").append(largeur - 20).append("px;max-height:").append(Math.max(30, hauteur - 55))
-              .append("px;object-fit:contain;' />");
-        } else if ("MANUSCRITE".equalsIgnoreCase(mode)) {
-            sb.append("<span style='font-family:cursive;font-size:14px;color:#0284c7;'>Signature manuscrite</span>");
-        } else {
-            sb.append("<div style='margin:10px auto 0 auto;width:80%;border-bottom:1px dashed #94a3b8;height:10px;'></div>");
-        }
-        sb.append("</td></tr>");
-
-        // 3. Bas de cartouche : Signataire, Qualité et Date
-        sb.append("<tr><td style='padding:2px 8px 4px 8px;border-top:1px solid #e2e8f0;vertical-align:bottom;height:20px;'>");
-        sb.append("<table style='width:100%;border-collapse:collapse;margin:0;padding:0;'><tr>");
-        sb.append("<td style='text-align:left;font-size:9px;color:#334155;font-weight:bold;'>");
-        if (!signataireNom.isBlank()) {
-            sb.append(escape(signataireNom));
-            if (!signataireQualite.isBlank()) {
-                sb.append(" <span style='font-weight:normal;color:#64748b;'>(").append(escape(signataireQualite)).append(")</span>");
-            }
-        }
-        sb.append("</td>");
-        if (!dateSignature.isBlank()) {
-            sb.append("<td style='text-align:right;font-size:8px;color:#64748b;'>").append(escape(dateSignature)).append("</td>");
-        }
-        sb.append("</tr></table>");
-        sb.append("</td></tr>");
-
-        sb.append("</table>");
-        return sb.toString();
+        return "<table style='width:" + largeur + "px;height:" + hauteur + "px;border-bottom:1px solid #333;"
+                + "border-collapse:collapse;margin:0;padding:0;box-sizing:border-box;'>"
+                + "<tr><td style='vertical-align:bottom;text-align:center;padding-bottom:4px;"
+                + "font-family:cursive;color:#999;font-size:12px;'>Signature</td></tr></table>";
     }
 
     private String renderGraphique(JsonNode bloc, Map<String, Object> data) {

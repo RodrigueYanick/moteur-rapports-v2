@@ -107,18 +107,16 @@ export interface DesignBlock {
   conditionalStyles?: ConditionalStyleRule[];
   repeterEnTeteChaquePage?: boolean;
   eviterCoupureLignes?: boolean;
-  signatureConfig?: SignatureBlockConfig;
-}
-
-export interface SignatureBlockConfig {
-  mentionLegale?: string;         // ex: "Lu et approuvé, bon pour accord"
-  signataireNom?: string;        // ex: "{{ signataire_nom }}"
-  signataireQualite?: string;    // ex: "Directeur Général"
-  dateSignature?: string;        // ex: "{{ date_signature }}"
-  modeSignature?: 'MANUSCRITE' | 'IMAGE' | 'CADRE_VIERGE';
-  signatureImageUrl?: string;    // URL ou base64 data URI
-  afficherCadre?: boolean;
-  cadrePointille?: boolean;
+  // --- Signature ---
+  signatureMentionLegale?: string;
+  signatureSignataireNom?: string;
+  signatureSignataireQualite?: string;
+  signatureDate?: string;
+  signatureMode?: 'MANUSCRITE' | 'IMAGE' | 'CADRE_VIERGE';
+  signatureImageUrl?: string;
+  signatureAfficherCadre?: boolean;
+  signatureCadrePointille?: boolean;
+  signatureDataUrl?: string;
 }
 
 export const BLOCK_DEFAULT_DIMENSIONS: Record<DesignBlock['type'], { w: number; h: number }> = {
@@ -131,7 +129,7 @@ export const BLOCK_DEFAULT_DIMENSIONS: Record<DesignBlock['type'], { w: number; 
   cercle: { w: 100, h: 100 },
   qrcode: { w: 100, h: 100 },
   codebarre: { w: 160, h: 60 },
-  signature: { w: 220, h: 110 },
+  signature: { w: 180, h: 70 },
   graphique: { w: 300, h: 180 },
 };
 

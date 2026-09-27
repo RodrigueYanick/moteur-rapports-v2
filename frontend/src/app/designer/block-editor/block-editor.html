@@ -529,6 +529,8 @@
           <div class="colonnes-section">
             <label class="subtle-label">Colonnes</label>
             <div *ngFor="let col of colonnes.controls; let i = index" class="colonne-row">
+              <input placeholder="Titre" [formControl]="asFormControl(col.get('titre'))" />
+              <input placeholder="Variable" [formControl]="asFormControl(col.get('variable'))" />
               <input placeholder="Titre" [formControl]="asFormControl(col.get('titre'))" style="flex: 1.2;" />
               <input placeholder="Variable" [formControl]="asFormControl(col.get('variable'))" style="flex: 1;" />
               <input placeholder="Formule (ex: qte * pu)" [formControl]="asFormControl(col.get('formule'))" style="flex: 1.2;" title="Formule SpEL optionnelle" />
@@ -649,112 +651,6 @@
             <label>Arrondi (px)</label>
             <input type="number" formControlName="shapeBorderRadius" min="0" max="100" />
           </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ======================== SIGNATURE ======================== -->
-    <div class="section" *ngIf="block.type === 'signature'">
-      <div class="section-header static">✍️ Paramètres de Signature</div>
-      <div class="section-body">
-        <div class="field">
-          <label>Mention légale</label>
-          <input
-            type="text"
-            formControlName="signatureMentionLegale"
-            placeholder="ex: Lu et approuvé, bon pour accord"
-            [appVariableAutocomplete]="explicitVariables"
-          />
-        </div>
-
-        <div class="field-row">
-          <div class="field">
-            <label>Nom du signataire</label>
-            <input
-              type="text"
-              formControlName="signatureSignataireNom"
-              [placeholder]="'ex: {{ signataire_nom }}'"
-              [appVariableAutocomplete]="explicitVariables"
-            />
-          </div>
-          <div class="field">
-            <label>Qualité / Titre</label>
-            <input
-              type="text"
-              formControlName="signatureSignataireQualite"
-              placeholder="ex: Directeur Général"
-            />
-          </div>
-        </div>
-
-        <div class="field">
-          <label>Date de signature</label>
-          <input
-            type="text"
-            formControlName="signatureDate"
-            [placeholder]="'ex: {{ date_signature }}'"
-            [appVariableAutocomplete]="explicitVariables"
-          />
-        </div>
-
-        <div class="field">
-          <label>Mode de signature</label>
-          <select formControlName="signatureMode" (change)="onSignatureModeChange()">
-            <option value="MANUSCRITE">Manuscrite (dessin à l'écran)</option>
-            <option value="IMAGE">Image / Tampon (URL ou image)</option>
-            <option value="CADRE_VIERGE">Cadre vierge (émargement manuel)</option>
-          </select>
-        </div>
-
-        <!-- Mode MANUSCRITE : Canvas HTML5 interactif -->
-        <div class="field" *ngIf="form.get('signatureMode')?.value === 'MANUSCRITE'">
-          <label>Tracé de la signature (souris / tactile)</label>
-          <div class="signature-pad-container">
-            <div class="sig-canvas-wrapper">
-              <canvas
-                #sigPadCanvas
-                width="280"
-                height="90"
-                (mousedown)="startSigDrawing($event)"
-                (mousemove)="drawSig($event)"
-                (mouseup)="stopSigDrawing()"
-                (mouseleave)="stopSigDrawing()"
-                (touchstart)="startSigDrawing($event)"
-                (touchmove)="drawSig($event)"
-                (touchend)="stopSigDrawing()"
-              ></canvas>
-            </div>
-            <div class="sig-actions">
-              <button type="button" class="sig-btn clear" (click)="clearSigPad()">Effacer</button>
-              <button type="button" class="sig-btn save" (click)="saveSigPad()">Enregistrer le tracé</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Mode IMAGE : Champ URL ou upload -->
-        <div class="field" *ngIf="form.get('signatureMode')?.value === 'IMAGE'">
-          <label>URL ou données de l'image</label>
-          <input
-            type="text"
-            formControlName="signatureImageUrl"
-            placeholder="https://... ou data:image/png;base64,..."
-          />
-          <div class="field-hint">Vous pouvez coller l'URL d'un tampon ou d'une signature numérisée.</div>
-        </div>
-
-        <!-- Options de Cadre -->
-        <div class="field-checkbox">
-          <label>
-            <input type="checkbox" formControlName="signatureAfficherCadre" />
-            Afficher un cadre de cartouche
-          </label>
-        </div>
-
-        <div class="field-checkbox" *ngIf="form.get('signatureAfficherCadre')?.value">
-          <label>
-            <input type="checkbox" formControlName="signatureCadrePointille" />
-            Cadre en pointillés
-          </label>
         </div>
       </div>
     </div>

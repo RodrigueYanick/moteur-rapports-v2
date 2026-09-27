@@ -3,7 +3,7 @@ import { BlockHtmlRenderer, RenderContext } from './block-html-renderer.interfac
 
 export class BarcodeBlockRenderer implements BlockHtmlRenderer {
   supports(type: string): boolean {
-    return type === 'qrcode' || type === 'codebarre' || type === 'image';
+    return type === 'qrcode' || type === 'codebarre' || type === 'signature' || type === 'image';
   }
 
   render(block: DesignBlock, context: RenderContext): string {
@@ -15,6 +15,10 @@ export class BarcodeBlockRenderer implements BlockHtmlRenderer {
       if (align === 'center') imgStyle += 'display:block;margin:0 auto;';
       else if (align === 'right') imgStyle += 'display:block;margin-left:auto;';
       return `<img src="${context.escape(url)}" style="${imgStyle}" alt="aperçu" />`;
+    }
+
+    if (block.type === 'signature') {
+      return `<table style="width:100%; height:100%; border-bottom:1px solid #333; border-collapse:collapse; margin:0; padding:0; box-sizing:border-box;"><tr><td style="vertical-align:bottom; text-align:center; padding-bottom:4px; font-family:cursive; color:#999; font-size:12px;">Signature</td></tr></table>`;
     }
 
     const label = block.type === 'qrcode' ? 'QR Code' : 'Code-barres';

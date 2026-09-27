@@ -15,8 +15,7 @@ import {
   TableBlockRenderer,
   ChartBlockRenderer,
   ShapeBlockRenderer,
-  BarcodeBlockRenderer,
-  SignatureBlockRenderer
+  BarcodeBlockRenderer
 } from './renderers/index';
 
 @Component({
@@ -118,7 +117,6 @@ export class BlockPreview implements AfterViewInit, OnChanges, OnInit, OnDestroy
     new ChartBlockRenderer(),
     new ShapeBlockRenderer(),
     new BarcodeBlockRenderer(),
-    new SignatureBlockRenderer(),
   ];
 
   readonly icons = {

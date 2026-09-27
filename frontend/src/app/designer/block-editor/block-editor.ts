@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnChanges, DoCheck, SimpleChanges, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, DoCheck, SimpleChanges, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   ReactiveFormsModule,
@@ -47,7 +47,7 @@ import { VariableAutocompleteDirective, AutocompleteVariableItem } from '../../s
   templateUrl: './block-editor.html',
   styleUrls: ['./block-editor.scss'],
 })
-export class BlockEditor implements OnChanges, DoCheck, AfterViewInit {
+export class BlockEditor implements OnChanges, DoCheck {
   @Input() block: DesignBlock | null = null;
   @Input() allBlocks: DesignBlock[] = [];
   @Input() explicitVariables: Variable[] = []; // MODIFIÉ : type Variable[] au lieu de { nomVariable: string }[]
@@ -59,6 +59,12 @@ export class BlockEditor implements OnChanges, DoCheck, AfterViewInit {
   @Input() canvasHeight: number = 1123;
   @Output() updated = new EventEmitter<DesignBlock>();
   @Output() closed = new EventEmitter<void>();
+
+  @ViewChild('sigPadCanvas') sigPadCanvas?: ElementRef<HTMLCanvasElement>;
+  private isDrawingSig = false;
+  private lastSigX = 0;
+  private lastSigY = 0;
+
   newVariableName = '';
   selectedColumn: number | null = null;
   selectedRow: number | null = null;
@@ -112,7 +118,6 @@ export class BlockEditor implements OnChanges, DoCheck, AfterViewInit {
     tableauStyle: true,
     grouping: true,
     graphique: true,
-    signature: true,
     condition: false,
     conditionalStyles: false,
   };
@@ -166,11 +171,11 @@ export class BlockEditor implements OnChanges, DoCheck, AfterViewInit {
       shapeBorderColor: ['#94a3b8'],
       shapeBorderWidth: [1],
       shapeBorderRadius: [0],
-      signatureMentionLegale: ['Lu et approuvé, bon pour accord'],
+      signatureMentionLegale: [''],
       signatureSignataireNom: [''],
       signatureSignataireQualite: [''],
       signatureDate: [''],
-      signatureMode: ['MANUSCRITE'],
+      signatureMode: ['CADRE_VIERGE'],
       signatureImageUrl: [''],
       signatureAfficherCadre: [true],
       signatureCadrePointille: [true],
@@ -383,22 +388,22 @@ export class BlockEditor implements OnChanges, DoCheck, AfterViewInit {
           shapeBorderColor: this.block.style?.couleur || '#94a3b8',
           shapeBorderWidth: this.block.style?.epaisseur ?? 1,
           shapeBorderRadius: this.block.style?.borderRadius ?? 0,
-          signatureMentionLegale: this.block.signatureConfig?.mentionLegale ?? 'Lu et approuvé, bon pour accord',
-          signatureSignataireNom: this.block.signatureConfig?.signataireNom ?? '',
-          signatureSignataireQualite: this.block.signatureConfig?.signataireQualite ?? '',
-          signatureDate: this.block.signatureConfig?.dateSignature ?? '',
-          signatureMode: this.block.signatureConfig?.modeSignature ?? 'MANUSCRITE',
-          signatureImageUrl: this.block.signatureConfig?.signatureImageUrl || this.block.url || '',
-          signatureAfficherCadre: this.block.signatureConfig?.afficherCadre ?? true,
-          signatureCadrePointille: this.block.signatureConfig?.cadrePointille ?? true,
+          signatureMentionLegale: this.block.signatureMentionLegale || '',
+          signatureSignataireNom: this.block.signatureSignataireNom || '',
+          signatureSignataireQualite: this.block.signatureSignataireQualite || '',
+          signatureDate: this.block.signatureDate || '',
+          signatureMode: this.block.signatureMode || 'CADRE_VIERGE',
+          signatureImageUrl: this.block.signatureImageUrl || '',
+          signatureAfficherCadre: this.block.signatureAfficherCadre ?? true,
+          signatureCadrePointille: this.block.signatureCadrePointille ?? true,
         },
         { emitEvent: false },
       );
+      if (this.block.type === 'signature' && this.block.signatureMode === 'MANUSCRITE') {
+        setTimeout(() => this.initSigCanvas(), 60);
+      }
       this.buildColonnesArray(this.block.colonnes || []);
       this.selectedRow = null;
-      if (this.block.type === 'signature') {
-        setTimeout(() => this.initSigPad(), 50);
-      }
     }
 
     if (changes['block']) {
@@ -645,6 +650,15 @@ export class BlockEditor implements OnChanges, DoCheck, AfterViewInit {
       eviterCoupureLignes: val.eviterCoupureLignes ?? true,
       colonnes: val.colonnes || [],
       dataBinding: { format: val.dataFormat, valeurDefaut: val.dataDefault },
+      signatureMentionLegale: val.signatureMentionLegale,
+      signatureSignataireNom: val.signatureSignataireNom,
+      signatureSignataireQualite: val.signatureSignataireQualite,
+      signatureDate: val.signatureDate,
+      signatureMode: val.signatureMode,
+      signatureImageUrl: val.signatureImageUrl,
+      signatureAfficherCadre: val.signatureAfficherCadre,
+      signatureCadrePointille: val.signatureCadrePointille,
+      signatureDataUrl: this.block.signatureDataUrl,
     };
 
     switch (this.block.type) {
@@ -724,19 +738,14 @@ export class BlockEditor implements OnChanges, DoCheck, AfterViewInit {
         };
         break;
       case 'signature':
-        updatedBlock.signatureConfig = {
-          mentionLegale: val.signatureMentionLegale,
-          signataireNom: val.signatureSignataireNom || undefined,
-          signataireQualite: val.signatureSignataireQualite || undefined,
-          dateSignature: val.signatureDate || undefined,
-          modeSignature: val.signatureMode || 'MANUSCRITE',
-          signatureImageUrl: val.signatureImageUrl || undefined,
-          afficherCadre: val.signatureAfficherCadre ?? true,
-          cadrePointille: val.signatureCadrePointille ?? true,
-        };
-        if (val.signatureImageUrl) {
-          updatedBlock.url = val.signatureImageUrl;
-        }
+        updatedBlock.signatureMentionLegale = val.signatureMentionLegale;
+        updatedBlock.signatureSignataireNom = val.signatureSignataireNom;
+        updatedBlock.signatureSignataireQualite = val.signatureSignataireQualite;
+        updatedBlock.signatureDate = val.signatureDate;
+        updatedBlock.signatureMode = val.signatureMode;
+        updatedBlock.signatureImageUrl = val.signatureImageUrl;
+        updatedBlock.signatureAfficherCadre = val.signatureAfficherCadre;
+        updatedBlock.signatureCadrePointille = val.signatureCadrePointille;
         break;
     }
 
@@ -880,102 +889,128 @@ export class BlockEditor implements OnChanges, DoCheck, AfterViewInit {
     this.tableChange$.next();
   }
 
-  // ==================== SIGNATURE INTERACTIVE PAD ====================
-  @ViewChild('sigPadCanvas') sigPadCanvas?: ElementRef<HTMLCanvasElement>;
-  private isDrawingSig = false;
-  private sigCtx: CanvasRenderingContext2D | null = null;
-
-  ngAfterViewInit(): void {
-    if (this.block?.type === 'signature') {
-      setTimeout(() => this.initSigPad(), 50);
-    }
-  }
-
+  // ==================== SIGNATURE METHODS ====================
   onSignatureModeChange(): void {
-    if (this.form.get('signatureMode')?.value === 'MANUSCRITE') {
-      setTimeout(() => this.initSigPad(), 50);
+    const mode = this.form.get('signatureMode')?.value;
+    if (mode === 'MANUSCRITE') {
+      setTimeout(() => this.initSigCanvas(), 60);
     }
-  }
-
-  initSigPad(): void {
-    if (!this.sigPadCanvas) return;
-    const canvas = this.sigPadCanvas.nativeElement;
-    this.sigCtx = canvas.getContext('2d');
-    if (!this.sigCtx) return;
-    this.sigCtx.strokeStyle = '#0284c7';
-    this.sigCtx.lineWidth = 2.5;
-    this.sigCtx.lineCap = 'round';
-    this.sigCtx.lineJoin = 'round';
-
-    const currentImg = this.form.get('signatureImageUrl')?.value;
-    if (currentImg && currentImg.startsWith('data:image')) {
-      const img = new Image();
-      img.onload = () => {
-        this.sigCtx?.clearRect(0, 0, canvas.width, canvas.height);
-        this.sigCtx?.drawImage(img, 0, 0, canvas.width, canvas.height);
-      };
-      img.src = currentImg;
-    } else {
-      this.sigCtx.clearRect(0, 0, canvas.width, canvas.height);
-    }
-  }
-
-  private getSigCoords(e: MouseEvent | TouchEvent): { x: number; y: number } {
-    const canvas = this.sigPadCanvas!.nativeElement;
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    if ('touches' in e && e.touches.length > 0) {
-      return {
-        x: (e.touches[0].clientX - rect.left) * scaleX,
-        y: (e.touches[0].clientY - rect.top) * scaleY,
-      };
-    }
-    const me = e as MouseEvent;
-    return {
-      x: (me.clientX - rect.left) * scaleX,
-      y: (me.clientY - rect.top) * scaleY,
-    };
-  }
-
-  startSigDrawing(e: MouseEvent | TouchEvent): void {
-    if (e.cancelable) e.preventDefault();
-    if (!this.sigPadCanvas || !this.sigCtx) this.initSigPad();
-    if (!this.sigCtx) return;
-    this.isDrawingSig = true;
-    const coords = this.getSigCoords(e);
-    this.sigCtx.beginPath();
-    this.sigCtx.moveTo(coords.x, coords.y);
-  }
-
-  drawSig(e: MouseEvent | TouchEvent): void {
-    if (!this.isDrawingSig || !this.sigCtx) return;
-    if (e.cancelable) e.preventDefault();
-    const coords = this.getSigCoords(e);
-    this.sigCtx.lineTo(coords.x, coords.y);
-    this.sigCtx.stroke();
-  }
-
-  stopSigDrawing(): void {
-    if (!this.isDrawingSig) return;
-    this.isDrawingSig = false;
-    this.saveSigPad();
-  }
-
-  saveSigPad(): void {
-    if (!this.sigPadCanvas) return;
-    const canvas = this.sigPadCanvas.nativeElement;
-    const dataUrl = canvas.toDataURL('image/png');
-    this.form.get('signatureImageUrl')?.setValue(dataUrl);
     this.save();
   }
 
-  clearSigPad(): void {
-    if (this.sigPadCanvas && this.sigCtx) {
-      const canvas = this.sigPadCanvas.nativeElement;
-      this.sigCtx.clearRect(0, 0, canvas.width, canvas.height);
+  private initSigCanvas(): void {
+    const canvas = this.sigPadCanvas?.nativeElement;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    const existingSig = this.block?.signatureDataUrl || this.block?.signatureImageUrl;
+    if (existingSig && existingSig.startsWith('data:image')) {
+      const img = new Image();
+      img.onload = () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      };
+      img.src = existingSig;
     }
-    this.form.get('signatureImageUrl')?.setValue('');
+  }
+
+  private getSigCoordinates(event: MouseEvent | TouchEvent): { x: number; y: number } | null {
+    const canvas = this.sigPadCanvas?.nativeElement;
+    if (!canvas) return null;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / (rect.width || 1);
+    const scaleY = canvas.height / (rect.height || 1);
+
+    if (typeof TouchEvent !== 'undefined' && event instanceof TouchEvent) {
+      if (event.touches.length === 0) return null;
+      const touch = event.touches[0];
+      return {
+        x: (touch.clientX - rect.left) * scaleX,
+        y: (touch.clientY - rect.top) * scaleY,
+      };
+    } else {
+      const mouseEvent = event as MouseEvent;
+      return {
+        x: (mouseEvent.clientX - rect.left) * scaleX,
+        y: (mouseEvent.clientY - rect.top) * scaleY,
+      };
+    }
+  }
+
+  startSigDrawing(event: MouseEvent | TouchEvent): void {
+    event.preventDefault();
+    const coords = this.getSigCoordinates(event);
+    if (!coords) return;
+    this.isDrawingSig = true;
+    this.lastSigX = coords.x;
+    this.lastSigY = coords.y;
+
+    const canvas = this.sigPadCanvas?.nativeElement;
+    const ctx = canvas?.getContext('2d');
+    if (ctx) {
+      ctx.beginPath();
+      ctx.arc(this.lastSigX, this.lastSigY, 1, 0, Math.PI * 2);
+      ctx.fillStyle = '#1e293b';
+      ctx.fill();
+    }
+  }
+
+  drawSig(event: MouseEvent | TouchEvent): void {
+    if (!this.isDrawingSig) return;
+    event.preventDefault();
+    const coords = this.getSigCoordinates(event);
+    if (!coords) return;
+
+    const canvas = this.sigPadCanvas?.nativeElement;
+    const ctx = canvas?.getContext('2d');
+    if (ctx) {
+      ctx.beginPath();
+      ctx.moveTo(this.lastSigX, this.lastSigY);
+      ctx.lineTo(coords.x, coords.y);
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.stroke();
+    }
+
+    this.lastSigX = coords.x;
+    this.lastSigY = coords.y;
+  }
+
+  stopSigDrawing(): void {
+    this.isDrawingSig = false;
+  }
+
+  clearSigPad(): void {
+    const canvas = this.sigPadCanvas?.nativeElement;
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    }
+    if (this.block) {
+      this.block.signatureDataUrl = undefined;
+    }
+    this.form.patchValue({ signatureImageUrl: '' });
+    this.save();
+  }
+
+  saveSigPad(): void {
+    const canvas = this.sigPadCanvas?.nativeElement;
+    if (canvas) {
+      const dataUrl = canvas.toDataURL('image/png');
+      if (this.block) {
+        this.block.signatureDataUrl = dataUrl;
+      }
+      this.form.patchValue({ signatureImageUrl: dataUrl });
+    }
     this.save();
   }
 }

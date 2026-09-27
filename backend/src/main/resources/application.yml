@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5454/moteur_rapports_test}
-    username: ${DB_USERNAME:reportuser}
-    password: ${DB_PASSWORD:rodrigue}
+    url: ${SPRING_DATASOURCE_URL:${DB_URL:jdbc:postgresql://localhost:5454/moteur_rapports_test}}
+    username: ${SPRING_DATASOURCE_USERNAME:${DB_USERNAME:reportuser}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD:rodrigue}}
     driver-class-name: org.postgresql.Driver
   flyway:
     enabled: true
@@ -48,7 +48,7 @@ springdoc:
     custom-css: /swagger-ui.css
 
 server:
-  port: 8082
+  port: ${PORT:8082}
 
 app:
   storage-path: ${STORAGE_PATH:./data/reports}

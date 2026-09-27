@@ -4,5 +4,4 @@ export * from './table-block-renderer';
 export * from './chart-block-renderer';
 export * from './shape-block-renderer';
 export * from './barcode-block-renderer';
-export * from './signature-block-renderer';
 
