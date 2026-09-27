@@ -24,7 +24,10 @@
         "build": {
           "builder": "@angular/build:application",
           "options": {
-            "outputPath": "dist/report-designer",
+            "outputPath": {
+              "base": "dist/report-designer",
+              "browser": ""
+            },
             "index": "src/index.html",
             "browser": "src/main.ts",
             "tsConfig": "tsconfig.app.json",
