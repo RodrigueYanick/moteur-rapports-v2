@@ -158,6 +158,17 @@ public class ReportTemplate {
     @JoinColumn(name = "parent_template_id")
     private ReportTemplate parentTemplate;
 
+    // --- Source de données externe (Axe 2) ---
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "data_source_id")
+    private DataSourceConfig dataSource;
+
+    @Column(name = "data_source_query", columnDefinition = "text")
+    private String dataSourceQuery;
+
+    @Column(name = "data_source_mapping", columnDefinition = "jsonb")
+    private String dataSourceMapping;
+
 
     @PrePersist
     protected void onCreate() {

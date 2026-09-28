@@ -47,6 +47,10 @@ public class TemplateMapper {
                 .footerCouleurLigne(entity.getFooterCouleurLigne())
                 .numerotationPage(entity.getNumerotationPage())
                 .formatNumerotation(entity.getFormatNumerotation())
+                .dataSourceId(entity.getDataSource() != null ? entity.getDataSource().getId() : null)
+                .dataSourceNom(entity.getDataSource() != null ? entity.getDataSource().getNom() : null)
+                .dataSourceQuery(entity.getDataSourceQuery())
+                .dataSourceMapping(entity.getDataSourceMapping())
                 .build();
     }
 
@@ -81,6 +85,8 @@ public class TemplateMapper {
         template.setFooterCouleurLigne(create.getFooterCouleurLigne() != null ? create.getFooterCouleurLigne() : "#d1d5db");
         template.setNumerotationPage(create.getNumerotationPage() != null ? create.getNumerotationPage() : true);
         template.setFormatNumerotation(create.getFormatNumerotation() != null ? create.getFormatNumerotation() : "PAGE_X_SUR_Y");
+        template.setDataSourceQuery(create.getDataSourceQuery());
+        template.setDataSourceMapping(create.getDataSourceMapping());
         return template;
     }
 }

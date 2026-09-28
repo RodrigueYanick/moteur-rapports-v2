@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import com.rapports.moteur.entity.Categorie;
 import com.rapports.moteur.entity.PaginationMode;
+import java.util.UUID;
 
 @Schema(description = "Requête de création ou de mise à jour d'un modèle de rapport")
 @Data
@@ -100,4 +101,14 @@ public class TemplateCreate {
 
     @Schema(description = "Format de la numérotation des pages", example = "PAGE_X_SUR_Y")
     private String formatNumerotation;
+
+    // --- Source de données externe (Axe 2) ---
+    @Schema(description = "Identifiant de la source de données distante liée")
+    private UUID dataSourceId;
+
+    @Schema(description = "Requête SQL ou chemin REST à exécuter")
+    private String dataSourceQuery;
+
+    @Schema(description = "Mapping des colonnes/champs JSON vers les variables du modèle")
+    private String dataSourceMapping;
 }

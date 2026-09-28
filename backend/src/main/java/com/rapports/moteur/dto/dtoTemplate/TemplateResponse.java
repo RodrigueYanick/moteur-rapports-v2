@@ -123,4 +123,17 @@ public class TemplateResponse {
 
     @Schema(description = "Format de la numérotation des pages", example = "PAGE_X_SUR_Y")
     private String formatNumerotation;
+
+    // --- Source de données externe (Axe 2) ---
+    @Schema(description = "Identifiant de la source de données distante liée")
+    private UUID dataSourceId;
+
+    @Schema(description = "Nom de la source de données distante liée")
+    private String dataSourceNom;
+
+    @Schema(description = "Requête SQL ou chemin REST à exécuter")
+    private String dataSourceQuery;
+
+    @Schema(description = "Mapping des colonnes/champs JSON vers les variables du modèle")
+    private String dataSourceMapping;
 }

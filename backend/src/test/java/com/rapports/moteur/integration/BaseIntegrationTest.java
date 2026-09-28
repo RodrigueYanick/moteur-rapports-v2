@@ -56,6 +56,9 @@ public abstract class BaseIntegrationTest {
     @Autowired
     protected CompanyWorkspaceConfigRepository workspaceConfigRepository;
 
+    @Autowired
+    protected com.rapports.moteur.repository.DataSourceConfigRepository dataSourceConfigRepository;
+
     @BeforeEach
     void baseSetUp() {
         cleanDatabase();
@@ -75,6 +78,7 @@ public abstract class BaseIntegrationTest {
             }
         });
         templateRepository.deleteAll();
+        dataSourceConfigRepository.deleteAll();
 
         workspaceConfigRepository.deleteAll();
         userRepository.deleteAll();

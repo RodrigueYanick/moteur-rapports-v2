@@ -44,6 +44,7 @@ public class ReportTemplateService {
     private final ReportVariableRepository variableRepository;
     private final EntrepriseService entrepriseService;
     private final CompanyWorkspaceConfigService workspaceConfigService;
+    private final com.rapports.moteur.repository.DataSourceConfigRepository dataSourceConfigRepository;
     
 
     // ============================================================
@@ -181,6 +182,16 @@ public class ReportTemplateService {
 
         validateFormat(entity);
 
+        if (request.getDataSourceId() != null) {
+            String code = entrepriseService.getCurrentCodeEntreprise();
+            if (code != null) {
+                dataSourceConfigRepository.findByIdAndCodeEntreprise(request.getDataSourceId(), code)
+                        .ifPresent(entity::setDataSource);
+            }
+        }
+        entity.setDataSourceQuery(request.getDataSourceQuery());
+        entity.setDataSourceMapping(request.getDataSourceMapping());
+
         if (entity.getContenuDesign() == null || entity.getContenuDesign().isBlank()) {
             entity.setContenuDesign("{\"blocs\":[]}");
         }
@@ -309,6 +320,16 @@ public class ReportTemplateService {
 
         validateFormat(entity);
 
+        if (request.getDataSourceId() != null) {
+            String code = entrepriseService.getCurrentCodeEntreprise();
+            if (code != null) {
+                dataSourceConfigRepository.findByIdAndCodeEntreprise(request.getDataSourceId(), code)
+                        .ifPresent(entity::setDataSource);
+            }
+        }
+        if (request.getDataSourceQuery() != null) entity.setDataSourceQuery(request.getDataSourceQuery());
+        if (request.getDataSourceMapping() != null) entity.setDataSourceMapping(request.getDataSourceMapping());
+
         repository.save(entity);
         return mapper.toDto(entity);
     }
@@ -352,6 +373,11 @@ public class ReportTemplateService {
         copy.setFooterCouleurLigne(original.getFooterCouleurLigne() != null ? original.getFooterCouleurLigne() : "#d1d5db");
         copy.setNumerotationPage(original.getNumerotationPage() != null ? original.getNumerotationPage() : true);
         copy.setFormatNumerotation(original.getFormatNumerotation() != null ? original.getFormatNumerotation() : "PAGE_X_SUR_Y");
+
+        // Source de données externe
+        copy.setDataSource(original.getDataSource());
+        copy.setDataSourceQuery(original.getDataSourceQuery());
+        copy.setDataSourceMapping(original.getDataSourceMapping());
 
         copy.setStatut(TemplateStatus.BROUILLON);
         copy.setVersion(1);

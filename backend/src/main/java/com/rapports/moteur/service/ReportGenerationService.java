@@ -43,6 +43,7 @@ public class ReportGenerationService {
     private final ExcelRendererService excelRenderer;
     private final com.rapports.moteur.service.facturx.FacturXPdfService facturXPdfService;
     private final com.rapports.moteur.service.metrics.ReportMetricsService reportMetricsService;
+    private final com.rapports.moteur.service.datasource.DataSourceExecutionService dataSourceExecutionService;
 
     public ReportGenerationService(ReportGenerationRepository generationRepository,
                                     ReportTemplateRepository templateRepository,
@@ -57,7 +58,8 @@ public class ReportGenerationService {
                                     FileStorageService fileStorageService,
                                     ExcelRendererService excelRenderer,
                                     com.rapports.moteur.service.facturx.FacturXPdfService facturXPdfService,
-                                    com.rapports.moteur.service.metrics.ReportMetricsService reportMetricsService) {
+                                    com.rapports.moteur.service.metrics.ReportMetricsService reportMetricsService,
+                                    com.rapports.moteur.service.datasource.DataSourceExecutionService dataSourceExecutionService) {
         this.generationRepository = generationRepository;
         this.templateRepository = templateRepository;
         this.validatorService = validatorService;
@@ -72,6 +74,7 @@ public class ReportGenerationService {
         this.excelRenderer = excelRenderer;
         this.facturXPdfService = facturXPdfService;
         this.reportMetricsService = reportMetricsService;
+        this.dataSourceExecutionService = dataSourceExecutionService;
     }
 
     // ============================================================
@@ -108,7 +111,7 @@ public class ReportGenerationService {
     @Transactional
     public byte[] generateSync(UUID templateId, Object rawData) {
         ReportTemplate template = getPublishedTemplate(templateId);
-        Map<String, Object> data = toDataMap(rawData);
+        Map<String, Object> data = resolveData(template, rawData);
         ReportGeneration generation = generateAndStoreReport(template, data);
         return fileStorageService.loadFile(generation.getUrlFichierGenere());
     }
@@ -170,7 +173,7 @@ public class ReportGenerationService {
     // ---------- ASYNCHRONE ----------
     public GenerationResponse generateAsync(UUID templateId, Object rawData) {
         ReportTemplate template = getPublishedTemplate(templateId);
-        Map<String, Object> data = toDataMap(rawData);
+        Map<String, Object> data = resolveData(template, rawData);
 
         // Validation temporairement désactivée
         // validatorService.validate(variables, data);
@@ -219,16 +222,49 @@ public class ReportGenerationService {
 
     public String generateHtml(UUID templateId, Object rawData) {
         ReportTemplate template = loadTemplateForCurrentEntreprise(templateId);
-        Map<String, Object> data = toDataMap(rawData);
+        Map<String, Object> data = resolveData(template, rawData);
         validatorService.validate(template.getSchema(), data);
         return htmlBuilder.build(template, data);
     }
 
     public byte[] generateExcel(UUID templateId, Object rawData) {
         ReportTemplate template = getPublishedTemplate(templateId);
-        Map<String, Object> data = toDataMap(rawData);
+        Map<String, Object> data = resolveData(template, rawData);
         validatorService.validate(template.getSchema(), data);
         return excelRenderer.renderToExcel(template, data);
+    }
+
+    public Map<String, Object> resolveData(ReportTemplate template, Object rawData) {
+        Map<String, Object> callerData = toDataMap(rawData);
+        if (template.getDataSource() != null && Boolean.TRUE.equals(template.getDataSource().getActif())
+                && template.getDataSourceQuery() != null && !template.getDataSourceQuery().isBlank()) {
+            try {
+                Object fetched = dataSourceExecutionService.execute(
+                        template.getDataSource(),
+                        template.getDataSourceQuery(),
+                        callerData,
+                        1000
+                );
+                if (fetched instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> fetchedMap = (Map<String, Object>) fetched;
+                    Map<String, Object> merged = new java.util.HashMap<>(fetchedMap);
+                    merged.putAll(callerData);
+                    return merged;
+                } else if (fetched instanceof List) {
+                    Map<String, Object> merged = new java.util.HashMap<>(callerData);
+                    merged.put("lignes", fetched);
+                    merged.put("items", fetched);
+                    merged.put("data", fetched);
+                    return merged;
+                }
+            } catch (Exception e) {
+                if (callerData.isEmpty()) {
+                    throw new ValidationException("Échec de la récupération des données depuis la source distante : " + e.getMessage());
+                }
+            }
+        }
+        return callerData;
     }
 
     // ---------- HELPERS ----------
