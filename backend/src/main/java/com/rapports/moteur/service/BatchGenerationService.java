@@ -178,16 +178,29 @@ public class BatchGenerationService {
             throw new IllegalStateException("Un traitement est déjà en cours sur ce lot");
         }
 
-        List<BatchGenerationItem> failed = itemRepository.findByBatch_IdAndStatut(batchId, BatchItemStatus.ECHEC);
+        List<BatchGenerationItem> failed = itemRepository.findByBatch_IdAndStatutIn(
+                batchId, List.of(BatchItemStatus.ECHEC, BatchItemStatus.EN_ATTENTE));
         if (failed.isEmpty()) {
-            throw new IllegalStateException("Aucun élément en échec à relancer dans ce lot");
+            throw new IllegalStateException("Aucun élément à relancer dans ce lot");
         }
 
         batch.setStatut(BatchStatus.EN_ATTENTE);
         batch.setDateFin(null);
         batchRepository.save(batch);
 
-        asyncBatchProcessor.processBatchAsync(batchId, true);
+        UUID bId = batch.getId();
+        if (org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive()) {
+            org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+                    new org.springframework.transaction.support.TransactionSynchronization() {
+                        @Override
+                        public void afterCommit() {
+                            asyncBatchProcessor.processBatchAsync(bId, true);
+                        }
+                    }
+            );
+        } else {
+            asyncBatchProcessor.processBatchAsync(bId, true);
+        }
 
         return batchMapper.toResponse(batch, true);
     }
