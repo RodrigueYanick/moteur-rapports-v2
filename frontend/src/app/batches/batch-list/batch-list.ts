@@ -298,13 +298,25 @@ export class BatchListComponent implements OnInit, OnDestroy {
   }
 
   testWebhookConnection(): void {
-    if (!this.webhookUrlInput || !this.webhookUrlInput.trim()) return;
+    const trimmedUrl = this.webhookUrlInput ? this.webhookUrlInput.trim() : '';
+    if (!trimmedUrl) return;
+
+    if (!trimmedUrl.startsWith('http://') && !trimmedUrl.startsWith('https://')) {
+      this.webhookTestResult = {
+        succes: false,
+        statusCode: 0,
+        message: "L'URL doit obligatoirement commencer par http:// ou https:// (ex: https://mon-serveur.com/api/webhook)",
+        tempsReponseMs: 0,
+      };
+      return;
+    }
+
     this.testingWebhook = true;
     this.webhookTestResult = null;
 
     this.api
       .testWebhook({
-        url: this.webhookUrlInput.trim(),
+        url: trimmedUrl,
         secret: this.webhookSecretInput.trim() || undefined,
       })
       .subscribe({
@@ -317,7 +329,7 @@ export class BatchListComponent implements OnInit, OnDestroy {
           this.webhookTestResult = {
             succes: false,
             statusCode: 0,
-            message: 'Erreur réseau lors du test du webhook',
+            message: err.error?.message || 'Erreur réseau lors du test du webhook',
             tempsReponseMs: 0,
           };
           this.testingWebhook = false;
@@ -346,13 +358,19 @@ export class BatchListComponent implements OnInit, OnDestroy {
       return;
     }
 
+    const trimmedWebhook = this.webhookUrlInput ? this.webhookUrlInput.trim() : '';
+    if (trimmedWebhook && !trimmedWebhook.startsWith('http://') && !trimmedWebhook.startsWith('https://')) {
+      this.createError = "Protocole manquant : l'URL du webhook doit obligatoirement commencer par 'http://' ou 'https://'. Si vous n'utilisez pas de webhook distant, laissez simplement ce champ vide.";
+      return;
+    }
+
     const payload: BatchCreateRequest = {
       templateId: this.selectedTemplateId,
       items: parsedItems.map((item, idx) => ({
         customId: item.customId || `item-${idx + 1}`,
         data: item.data || item,
       })),
-      webhookUrl: this.webhookUrlInput.trim() || undefined,
+      webhookUrl: trimmedWebhook || undefined,
       webhookSecret: this.webhookSecretInput.trim() || undefined,
     };
 

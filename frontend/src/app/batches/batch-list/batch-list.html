@@ -268,17 +268,20 @@
 
         <!-- Configuration Webhook (optionnelle) -->
         <div class="webhook-config-box">
-          <h3>Notification Webhook (Optionnel)</h3>
-          <p class="box-desc">Recevez une requête HTTP POST dès que le lot se termine.</p>
+          <div class="label-with-action">
+            <h3>Notification Webhook</h3>
+            <span class="text-muted" style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase;">Optionnel</span>
+          </div>
+          <p class="box-desc">Recevez un appel HTTP POST dès que le lot est généré. <em>Laissez vide si vous souhaitez simplement télécharger vos rapports PDF sans webhook.</em></p>
 
           <div class="form-group">
-            <label>URL du Webhook</label>
+            <label>URL du Webhook <span class="text-muted" style="font-weight: 400; font-size: 0.8rem;">(Optionnel — laisser vide si non utilisé)</span></label>
             <div class="input-with-btn">
               <input
                 type="url"
                 [(ngModel)]="webhookUrlInput"
                 class="modal-input"
-                placeholder="https://mon-erp.com/api/webhooks/rapports" />
+                placeholder="https://mon-erp.com/api/webhooks/rapports (ou laisser vide)" />
               <button
                 type="button"
                 class="btn-test-webhook"
@@ -288,6 +291,7 @@
                 <span *ngIf="!testingWebhook">Tester l'URL</span>
               </button>
             </div>
+            <small class="field-hint">Si vous renseignez une URL, elle doit impérativement débuter par <code>http://</code> ou <code>https://</code>.</small>
           </div>
 
           <div *ngIf="webhookTestResult" class="test-result-box" [class.success]="webhookTestResult.succes" [class.fail]="!webhookTestResult.succes">
