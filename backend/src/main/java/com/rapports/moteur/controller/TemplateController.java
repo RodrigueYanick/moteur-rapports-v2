@@ -352,6 +352,86 @@ public class TemplateController {
     }
 
     @Operation(
+        summary = "Exporter un document en Image HD (PNG / JPEG 300 DPI)",
+        description = """
+            Génère une image haute résolution (300 DPI par défaut) du rapport.
+            Si le document comporte plusieurs pages et qu'aucune page spécifique n'est demandée,
+            une archive ZIP contenant chaque page en haute définition est retournée.
+            """
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Image ou archive ZIP générée avec succès"),
+        @ApiResponse(responseCode = "400", description = "Paramètres invalides"),
+        @ApiResponse(responseCode = "404", description = "Modèle introuvable ou non publié")
+    })
+    @PostMapping("/{id}/export-image")
+    public ResponseEntity<byte[]> exportImage(
+            @Parameter(description = "Identifiant UUID du modèle publié", required = true)
+            @PathVariable @NonNull UUID id,
+            @RequestParam(required = false, defaultValue = "PNG") String format,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false, defaultValue = "300") Integer dpi,
+            @RequestParam(required = false, defaultValue = "0.95") Float quality,
+            @org.springframework.web.bind.annotation.RequestBody Map<String, Object> data) {
+        com.rapports.moteur.service.rendering.ImageExportResult result =
+                generationService.generateImage(id, data, format, page, dpi, quality);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + result.getFilename() + "\"")
+                .header(HttpHeaders.CONTENT_TYPE, result.getContentType())
+                .body(result.getData());
+    }
+
+    @Operation(
+        summary = "Exporter les données calculées en CSV brut",
+        description = """
+            Exporte les données résolues du rapport au format CSV encodé en UTF-8 avec BOM,
+            compatible nativement avec Microsoft Excel et tableurs internationaux.
+            Le séparateur par défaut est le point-virgule (;).
+            """
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Fichier CSV généré avec succès"),
+        @ApiResponse(responseCode = "400", description = "Données invalides"),
+        @ApiResponse(responseCode = "404", description = "Modèle introuvable ou non publié")
+    })
+    @PostMapping("/{id}/export-csv")
+    public ResponseEntity<byte[]> exportCsv(
+            @Parameter(description = "Identifiant UUID du modèle publié", required = true)
+            @PathVariable @NonNull UUID id,
+            @RequestParam(required = false, defaultValue = ";") Character delimiter,
+            @org.springframework.web.bind.annotation.RequestBody Map<String, Object> data) {
+        byte[] csv = generationService.generateCsv(id, data, delimiter);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"rapport.csv\"")
+                .header(HttpHeaders.CONTENT_TYPE, "text/csv; charset=UTF-8")
+                .body(csv);
+    }
+
+    @Operation(
+        summary = "Exporter les données calculées en JSON brut",
+        description = """
+            Exporte les données résolues sous forme d'objet JSON indenté enrichi
+            de métadonnées d'export (horodatage, version du modèle, entreprise, nombre d'enregistrements).
+            """
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Fichier JSON généré avec succès"),
+        @ApiResponse(responseCode = "400", description = "Données invalides"),
+        @ApiResponse(responseCode = "404", description = "Modèle introuvable ou non publié")
+    })
+    @PostMapping("/{id}/export-json")
+    public ResponseEntity<byte[]> exportJson(
+            @Parameter(description = "Identifiant UUID du modèle publié", required = true)
+            @PathVariable @NonNull UUID id,
+            @org.springframework.web.bind.annotation.RequestBody Map<String, Object> data) {
+        byte[] json = generationService.generateJson(id, data);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"rapport_data.json\"")
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .body(json);
+    }
+
+    @Operation(
         summary = "Aperçu HTML d'un document",
         description = """
             Retourne le HTML généré à partir des données et du design, sans conversion PDF.

@@ -26,7 +26,7 @@ import java.util.zip.ZipInputStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -202,12 +202,12 @@ class BatchGenerationServiceTest {
 
         when(batchRepository.findById(batchId)).thenReturn(Optional.of(batch));
         when(entrepriseService.getCurrentCodeEntreprise()).thenReturn("ENT-001");
-        when(itemRepository.findByBatch_IdAndStatut(batchId, BatchItemStatus.ECHEC))
+        when(itemRepository.findByBatch_IdAndStatutIn(eq(batchId), any()))
                 .thenReturn(Collections.emptyList());
 
         assertThatThrownBy(() -> batchService.retryFailedItems(batchId))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("Aucun élément en échec");
+                .hasMessageContaining("Aucun élément");
     }
 }
 

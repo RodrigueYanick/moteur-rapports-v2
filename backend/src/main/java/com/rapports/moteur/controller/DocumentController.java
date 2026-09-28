@@ -162,6 +162,82 @@ public class DocumentController {
     }
 
     @Operation(
+        summary = "Exporter un document en Image HD (PNG / JPEG 300 DPI)",
+        description = "Génère une image haute résolution (300 DPI) ou une archive ZIP multi-pages du document."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Image ou ZIP généré"),
+        @ApiResponse(responseCode = "404", description = "Document introuvable")
+    })
+    @GetMapping("/{id}/export-image")
+    public ResponseEntity<byte[]> exportImage(
+            @Parameter(description = "Identifiant UUID du template", required = true)
+            @PathVariable UUID templateId,
+            @Parameter(description = "Identifiant UUID du document", required = true)
+            @PathVariable UUID id,
+            @RequestParam(required = false, defaultValue = "PNG") String format,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false, defaultValue = "300") Integer dpi,
+            @RequestParam(required = false, defaultValue = "0.95") Float quality) {
+        DocumentResponse doc = documentService.getById(templateId, id);
+        com.rapports.moteur.service.rendering.ImageExportResult result =
+                generationService.generateImage(templateId, doc.getDonnees(), format, page, dpi, quality);
+        String cleanName = doc.getNom() != null ? doc.getNom().replaceAll("[^a-zA-Z0-9._-]", "_") : "document";
+        String ext = result.isZip() ? ".zip" : (result.getContentType().contains("jpeg") ? ".jpg" : ".png");
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + cleanName + ext + "\"")
+                .header(HttpHeaders.CONTENT_TYPE, result.getContentType())
+                .body(result.getData());
+    }
+
+    @Operation(
+        summary = "Exporter un document en CSV",
+        description = "Exporte les données du document au format CSV (UTF-8 avec BOM compatible Excel)."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Fichier CSV généré"),
+        @ApiResponse(responseCode = "404", description = "Document introuvable")
+    })
+    @GetMapping("/{id}/export-csv")
+    public ResponseEntity<byte[]> exportCsv(
+            @Parameter(description = "Identifiant UUID du template", required = true)
+            @PathVariable UUID templateId,
+            @Parameter(description = "Identifiant UUID du document", required = true)
+            @PathVariable UUID id,
+            @RequestParam(required = false, defaultValue = ";") Character delimiter) {
+        DocumentResponse doc = documentService.getById(templateId, id);
+        byte[] csv = generationService.generateCsv(templateId, doc.getDonnees(), delimiter);
+        String cleanName = doc.getNom() != null ? doc.getNom().replaceAll("[^a-zA-Z0-9._-]", "_") : "document";
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + cleanName + ".csv\"")
+                .header(HttpHeaders.CONTENT_TYPE, "text/csv; charset=UTF-8")
+                .body(csv);
+    }
+
+    @Operation(
+        summary = "Exporter un document en JSON brut",
+        description = "Exporte les données brutes du document enrichies de métadonnées au format JSON."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Fichier JSON généré"),
+        @ApiResponse(responseCode = "404", description = "Document introuvable")
+    })
+    @GetMapping("/{id}/export-json")
+    public ResponseEntity<byte[]> exportJson(
+            @Parameter(description = "Identifiant UUID du template", required = true)
+            @PathVariable UUID templateId,
+            @Parameter(description = "Identifiant UUID du document", required = true)
+            @PathVariable UUID id) {
+        DocumentResponse doc = documentService.getById(templateId, id);
+        byte[] json = generationService.generateJson(templateId, doc.getDonnees());
+        String cleanName = doc.getNom() != null ? doc.getNom().replaceAll("[^a-zA-Z0-9._-]", "_") : "document";
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + cleanName + "_data.json\"")
+                .header(HttpHeaders.CONTENT_TYPE, "application/json; charset=UTF-8")
+                .body(json);
+    }
+
+    @Operation(
         summary = "Envoyer un document par email",
         description = "Expédie le document sous forme de pièce jointe PDF à l'adresse email spécifiée."
     )

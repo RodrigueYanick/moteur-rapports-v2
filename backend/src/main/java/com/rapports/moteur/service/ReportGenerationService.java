@@ -44,6 +44,8 @@ public class ReportGenerationService {
     private final com.rapports.moteur.service.facturx.FacturXPdfService facturXPdfService;
     private final com.rapports.moteur.service.metrics.ReportMetricsService reportMetricsService;
     private final com.rapports.moteur.service.datasource.DataSourceExecutionService dataSourceExecutionService;
+    private final com.rapports.moteur.service.rendering.ImageRendererService imageRendererService;
+    private final RawDataExportService rawDataExportService;
 
     public ReportGenerationService(ReportGenerationRepository generationRepository,
                                     ReportTemplateRepository templateRepository,
@@ -59,7 +61,9 @@ public class ReportGenerationService {
                                     ExcelRendererService excelRenderer,
                                     com.rapports.moteur.service.facturx.FacturXPdfService facturXPdfService,
                                     com.rapports.moteur.service.metrics.ReportMetricsService reportMetricsService,
-                                    com.rapports.moteur.service.datasource.DataSourceExecutionService dataSourceExecutionService) {
+                                    com.rapports.moteur.service.datasource.DataSourceExecutionService dataSourceExecutionService,
+                                    com.rapports.moteur.service.rendering.ImageRendererService imageRendererService,
+                                    RawDataExportService rawDataExportService) {
         this.generationRepository = generationRepository;
         this.templateRepository = templateRepository;
         this.validatorService = validatorService;
@@ -75,6 +79,8 @@ public class ReportGenerationService {
         this.facturXPdfService = facturXPdfService;
         this.reportMetricsService = reportMetricsService;
         this.dataSourceExecutionService = dataSourceExecutionService;
+        this.imageRendererService = imageRendererService;
+        this.rawDataExportService = rawDataExportService;
     }
 
     // ============================================================
@@ -234,6 +240,30 @@ public class ReportGenerationService {
         return excelRenderer.renderToExcel(template, data);
     }
 
+    public com.rapports.moteur.service.rendering.ImageExportResult generateImage(UUID templateId, Object rawData,
+                                                                                 String format, Integer page,
+                                                                                 Integer dpi, Float quality) {
+        ReportTemplate template = getPublishedTemplate(templateId);
+        Map<String, Object> data = resolveData(template, rawData);
+        validatorService.validate(template.getSchema(), data);
+        byte[] pdfBytes = renderPdf(template, data);
+        return imageRendererService.renderToImage(pdfBytes, format, page, dpi, quality);
+    }
+
+    public byte[] generateCsv(UUID templateId, Object rawData, Character delimiter) {
+        ReportTemplate template = getPublishedTemplate(templateId);
+        Map<String, Object> data = resolveData(template, rawData);
+        validatorService.validate(template.getSchema(), data);
+        return rawDataExportService.exportToCsv(template, data, delimiter);
+    }
+
+    public byte[] generateJson(UUID templateId, Object rawData) {
+        ReportTemplate template = getPublishedTemplate(templateId);
+        Map<String, Object> data = resolveData(template, rawData);
+        validatorService.validate(template.getSchema(), data);
+        return rawDataExportService.exportToJson(template, data);
+    }
+
     public Map<String, Object> resolveData(ReportTemplate template, Object rawData) {
         Map<String, Object> callerData = toDataMap(rawData);
         if (template.getDataSource() != null && Boolean.TRUE.equals(template.getDataSource().getActif())
@@ -280,8 +310,23 @@ public class ReportGenerationService {
 
     @SuppressWarnings("unchecked")
     private Map<String, Object> toDataMap(Object rawData) {
+        if (rawData == null) return new java.util.HashMap<>();
         if (rawData instanceof Map) return (Map<String, Object>) rawData;
-        throw new ValidationException(List.of("Le corps de la requete doit etre un objet JSON"));
+        if (rawData instanceof String str) {
+            try {
+                return objectMapper.readValue(str, Map.class);
+            } catch (Exception ignored) {}
+        }
+        if (rawData instanceof com.fasterxml.jackson.databind.node.TextNode textNode) {
+            try {
+                return objectMapper.readValue(textNode.asText(), Map.class);
+            } catch (Exception ignored) {}
+        }
+        try {
+            return objectMapper.convertValue(rawData, Map.class);
+        } catch (Exception e) {
+            throw new ValidationException(List.of("Le corps de la requete doit etre un objet JSON"));
+        }
     }
 
     private ReportGeneration createGenerationEntry(ReportTemplate template, Map<String, Object> data) {
