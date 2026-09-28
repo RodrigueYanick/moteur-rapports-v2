@@ -47,7 +47,7 @@ public class UrlSecurityValidator {
 
         String scheme = uri.getScheme();
         if (scheme == null || (!scheme.equalsIgnoreCase("http") && !scheme.equalsIgnoreCase("https"))) {
-            throw new ValidationException("Protocole non autorisé : l'URL doit impérativement commencer par http:// ou https://");
+            throw new ValidationException("Protocole non autorisé : seuls HTTP et HTTPS sont permis");
         }
 
         String host = uri.getHost();

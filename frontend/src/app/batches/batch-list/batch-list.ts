@@ -228,12 +228,33 @@ export class BatchListComponent implements OnInit, OnDestroy {
   loadTemplateVariables(templateId: string): void {
     this.api.getVariables(templateId).subscribe({
       next: (vars) => {
-        this.selectedTemplateVariables = vars;
-        this.cdr.detectChanges();
+        if (vars && vars.length > 0) {
+          this.selectedTemplateVariables = vars;
+          this.cdr.detectChanges();
+        } else {
+          // Si aucune variable explicite, fallback sur les variables extraites du schéma
+          this.api.getSchema(templateId).subscribe({
+            next: (schema) => {
+              this.selectedTemplateVariables = (schema && schema.variables) ? schema.variables : [];
+              this.cdr.detectChanges();
+            },
+            error: () => {
+              this.selectedTemplateVariables = [];
+            },
+          });
+        }
       },
       error: (err) => {
-        console.warn('Impossible de charger les variables du template', err);
-        this.selectedTemplateVariables = [];
+        // Fallback sur le schéma
+        this.api.getSchema(templateId).subscribe({
+          next: (schema) => {
+            this.selectedTemplateVariables = (schema && schema.variables) ? schema.variables : [];
+            this.cdr.detectChanges();
+          },
+          error: () => {
+            this.selectedTemplateVariables = [];
+          },
+        });
       },
     });
   }
@@ -257,6 +278,42 @@ export class BatchListComponent implements OnInit, OnDestroy {
   }
 
   loadSampleJson(): void {
+    if (this.selectedTemplateVariables && this.selectedTemplateVariables.length > 0) {
+      const row1: Record<string, any> = {};
+      const row2: Record<string, any> = {};
+      const row3: Record<string, any> = {};
+
+      this.selectedTemplateVariables.forEach((v, idx) => {
+        const type = (v.type || '').toUpperCase();
+        if (type === 'NUMBER' || type === 'FLOAT' || type === 'INTEGER') {
+          row1[v.nomVariable] = 100.0 + idx * 25;
+          row2[v.nomVariable] = 250.5 + idx * 10;
+          row3[v.nomVariable] = 480.0 + idx * 15;
+        } else if (type === 'DATE') {
+          row1[v.nomVariable] = '2026-09-28';
+          row2[v.nomVariable] = '2026-10-15';
+          row3[v.nomVariable] = '2026-11-01';
+        } else if (type === 'BOOLEAN') {
+          row1[v.nomVariable] = true;
+          row2[v.nomVariable] = false;
+          row3[v.nomVariable] = true;
+        } else {
+          row1[v.nomVariable] = 'Exemple ' + v.nomVariable;
+          row2[v.nomVariable] = 'Donnée ' + v.nomVariable;
+          row3[v.nomVariable] = 'Valeur ' + v.nomVariable;
+        }
+      });
+
+      const sample = [
+        { customId: 'LOT-2026-001', data: row1 },
+        { customId: 'LOT-2026-002', data: row2 },
+        { customId: 'LOT-2026-003', data: row3 },
+      ];
+      this.jsonInput = JSON.stringify(sample, null, 2);
+      this.cdr.detectChanges();
+      return;
+    }
+
     const sample = [
       {
         customId: 'FACT-2026-001',

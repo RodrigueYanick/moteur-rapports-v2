@@ -15,6 +15,8 @@ public interface BatchGenerationItemRepository extends JpaRepository<BatchGenera
 
     List<BatchGenerationItem> findByBatch_IdAndStatut(UUID batchId, BatchItemStatus statut);
 
+    List<BatchGenerationItem> findByBatch_IdAndStatutIn(UUID batchId, java.util.Collection<BatchItemStatus> statuts);
+
     long countByBatch_IdAndStatut(UUID batchId, BatchItemStatus statut);
 }
 

@@ -43,15 +43,34 @@ public class AsyncBatchProcessor {
         log.info("Démarrage du traitement asynchrone du lot {} (retryOnlyFailed={})", batchId, retryOnlyFailed);
         reportMetricsService.incrementActiveBatches();
 
-        ReportBatch batch = batchRepository.findById(batchId)
-                .orElseThrow(() -> new IllegalStateException("Lot introuvable : " + batchId));
+        ReportBatch batch = null;
+        for (int i = 0; i < 10; i++) {
+            var opt = batchRepository.findByIdWithTemplate(batchId);
+            if (opt.isPresent()) {
+                batch = opt.get();
+                break;
+            }
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+
+        if (batch == null) {
+            log.error("Échec du traitement asynchrone : Lot introuvable en base pour l'ID : {}", batchId);
+            reportMetricsService.decrementActiveBatches();
+            return;
+        }
 
         batch.setStatut(BatchStatus.EN_COURS);
         batchRepository.save(batch);
 
         List<BatchGenerationItem> itemsToProcess;
         if (retryOnlyFailed) {
-            itemsToProcess = itemRepository.findByBatch_IdAndStatut(batchId, BatchItemStatus.ECHEC);
+            itemsToProcess = itemRepository.findByBatch_IdAndStatutIn(
+                    batchId, List.of(BatchItemStatus.ECHEC, BatchItemStatus.EN_ATTENTE));
         } else {
             itemsToProcess = itemRepository.findByBatch_IdOrderByDateTraitementAsc(batchId);
         }

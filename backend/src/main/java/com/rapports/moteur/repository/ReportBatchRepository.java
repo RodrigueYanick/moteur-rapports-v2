@@ -18,6 +18,10 @@ public interface ReportBatchRepository extends JpaRepository<ReportBatch, UUID> 
     @Query("SELECT b FROM ReportBatch b WHERE b.codeEntreprise = :codeEntreprise ORDER BY b.dateCreation DESC")
     List<ReportBatch> findAllByEntreprise(@Param("codeEntreprise") String codeEntreprise);
 
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"template"})
+    @Query("SELECT b FROM ReportBatch b WHERE b.id = :id")
+    java.util.Optional<ReportBatch> findByIdWithTemplate(@Param("id") UUID id);
+
     List<ReportBatch> findByStatut(BatchStatus statut);
 }
 

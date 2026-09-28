@@ -111,8 +111,20 @@ public class BatchGenerationService {
         itemRepository.saveAll(items);
         savedBatch.setItems(items);
 
-        // Lancement asynchrone du traitement
-        asyncBatchProcessor.processBatchAsync(savedBatch.getId(), false);
+        // Lancement asynchrone du traitement APRÈS le commit effectif de la transaction en base
+        UUID batchId = savedBatch.getId();
+        if (org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive()) {
+            org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+                    new org.springframework.transaction.support.TransactionSynchronization() {
+                        @Override
+                        public void afterCommit() {
+                            asyncBatchProcessor.processBatchAsync(batchId, false);
+                        }
+                    }
+            );
+        } else {
+            asyncBatchProcessor.processBatchAsync(batchId, false);
+        }
 
         return batchMapper.toResponse(savedBatch, true);
     }
