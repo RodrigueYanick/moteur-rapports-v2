@@ -3,11 +3,7 @@
   "outputDirectory": "dist/report-designer",
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "https://moteur-rapports-v2-production.up.railway.app/api/$1"
-    },
-    {
-      "source": "/(.*)",
+      "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
   ]
