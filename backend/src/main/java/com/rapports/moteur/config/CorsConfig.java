@@ -20,15 +20,18 @@ public class CorsConfig {
         return new WebMvcConfigurer() {
             @Override
             public void addCorsMappings(@NonNull CorsRegistry registry) {
-                String[] origins = Arrays.stream(allowedOrigins.split(","))
+                java.util.List<String> originPatterns = new java.util.ArrayList<>(Arrays.stream(allowedOrigins.split(","))
                         .map(String::trim)
                         .filter(s -> !s.isEmpty())
-                        .toArray(String[]::new);
+                        .toList());
+                originPatterns.add("https://*.vercel.app");
+                originPatterns.add("https://moteur-rapports-v2.vercel.app");
 
                 registry.addMapping("/**")
-                        .allowedOrigins(origins)
+                        .allowedOriginPatterns(originPatterns.toArray(String[]::new))
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
                         .allowedHeaders("*")
+                        .exposedHeaders("Authorization", "Content-Disposition", "X-Entreprise-Code")
                         .allowCredentials(true);
             }
         };
