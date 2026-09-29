@@ -59,12 +59,20 @@ public abstract class BaseIntegrationTest {
     @Autowired
     protected com.rapports.moteur.repository.DataSourceConfigRepository dataSourceConfigRepository;
 
+    @Autowired
+    protected com.rapports.moteur.repository.ScheduledReportJobRepository scheduledReportJobRepository;
+
+    @Autowired
+    protected com.rapports.moteur.repository.ScheduledJobExecutionRepository scheduledJobExecutionRepository;
+
     @BeforeEach
     void baseSetUp() {
         cleanDatabase();
     }
 
     protected void cleanDatabase() {
+        scheduledJobExecutionRepository.deleteAll();
+        scheduledReportJobRepository.deleteAll();
         batchItemRepository.deleteAll();
         batchRepository.deleteAll();
         documentRepository.deleteAll();
