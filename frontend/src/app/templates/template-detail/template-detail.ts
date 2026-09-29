@@ -21,11 +21,21 @@ import {
   ArrowRight,
   Layers,
   ChevronRight,
+  Image,
+  FileCode,
+  Database,
+  Play,
+  CheckCircle2,
+  AlertCircle,
 } from 'lucide-angular';
+import { FormsModule } from '@angular/forms';
+import { DataSourceService } from '../../services/data-source.service';
+import { DataSourceConfig } from '../../models/data-source.model';
+
 @Component({
   selector: 'app-template-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule, ReportDesigner, VariableValidationForm, LucideAngularModule],
+  imports: [CommonModule, RouterModule, FormsModule, ReportDesigner, VariableValidationForm, LucideAngularModule],
   templateUrl: './template-detail.html',
   styleUrls: ['./template-detail.scss'],
 })
@@ -57,6 +67,15 @@ export class TemplateDetail implements OnInit {
   versionViewMode: 'timeline' | 'tree' = 'timeline';
   activeStudioTab: 'designer' | 'versions' | 'test' = 'designer';
 
+  // Sources de données distantes
+  dataSources: DataSourceConfig[] = [];
+  selectedDataSourceId: string | null = null;
+  dataSourceQuery: string = '';
+  testingQuery = false;
+  queryTestSuccess: boolean | null = null;
+  queryTestMessage = '';
+  queryTestCount = 0;
+
   readonly icons = {
     archive: Archive,
     newVersion: RefreshCw,
@@ -67,10 +86,17 @@ export class TemplateDetail implements OnInit {
     arrowRight: ArrowRight,
     layers: Layers,
     chevronRight: ChevronRight,
+    image: Image,
+    code: FileCode,
+    database: Database,
+    play: Play,
+    check: CheckCircle2,
+    alert: AlertCircle,
   };
 
   constructor(
     private api: TemplateApiService,
+    private dataSourceService: DataSourceService,
     private route: ActivatedRoute,
     private router: Router,
     private cdr: ChangeDetectorRef,
@@ -79,6 +105,7 @@ export class TemplateDetail implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this.loadDataSources();
     const id = this.templateId || this.route.snapshot.paramMap.get('id');
     if (id) {
       this.loadTemplate(id);
@@ -155,6 +182,56 @@ export class TemplateDetail implements OnInit {
     });
   }
 
+  exportImageDirect(format: 'PNG' | 'JPEG' = 'PNG'): void {
+    if (!this.template) return;
+    const mockData = this.mockDataService.generate(this.allBlocksFlat);
+    this.api.exportImage(this.template.id, mockData, format).subscribe({
+      next: (blob: Blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const isZip = blob.type.includes('zip');
+        const ext = isZip ? 'zip' : (format === 'PNG' ? 'png' : 'jpg');
+        a.download = `${this.template!.nom || 'rapport'}.${ext}`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+      },
+      error: (err) => this.handleGenerationError(err)
+    });
+  }
+
+  exportCsvDirect(): void {
+    if (!this.template) return;
+    const mockData = this.mockDataService.generate(this.allBlocksFlat);
+    this.api.exportCsv(this.template.id, mockData).subscribe({
+      next: (blob: Blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${this.template!.nom || 'rapport'}.csv`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+      },
+      error: (err) => this.handleGenerationError(err)
+    });
+  }
+
+  exportJsonDirect(): void {
+    if (!this.template) return;
+    const mockData = this.mockDataService.generate(this.allBlocksFlat);
+    this.api.exportJson(this.template.id, mockData).subscribe({
+      next: (blob: Blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${this.template!.nom || 'rapport'}.json`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+      },
+      error: (err) => this.handleGenerationError(err)
+    });
+  }
+
   duplicateAndNavigate(): void {
     if (!this.template) return;
     this.api.duplicateTemplate(this.template.id).subscribe({
@@ -219,6 +296,8 @@ export class TemplateDetail implements OnInit {
         template.margeGaucheMm = (template.margeGaucheMm != null && template.margeGaucheMm > 0) ? template.margeGaucheMm : 10;
         template.margeDroiteMm = (template.margeDroiteMm != null && template.margeDroiteMm > 0) ? template.margeDroiteMm : 10;
         this.template = template;
+        this.selectedDataSourceId = template.dataSourceId || null;
+        this.dataSourceQuery = template.dataSourceQuery || '';
         this.modePagination = template.modePagination || 'FIXED';
         this.loading = false;
         this.loadDesign();
@@ -230,6 +309,53 @@ export class TemplateDetail implements OnInit {
         console.error(err);
         this.cdr.detectChanges();
       },
+    });
+  }
+
+  loadDataSources(): void {
+    this.dataSourceService.getAll().subscribe({
+      next: (sources) => {
+        this.dataSources = sources || [];
+        this.cdr.detectChanges();
+      },
+      error: (err) => console.error('Erreur chargement sources de données', err)
+    });
+  }
+
+  saveDataSource(): void {
+    if (!this.template) return;
+    this.savingStatus = 'saving';
+    this.triggerSave();
+  }
+
+  testDataSourceQuery(): void {
+    if (!this.selectedDataSourceId || !this.dataSourceQuery.trim()) {
+      this.queryTestSuccess = false;
+      this.queryTestMessage = 'Veuillez sélectionner un connecteur et renseigner une requête SQL ou un endpoint REST.';
+      return;
+    }
+    this.testingQuery = true;
+    this.queryTestSuccess = null;
+    this.queryTestMessage = '';
+    this.dataSourceService.executeQuery(this.selectedDataSourceId, this.dataSourceQuery).subscribe({
+      next: (res) => {
+        this.testingQuery = false;
+        this.queryTestSuccess = true;
+        if (Array.isArray(res)) {
+          this.queryTestCount = res.length;
+          this.queryTestMessage = `Succès : ${res.length} enregistrement(s) retourné(s)`;
+        } else {
+          this.queryTestCount = 1;
+          this.queryTestMessage = 'Succès : données reçues avec succès';
+        }
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.testingQuery = false;
+        this.queryTestSuccess = false;
+        this.queryTestMessage = 'Erreur d\'exécution : ' + (err.error?.message || err.message);
+        this.cdr.detectChanges();
+      }
     });
   }
 
@@ -263,6 +389,8 @@ export class TemplateDetail implements OnInit {
       margeBasMm: (this.template.margeBasMm != null && this.template.margeBasMm > 0) ? this.template.margeBasMm : 10,
       margeGaucheMm: (this.template.margeGaucheMm != null && this.template.margeGaucheMm > 0) ? this.template.margeGaucheMm : 10,
       margeDroiteMm: (this.template.margeDroiteMm != null && this.template.margeDroiteMm > 0) ? this.template.margeDroiteMm : 10,
+      dataSourceId: this.selectedDataSourceId,
+      dataSourceQuery: this.dataSourceQuery,
     };
     if (this.template.formatPapier === 'CUSTOM') {
       updateData.largeurMm = this.template.largeurMm;

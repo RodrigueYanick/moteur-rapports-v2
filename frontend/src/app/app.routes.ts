@@ -41,5 +41,15 @@ export const routes: Routes = [
     loadComponent: () => import('./batches/batch-list/batch-list').then(m => m.BatchListComponent),
     canActivate: [authGuard]
   },
+  {
+    path: 'data-sources',
+    loadComponent: () => import('./data-sources/data-source-list/data-source-list.component').then(m => m.DataSourceListComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'schedules',
+    loadComponent: () => import('./schedules/schedule-list/schedule-list.component').then(m => m.ScheduleListComponent),
+    canActivate: [authGuard]
+  },
   { path: '**', redirectTo: '/bibliotheque' }
 ];

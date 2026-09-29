@@ -22,6 +22,8 @@ import {
   Eye,
   Mail,
   Send,
+  Image,
+  FileCode,
 } from 'lucide-angular';
 
 @Component({
@@ -46,6 +48,9 @@ export class DocumentList implements OnInit {
   viewMode: 'grid' | 'list' = 'grid';
   downloadingId: string | null = null;
   downloadingExcelId: string | null = null;
+  downloadingImageId: string | null = null;
+  downloadingCsvId: string | null = null;
+  downloadingJsonId: string | null = null;
   deletingId: string | null = null;
   visibilityFilter: 'ALL' | 'PUBLIC' | 'PRIVATE' = 'ALL';
 
@@ -73,6 +78,8 @@ export class DocumentList implements OnInit {
     eye: Eye,
     mail: Mail,
     send: Send,
+    image: Image,
+    code: FileCode,
   };
 
   private templateColors = [
@@ -237,6 +244,83 @@ export class DocumentList implements OnInit {
         this.toast.error("Échec de l'export Excel. Vérifiez les données du modèle.", 'Erreur export');
         this.cdr.detectChanges();
       },
+    });
+  }
+
+  downloadDocumentImage(doc: GeneratedDocument, format: 'PNG' | 'JPEG' = 'PNG', event?: Event): void {
+    event?.stopPropagation();
+    if (this.downloadingImageId) return;
+    this.downloadingImageId = doc.id;
+    this.api.exportDocumentImage(doc.templateId, doc.id, format).subscribe({
+      next: (blob: Blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const isZip = blob.type.includes('zip');
+        const ext = isZip ? 'zip' : (format === 'PNG' ? 'png' : 'jpg');
+        a.download = `${doc.nom}.${ext}`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        this.downloadingImageId = null;
+        this.toast.success(`Le document « ${doc.nom} » a été téléchargé en image HD (${format}).`, 'Export image réussi');
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Erreur export Image', err);
+        this.downloadingImageId = null;
+        this.toast.error("Échec de l'export en Image HD.", 'Erreur export');
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  downloadDocumentCsv(doc: GeneratedDocument, event?: Event): void {
+    event?.stopPropagation();
+    if (this.downloadingCsvId) return;
+    this.downloadingCsvId = doc.id;
+    this.api.exportDocumentCsv(doc.templateId, doc.id).subscribe({
+      next: (blob: Blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${doc.nom}.csv`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        this.downloadingCsvId = null;
+        this.toast.success(`Le document « ${doc.nom} » a été téléchargé en CSV (UTF-8).`, 'Export CSV réussi');
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Erreur export CSV', err);
+        this.downloadingCsvId = null;
+        this.toast.error("Échec de l'export CSV.", 'Erreur export');
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  downloadDocumentJson(doc: GeneratedDocument, event?: Event): void {
+    event?.stopPropagation();
+    if (this.downloadingJsonId) return;
+    this.downloadingJsonId = doc.id;
+    this.api.exportDocumentJson(doc.templateId, doc.id).subscribe({
+      next: (blob: Blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${doc.nom}.json`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        this.downloadingJsonId = null;
+        this.toast.success(`Le document « ${doc.nom} » a été téléchargé en JSON.`, 'Export JSON réussi');
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Erreur export JSON', err);
+        this.downloadingJsonId = null;
+        this.toast.error("Échec de l'export JSON.", 'Erreur export');
+        this.cdr.detectChanges();
+      }
     });
   }
 

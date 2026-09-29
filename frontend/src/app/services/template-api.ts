@@ -97,6 +97,51 @@ updateTemplate(id: string, form: any): Observable<Template> {
     return this.http.get(`${this.baseUrl}/${templateId}/documents/${documentId}/export-excel`, { responseType: 'blob' });
   }
 
+  // Export Image HD (PNG / JPEG) direct
+  exportImage(id: string, data: any, format: string = 'PNG', page?: number, dpi: number = 300, quality: number = 0.95): Observable<Blob> {
+    let params = new HttpParams()
+      .set('format', format)
+      .set('dpi', dpi.toString())
+      .set('quality', quality.toString());
+    if (page != null) {
+      params = params.set('page', page.toString());
+    }
+    return this.http.post(`${this.baseUrl}/${id}/export-image`, data, { params, responseType: 'blob' });
+  }
+
+  // Export CSV direct
+  exportCsv(id: string, data: any, delimiter: string = ';'): Observable<Blob> {
+    const params = new HttpParams().set('delimiter', delimiter);
+    return this.http.post(`${this.baseUrl}/${id}/export-csv`, data, { params, responseType: 'blob' });
+  }
+
+  // Export JSON brut direct
+  exportJson(id: string, data: any): Observable<Blob> {
+    return this.http.post(`${this.baseUrl}/${id}/export-json`, data, { responseType: 'blob' });
+  }
+
+  // Export Image d'un document sauvegardé
+  exportDocumentImage(templateId: string, documentId: string, format: string = 'PNG', page?: number, dpi: number = 300): Observable<Blob> {
+    let params = new HttpParams()
+      .set('format', format)
+      .set('dpi', dpi.toString());
+    if (page != null) {
+      params = params.set('page', page.toString());
+    }
+    return this.http.get(`${this.baseUrl}/${templateId}/documents/${documentId}/export-image`, { params, responseType: 'blob' });
+  }
+
+  // Export CSV d'un document sauvegardé
+  exportDocumentCsv(templateId: string, documentId: string, delimiter: string = ';'): Observable<Blob> {
+    const params = new HttpParams().set('delimiter', delimiter);
+    return this.http.get(`${this.baseUrl}/${templateId}/documents/${documentId}/export-csv`, { params, responseType: 'blob' });
+  }
+
+  // Export JSON d'un document sauvegardé
+  exportDocumentJson(templateId: string, documentId: string): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/${templateId}/documents/${documentId}/export-json`, { responseType: 'blob' });
+  }
+
   duplicateTemplate(id: string): Observable<Template> {
     return this.http.post<Template>(`${this.baseUrl}/${id}/duplicate`, {});
   }

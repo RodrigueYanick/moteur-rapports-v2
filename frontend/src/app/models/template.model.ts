@@ -34,6 +34,9 @@ export interface Template {
   footerCouleurLigne?: string;
   numerotationPage?: boolean;
   formatNumerotation?: 'PAGE_X_SUR_Y' | 'PAGE_X';
+  dataSourceId?: string | null;
+  dataSourceNom?: string | null;
+  dataSourceQuery?: string | null;
 }
 
 export interface TemplateVersionDto {

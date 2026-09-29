@@ -75,6 +75,18 @@
             <lucide-icon [img]="downloadingExcelId === doc.id ? icons.loader : icons.spreadsheet" [size]="13" [class.spin]="downloadingExcelId === doc.id"></lucide-icon>
             Excel
           </button>
+          <button class="hover-btn image" [disabled]="downloadingImageId === doc.id" (click)="downloadDocumentImage(doc, 'PNG', $event)" title="Exporter en Image HD (PNG 300 DPI)">
+            <lucide-icon [img]="downloadingImageId === doc.id ? icons.loader : icons.image" [size]="13" [class.spin]="downloadingImageId === doc.id"></lucide-icon>
+            Image HD
+          </button>
+          <button class="hover-btn csv" [disabled]="downloadingCsvId === doc.id" (click)="downloadDocumentCsv(doc, $event)" title="Exporter en CSV (UTF-8 BOM)">
+            <lucide-icon [img]="downloadingCsvId === doc.id ? icons.loader : icons.file" [size]="13" [class.spin]="downloadingCsvId === doc.id"></lucide-icon>
+            CSV
+          </button>
+          <button class="hover-btn json" [disabled]="downloadingJsonId === doc.id" (click)="downloadDocumentJson(doc, $event)" title="Exporter en JSON brut">
+            <lucide-icon [img]="downloadingJsonId === doc.id ? icons.loader : icons.code" [size]="13" [class.spin]="downloadingJsonId === doc.id"></lucide-icon>
+            JSON
+          </button>
           <button class="hover-btn email" (click)="openEmailForDocument(doc, $event)" title="Envoyer par email">
             <lucide-icon [img]="icons.mail" [size]="13"></lucide-icon>
             Email
@@ -126,6 +138,15 @@
             </button>
             <button (click)="downloadDocumentExcel(doc, $event)" class="icon-action excel" [disabled]="downloadingExcelId === doc.id" title="Exporter en Excel (.xlsx)">
               <lucide-icon [img]="downloadingExcelId === doc.id ? icons.loader : icons.spreadsheet" [size]="15" [class.spin]="downloadingExcelId === doc.id"></lucide-icon>
+            </button>
+            <button (click)="downloadDocumentImage(doc, 'PNG', $event)" class="icon-action image" [disabled]="downloadingImageId === doc.id" title="Exporter en Image HD (PNG)">
+              <lucide-icon [img]="downloadingImageId === doc.id ? icons.loader : icons.image" [size]="15" [class.spin]="downloadingImageId === doc.id"></lucide-icon>
+            </button>
+            <button (click)="downloadDocumentCsv(doc, $event)" class="icon-action csv" [disabled]="downloadingCsvId === doc.id" title="Exporter en CSV (UTF-8 BOM)">
+              <lucide-icon [img]="downloadingCsvId === doc.id ? icons.loader : icons.file" [size]="15" [class.spin]="downloadingCsvId === doc.id"></lucide-icon>
+            </button>
+            <button (click)="downloadDocumentJson(doc, $event)" class="icon-action json" [disabled]="downloadingJsonId === doc.id" title="Exporter en JSON brut">
+              <lucide-icon [img]="downloadingJsonId === doc.id ? icons.loader : icons.code" [size]="15" [class.spin]="downloadingJsonId === doc.id"></lucide-icon>
             </button>
             <button (click)="openEmailForDocument(doc, $event)" class="icon-action email" title="Envoyer par email">
               <lucide-icon [img]="icons.mail" [size]="15"></lucide-icon>

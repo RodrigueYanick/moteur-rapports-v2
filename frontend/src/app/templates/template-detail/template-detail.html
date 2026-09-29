@@ -155,6 +155,18 @@
           <a *ngIf="template.statut === 'PUBLIE'" [routerLink]="['/batches']" [queryParams]="{ templateId: template.id, new: 'true' }" class="btn btn-secondary">
             <lucide-icon [img]="icons.layers" [size]="16"></lucide-icon> Générer par lot
           </a>
+          <button *ngIf="template.statut === 'PUBLIE'" (click)="exportImageDirect('PNG')" class="btn btn-secondary" title="Export Image HD 300 DPI">
+            <lucide-icon [img]="icons.image" [size]="16"></lucide-icon> Image HD (PNG)
+          </button>
+          <button *ngIf="template.statut === 'PUBLIE'" (click)="exportCsvDirect()" class="btn btn-secondary" title="Export CSV (UTF-8 BOM)">
+            <lucide-icon [img]="icons.code" [size]="16"></lucide-icon> Export CSV
+          </button>
+          <button *ngIf="template.statut === 'PUBLIE'" (click)="exportJsonDirect()" class="btn btn-secondary" title="Export JSON brut">
+            <lucide-icon [img]="icons.code" [size]="16"></lucide-icon> Export JSON
+          </button>
+          <a *ngIf="template.statut === 'PUBLIE'" [routerLink]="['/schedules']" class="btn btn-secondary" title="Configurer une diffusion CRON">
+            <lucide-icon [img]="icons.clock" [size]="16"></lucide-icon> Planifier
+          </a>
           <button *ngIf="template.statut === 'PUBLIE'" (click)="archive()" class="btn btn-warning">
             <lucide-icon [img]="icons.archive" [size]="16"></lucide-icon> Archiver
           </button>
@@ -168,6 +180,56 @@
 
         <div *ngIf="template.parentTemplateId" class="parent-link">
           <a [routerLink]="['/templates', template.parentTemplateId]">← Voir la version précédente</a>
+        </div>
+
+        <!-- Section Source de Données Distante (Connecteur SQL / REST) -->
+        <div class="data-source-config-card">
+          <div class="version-card-header">
+            <div class="header-left">
+              <lucide-icon [img]="icons.database" [size]="20" class="branch-icon"></lucide-icon>
+              <div>
+                <h3>Connecteur de Données Distant (SQL / REST)</h3>
+                <p class="subtitle">Alimentez automatiquement ce rapport avec une base SQL distante ou une API externe.</p>
+              </div>
+            </div>
+            <a routerLink="/data-sources" class="btn-node-link">
+              Gérer les connecteurs →
+            </a>
+          </div>
+
+          <div class="ds-form-body">
+            <div class="ds-field-group">
+              <label class="ds-label">Connecteur de données associé :</label>
+              <select class="ds-select" [(ngModel)]="selectedDataSourceId" (change)="saveDataSource()" [disabled]="template.statut !== 'BROUILLON'">
+                <option [ngValue]="null">-- Aucune source distante (variables saisies manuellement / JSON) --</option>
+                <option *ngFor="let ds of dataSources" [value]="ds.id">
+                  {{ ds.nom }} ({{ ds.type }})
+                </option>
+              </select>
+            </div>
+
+            <div class="ds-field-group" *ngIf="selectedDataSourceId">
+              <label class="ds-label">Requête SQL SELECT ou Endpoint d'API :</label>
+              <textarea
+                class="ds-textarea"
+                [(ngModel)]="dataSourceQuery"
+                (ngModelChange)="saveDataSource()"
+                [disabled]="template.statut !== 'BROUILLON'"
+                rows="3"
+                placeholder="Exemple SQL: SELECT id, client, montant, date FROM factures WHERE statut = 'PAYEE' LIMIT 100&#10;Exemple REST: /v1/invoices/latest?limit=50">
+              </textarea>
+
+              <div class="ds-actions-row">
+                <button type="button" class="btn btn-secondary btn-sm" (click)="testDataSourceQuery()" [disabled]="testingQuery">
+                  <lucide-icon [img]="icons.play" [size]="14" [class.spin]="testingQuery"></lucide-icon>
+                  {{ testingQuery ? 'Test en cours...' : 'Tester la requête distante' }}
+                </button>
+                <span class="test-feedback" *ngIf="queryTestSuccess !== null" [class.success]="queryTestSuccess" [class.error]="!queryTestSuccess">
+                  {{ queryTestMessage }}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Section Historique & Arbre des Versions -->

@@ -39,6 +39,8 @@ import { CommandPaletteComponent } from '@shared/components/command-palette/comm
         <a routerLink="/bibliotheque" routerLinkActive="active">Bibliothèque</a>
         <a routerLink="/documents" routerLinkActive="active">Mes documents</a>
         <a routerLink="/batches" routerLinkActive="active">Lots & Webhooks</a>
+        <a routerLink="/data-sources" routerLinkActive="active">Connecteurs</a>
+        <a routerLink="/schedules" routerLinkActive="active">Planification</a>
         <a routerLink="/feuille-travail" routerLinkActive="active">Personnaliser la feuille</a>
       </div>
 

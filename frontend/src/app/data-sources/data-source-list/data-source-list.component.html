@@ -1,0 +1,204 @@
+<div class="data-sources-container">
+  <div class="header-section">
+    <div>
+      <h1 class="page-title">Connecteurs de Données Externes</h1>
+      <p class="page-subtitle">Configurez des bases SQL (PostgreSQL, MySQL) ou des APIs REST distantes pour alimenter vos modèles.</p>
+    </div>
+    <button class="btn-primary" (click)="openCreateModal()">
+      <lucide-icon [img]="icons.plus" [size]="16"></lucide-icon>
+      Nouveau Connecteur
+    </button>
+  </div>
+
+  <div *ngIf="successMsg" class="alert alert-success">
+    <lucide-icon [img]="icons.check" [size]="16"></lucide-icon>
+    <span>{{ successMsg }}</span>
+  </div>
+
+  <div *ngIf="errorMsg" class="alert alert-error">
+    <lucide-icon [img]="icons.alert" [size]="16"></lucide-icon>
+    <span>{{ errorMsg }}</span>
+  </div>
+
+  <!-- État de chargement -->
+  <div *ngIf="loading && dataSources.length === 0" class="loading-state">
+    <lucide-icon [img]="icons.refresh" [size]="24" class="spin"></lucide-icon>
+    <span>Chargement des sources de données...</span>
+  </div>
+
+  <!-- État vide -->
+  <div *ngIf="!loading && dataSources.length === 0" class="empty-state">
+    <div class="empty-icon">
+      <lucide-icon [img]="icons.database" [size]="48"></lucide-icon>
+    </div>
+    <h2>Aucune source de données configurée</h2>
+    <p>Connectez vos bases de production ou APIs ERP pour automatiser le remplissage des variables.</p>
+    <button class="btn-secondary" (click)="openCreateModal()">Ajouter un premier connecteur</button>
+  </div>
+
+  <!-- Grille des connecteurs -->
+  <div *ngIf="dataSources.length > 0" class="sources-grid">
+    <div *ngFor="let source of dataSources" class="source-card">
+      <div class="card-header">
+        <div class="type-icon" [ngClass]="source.type.toLowerCase()">
+          <lucide-icon *ngIf="source.type === 'POSTGRESQL'" [img]="icons.database" [size]="20"></lucide-icon>
+          <lucide-icon *ngIf="source.type === 'MYSQL'" [img]="icons.server" [size]="20"></lucide-icon>
+          <lucide-icon *ngIf="source.type === 'REST_API'" [img]="icons.globe" [size]="20"></lucide-icon>
+        </div>
+        <div class="card-meta">
+          <h3 class="source-name">{{ source.nom }}</h3>
+          <span class="type-badge">{{ source.type }}</span>
+        </div>
+        <div class="status-indicator" [class.active]="source.actif" [title]="source.actif ? 'Actif' : 'Inactif'"></div>
+      </div>
+
+      <div class="card-body">
+        <div class="info-row" *ngIf="source.type !== 'REST_API'">
+          <span class="label">Hôte / Port :</span>
+          <span class="value">{{ source.urlOuHote }}:{{ source.port }}</span>
+        </div>
+        <div class="info-row" *ngIf="source.type !== 'REST_API'">
+          <span class="label">Base de données :</span>
+          <span class="value">{{ source.nomBase || '-' }}</span>
+        </div>
+        <div class="info-row" *ngIf="source.type === 'REST_API'">
+          <span class="label">Point de terminaison :</span>
+          <span class="value text-truncate" [title]="source.urlOuHote">{{ source.urlOuHote }}</span>
+        </div>
+        <div class="info-row">
+          <span class="label">Authentification :</span>
+          <span class="value">
+            <span *ngIf="source.authType && source.authType !== 'AUCUNE'">{{ source.authType }}</span>
+            <span *ngIf="!source.authType || source.authType === 'AUCUNE'">{{ source.nomUtilisateur ? 'User / Password' : 'Aucune' }}</span>
+          </span>
+        </div>
+      </div>
+
+      <div class="card-footer">
+        <button class="btn-icon" (click)="openEditModal(source)" title="Modifier">
+          <lucide-icon [img]="icons.edit" [size]="16"></lucide-icon>
+        </button>
+        <button class="btn-icon danger" (click)="deleteSource(source)" title="Supprimer">
+          <lucide-icon [img]="icons.trash" [size]="16"></lucide-icon>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Création / Édition -->
+  <div *ngIf="showModal" class="modal-backdrop" (click)="closeModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>{{ isEditing ? 'Modifier la source de données' : 'Nouvelle source de données' }}</h2>
+        <button class="btn-close" (click)="closeModal()">×</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Nom du connecteur *</label>
+          <input type="text" [(ngModel)]="currentSource.nom" placeholder="Ex: PostgreSQL Production, API Factures" />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Type de connecteur *</label>
+            <select [(ngModel)]="currentSource.type" (change)="onTypeChange()">
+              <option value="POSTGRESQL">PostgreSQL (Lecture seule)</option>
+              <option value="MYSQL">MySQL (Lecture seule)</option>
+              <option value="REST_API">API REST Externe (JSON)</option>
+            </select>
+          </div>
+          <div class="form-group" *ngIf="currentSource.type !== 'REST_API'">
+            <label>Port</label>
+            <input type="number" [(ngModel)]="currentSource.port" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>{{ currentSource.type === 'REST_API' ? 'URL complète de l\'API *' : 'Hôte / Adresse IP *' }}</label>
+          <input type="text" [(ngModel)]="currentSource.urlOuHote" [placeholder]="currentSource.type === 'REST_API' ? 'https://api.mon-erp.com/v1/data' : 'postgres.domaine.com'" />
+        </div>
+
+        <div class="form-row" *ngIf="currentSource.type !== 'REST_API'">
+          <div class="form-group">
+            <label>Nom de la base</label>
+            <input type="text" [(ngModel)]="currentSource.nomBase" placeholder="Ex: erp_db" />
+          </div>
+          <div class="form-group">
+            <label>Utilisateur</label>
+            <input type="text" [(ngModel)]="currentSource.nomUtilisateur" placeholder="alpha_ro" />
+          </div>
+        </div>
+
+        <div class="form-group" *ngIf="currentSource.type !== 'REST_API'">
+          <label>Mot de passe {{ isEditing && currentSource.aMotDePasse ? '(Laisser vide pour conserver l\'actuel)' : '' }}</label>
+          <input type="password" [(ngModel)]="currentSource.motDePasse" placeholder="••••••••" />
+        </div>
+
+        <!-- Configuration API REST -->
+        <div *ngIf="currentSource.type === 'REST_API'" class="rest-config-section">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Type d'authentification</label>
+              <select [(ngModel)]="currentSource.authType">
+                <option value="AUCUNE">Aucune</option>
+                <option value="BEARER_TOKEN">Jeton Bearer (Bearer Token)</option>
+                <option value="BASIC">Basic Auth (Login/MDP)</option>
+                <option value="API_KEY">Clé API (API Key)</option>
+              </select>
+            </div>
+            <div class="form-group" *ngIf="currentSource.authType === 'API_KEY'">
+              <label>En-tête de la clé API</label>
+              <input type="text" [(ngModel)]="currentSource.apiKeyHeader" placeholder="X-API-KEY" />
+            </div>
+          </div>
+
+          <div class="form-group" *ngIf="currentSource.authType === 'BEARER_TOKEN' || currentSource.authType === 'API_KEY'">
+            <label>Valeur de la clé / Token</label>
+            <input type="password" [(ngModel)]="currentSource.motDePasse" placeholder="Secret Token ou Clé" />
+          </div>
+
+          <div class="form-row" *ngIf="currentSource.authType === 'BASIC'">
+            <div class="form-group">
+              <label>Nom d'utilisateur</label>
+              <input type="text" [(ngModel)]="currentSource.nomUtilisateur" />
+            </div>
+            <div class="form-group">
+              <label>Mot de passe</label>
+              <input type="password" [(ngModel)]="currentSource.motDePasse" />
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Timeout (secondes)</label>
+            <input type="number" [(ngModel)]="currentSource.timeoutSecondes" min="1" max="60" />
+          </div>
+          <div class="form-group flex-center">
+            <label class="checkbox-label">
+              <input type="checkbox" [(ngModel)]="currentSource.actif" />
+              Connecteur actif
+            </label>
+          </div>
+        </div>
+
+        <!-- Résultat test de connexion -->
+        <div *ngIf="testResult" class="test-result-box" [ngClass]="testResult.succes ? 'success' : 'error'">
+          <lucide-icon [img]="testResult.succes ? icons.check : icons.error" [size]="18"></lucide-icon>
+          <span>{{ testResult.message }} {{ testResult.tempsReponseMs ? '(' + testResult.tempsReponseMs + ' ms)' : '' }}</span>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="testConnection()" [disabled]="testing">
+          <lucide-icon [img]="icons.refresh" [size]="14" [class.spin]="testing"></lucide-icon>
+          {{ testing ? 'Test en cours...' : 'Tester la connexion' }}
+        </button>
+        <button type="button" class="btn-primary" (click)="saveSource()" [disabled]="loading">
+          {{ isEditing ? 'Mettre à jour' : 'Enregistrer' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

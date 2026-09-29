@@ -1,0 +1,237 @@
+<div class="schedules-container">
+  <div class="header-section">
+    <div>
+      <h1 class="page-title">Planificateur & Diffusion Automatique</h1>
+      <p class="page-subtitle">Automatisez la génération et la distribution récurrente de vos rapports (Email, Webhook, SFTP).</p>
+    </div>
+    <button class="btn-primary" (click)="openCreateModal()">
+      <lucide-icon [img]="icons.plus" [size]="16"></lucide-icon>
+      Nouvelle Planification
+    </button>
+  </div>
+
+  <div *ngIf="successMsg" class="alert alert-success">
+    <lucide-icon [img]="icons.check" [size]="16"></lucide-icon>
+    <span>{{ successMsg }}</span>
+  </div>
+
+  <div *ngIf="errorMsg" class="alert alert-error">
+    <lucide-icon [img]="icons.alert" [size]="16"></lucide-icon>
+    <span>{{ errorMsg }}</span>
+  </div>
+
+  <!-- État de chargement -->
+  <div *ngIf="loading && jobs.length === 0" class="loading-state">
+    <lucide-icon [img]="icons.refresh" [size]="24" class="spin"></lucide-icon>
+    <span>Chargement des tâches planifiées...</span>
+  </div>
+
+  <!-- État vide -->
+  <div *ngIf="!loading && jobs.length === 0" class="empty-state">
+    <div class="empty-icon">
+      <lucide-icon [img]="icons.clock" [size]="48"></lucide-icon>
+    </div>
+    <h2>Aucune tâche planifiée</h2>
+    <p>Créez votre première planification pour recevoir vos rapports hebdomadaires ou mensuels sans intervention.</p>
+    <button class="btn-secondary" (click)="openCreateModal()">Planifier un premier rapport</button>
+  </div>
+
+  <!-- Grille des tâches planifiées -->
+  <div *ngIf="jobs.length > 0" class="jobs-grid">
+    <div *ngFor="let job of jobs" class="job-card">
+      <div class="card-header">
+        <div class="header-main">
+          <h3 class="job-name">{{ job.nom }}</h3>
+          <span class="template-tag">
+            <lucide-icon [img]="icons.fileText" [size]="12"></lucide-icon>
+            {{ job.templateNom || 'Modèle #' + job.templateId }}
+          </span>
+        </div>
+        <div class="status-indicator" [class.active]="job.actif" [title]="job.actif ? 'Actif' : 'Inactif'"></div>
+      </div>
+
+      <div class="card-body">
+        <div class="info-row">
+          <span class="label">
+            <lucide-icon [img]="icons.clock" [size]="14"></lucide-icon> Fréquence :
+          </span>
+          <span class="value cron-text" [title]="job.cronExpression">{{ getCronDescription(job.cronExpression) }}</span>
+        </div>
+
+        <div class="info-row">
+          <span class="label">Format d'export :</span>
+          <span class="format-badge" [ngClass]="job.format.toLowerCase()">{{ job.format }}</span>
+        </div>
+
+        <div class="info-row">
+          <span class="label">Prochaine exécution :</span>
+          <span class="value">{{ (job.prochaineExecution | date:'dd/MM/yyyy HH:mm') || '-' }}</span>
+        </div>
+
+        <div class="info-row" *ngIf="job.statutDerniereExecution">
+          <span class="label">Dernier statut :</span>
+          <span class="status-pill" [ngClass]="job.statutDerniereExecution.toLowerCase()">
+            {{ job.statutDerniereExecution }}
+          </span>
+        </div>
+
+        <div class="info-row" *ngIf="job.emailsDestinataires && job.emailsDestinataires.length > 0">
+          <span class="label">
+            <lucide-icon [img]="icons.mail" [size]="14"></lucide-icon> Diffusion :
+          </span>
+          <span class="value">{{ job.emailsDestinataires.length }} destinataire(s)</span>
+        </div>
+      </div>
+
+      <div class="card-footer">
+        <button class="btn-action run" (click)="runJobNow(job)" [disabled]="runningJobId === job.id" title="Exécuter immédiatement">
+          <lucide-icon [img]="runningJobId === job.id ? icons.refresh : icons.play" [size]="14" [class.spin]="runningJobId === job.id"></lucide-icon>
+          <span>{{ runningJobId === job.id ? 'En cours...' : 'Lancer' }}</span>
+        </button>
+
+        <button class="btn-action" (click)="openHistoryModal(job)" title="Voir l'historique des exécutions">
+          <lucide-icon [img]="icons.history" [size]="14"></lucide-icon>
+          <span>Historique</span>
+        </button>
+
+        <button class="btn-icon" (click)="openEditModal(job)" title="Modifier">
+          <lucide-icon [img]="icons.edit" [size]="15"></lucide-icon>
+        </button>
+
+        <button class="btn-icon danger" (click)="deleteJob(job)" title="Supprimer">
+          <lucide-icon [img]="icons.trash" [size]="15"></lucide-icon>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modale Création / Édition -->
+  <div *ngIf="showEditModal" class="modal-backdrop" (click)="closeEditModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>{{ isEditing ? 'Modifier la tâche planifiée' : 'Nouvelle tâche planifiée' }}</h2>
+        <button class="btn-close" (click)="closeEditModal()">×</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Nom de la planification *</label>
+          <input type="text" [(ngModel)]="formData.nom" placeholder="Ex: Rapport Hebdomadaire des Ventes" />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Modèle de rapport *</label>
+            <select [(ngModel)]="formData.templateId">
+              <option *ngFor="let t of templates" [value]="t.id">{{ t.nom }}</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Format d'export *</label>
+            <select [(ngModel)]="formData.format">
+              <option value="PDF">PDF Vectoriel</option>
+              <option value="EXCEL">Excel (.xlsx)</option>
+              <option value="PNG_HD">Image HD (PNG 300 DPI)</option>
+              <option value="JPEG">Image HD (JPEG 300 DPI)</option>
+              <option value="CSV">Données brutes CSV</option>
+              <option value="JSON">Données brutes JSON</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Fréquence CRON (secondes minutes heures jour mois jourSemaine) *</label>
+          <input type="text" [(ngModel)]="formData.cronExpression" placeholder="0 0 8 * * MON" />
+          <div class="presets-row">
+            <button type="button" *ngFor="let preset of cronPresets" class="preset-badge" (click)="applyPreset(preset.value)">
+              {{ preset.label }}
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Destinataires Email (séparés par des virgules)</label>
+          <input type="text" [(ngModel)]="formData.emailsInput" placeholder="direction@entreprise.com, compta@entreprise.com" />
+        </div>
+
+        <div class="form-group">
+          <label>URL Webhook de notification (Optionnel)</label>
+          <input type="text" [(ngModel)]="formData.webhookUrl" placeholder="https://api.mon-erp.com/webhooks/reports" />
+        </div>
+
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" [(ngModel)]="formData.actif" />
+            Tâche active (déclenchement automatique activé)
+          </label>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="closeEditModal()">Annuler</button>
+        <button type="button" class="btn-primary" (click)="saveJob()" [disabled]="loading">
+          {{ isEditing ? 'Mettre à jour' : 'Enregistrer' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modale Historique des exécutions -->
+  <div *ngIf="showHistoryModal" class="modal-backdrop" (click)="closeHistoryModal()">
+    <div class="modal-card modal-lg" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <h2>Historique des exécutions</h2>
+          <span class="subtitle" *ngIf="selectedJobForHistory">{{ selectedJobForHistory.nom }}</span>
+        </div>
+        <button class="btn-close" (click)="closeHistoryModal()">×</button>
+      </div>
+
+      <div class="modal-body">
+        <div *ngIf="loadingHistory" class="loading-state">
+          <lucide-icon [img]="icons.refresh" [size]="20" class="spin"></lucide-icon>
+          <span>Chargement de l'historique...</span>
+        </div>
+
+        <div *ngIf="!loadingHistory && executions.length === 0" class="empty-state">
+          <p>Aucune exécution enregistrée pour le moment.</p>
+        </div>
+
+        <table *ngIf="!loadingHistory && executions.length > 0" class="history-table">
+          <thead>
+            <tr>
+              <th>Date de début</th>
+              <th>Durée</th>
+              <th>Statut</th>
+              <th>Détails & Notifications</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let exec of executions">
+              <td>{{ exec.dateDebut | date:'dd/MM/yyyy HH:mm:ss' }}</td>
+              <td>{{ exec.dureeMs ? exec.dureeMs + ' ms' : '-' }}</td>
+              <td>
+                <span class="status-pill" [ngClass]="exec.statut.toLowerCase()">
+                  {{ exec.statut }}
+                </span>
+              </td>
+              <td>
+                <span *ngIf="exec.statut === 'SUCCES' && exec.notificationsEnvoyees" class="notif-text">
+                  {{ exec.notificationsEnvoyees }}
+                </span>
+                <span *ngIf="exec.statut === 'ECHEC'" class="error-text">
+                  {{ exec.messageErreur }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="closeHistoryModal()">Fermer</button>
+      </div>
+    </div>
+  </div>
+</div>
