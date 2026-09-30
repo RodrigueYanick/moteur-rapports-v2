@@ -4,6 +4,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rapports.moteur.config.AppProperties;
 import com.rapports.moteur.dto.dtoGeneration.GenerationDto;
 import com.rapports.moteur.dto.dtoGeneration.GenerationResponse;
+import com.rapports.moteur.dto.dtoPdf.PdfProtectionOptions;
+import com.rapports.moteur.dto.dtoPdf.PdfSignatureOptions;
+import com.rapports.moteur.service.audit.AuditTrailService;
+import com.rapports.moteur.service.pdf.PdfSecurityService;
+import com.rapports.moteur.service.pdf.PdfSignerService;
+
 import com.rapports.moteur.entity.*;
 import com.rapports.moteur.exceptions.TemplateNotFoundException;
 import com.rapports.moteur.exceptions.ValidationException;
@@ -46,6 +52,11 @@ public class ReportGenerationService {
     private final com.rapports.moteur.service.datasource.DataSourceExecutionService dataSourceExecutionService;
     private final com.rapports.moteur.service.rendering.ImageRendererService imageRendererService;
     private final RawDataExportService rawDataExportService;
+    private final PdfSecurityService pdfSecurityService;
+    private final PdfSignerService pdfSignerService;
+    private final CompanyCertificateService companyCertificateService;
+    private final AuditTrailService auditTrailService;
+
 
     public ReportGenerationService(ReportGenerationRepository generationRepository,
                                     ReportTemplateRepository templateRepository,
@@ -63,7 +74,11 @@ public class ReportGenerationService {
                                     com.rapports.moteur.service.metrics.ReportMetricsService reportMetricsService,
                                     com.rapports.moteur.service.datasource.DataSourceExecutionService dataSourceExecutionService,
                                     com.rapports.moteur.service.rendering.ImageRendererService imageRendererService,
-                                    RawDataExportService rawDataExportService) {
+                                    RawDataExportService rawDataExportService,
+                                    PdfSecurityService pdfSecurityService,
+                                    PdfSignerService pdfSignerService,
+                                    CompanyCertificateService companyCertificateService,
+                                    AuditTrailService auditTrailService) {
         this.generationRepository = generationRepository;
         this.templateRepository = templateRepository;
         this.validatorService = validatorService;
@@ -81,6 +96,10 @@ public class ReportGenerationService {
         this.dataSourceExecutionService = dataSourceExecutionService;
         this.imageRendererService = imageRendererService;
         this.rawDataExportService = rawDataExportService;
+        this.pdfSecurityService = pdfSecurityService;
+        this.pdfSignerService = pdfSignerService;
+        this.companyCertificateService = companyCertificateService;
+        this.auditTrailService = auditTrailService;
     }
 
     // ============================================================
@@ -127,6 +146,18 @@ public class ReportGenerationService {
         // ✅ Validation avec le schéma extrait
         validatorService.validate(template.getSchema(), data);
 
+        PdfProtectionOptions protectionOptions = extractProtectionOptions(data);
+        PdfSignatureOptions signatureOptions = extractSignatureOptions(data);
+
+        boolean hasProtection = protectionOptions != null && protectionOptions.isProtectionRequise();
+        boolean hasSignature = signatureOptions != null && signatureOptions.getCertificateId() != null;
+
+        if (hasProtection && hasSignature) {
+            throw new ValidationException(List.of(
+                    "Un document PDF ne peut pas être simultanément signé numériquement et chiffré par mot de passe. Veuillez choisir la signature électronique (authenticité) ou le chiffrement par mot de passe (confidentialité)."
+            ));
+        }
+
         long startMs = System.currentTimeMillis();
         ReportGeneration generation = createGenerationEntry(template, data);
         boolean isFacturX = Boolean.TRUE.equals(data.get("factur_x"))
@@ -141,6 +172,14 @@ public class ReportGenerationService {
                 com.rapports.moteur.service.facturx.FacturXProfile profile =
                         com.rapports.moteur.service.facturx.FacturXProfile.fromString(profileStr);
                 pdf = facturXPdfService.convertToFacturX(pdf, data, profile);
+            }
+
+            if (hasSignature) {
+                CompanyCertificateService.DecryptedCertificate decryptedCert =
+                        companyCertificateService.loadDecryptedCertificate(signatureOptions.getCertificateId());
+                pdf = pdfSignerService.signPdf(pdf, decryptedCert.pkcs12Bytes(), decryptedCert.password(), signatureOptions);
+            } else if (hasProtection) {
+                pdf = pdfSecurityService.protectPdf(pdf, protectionOptions);
             }
 
             String storageKey = buildStorageKey(template, generation.getId());
@@ -158,6 +197,20 @@ public class ReportGenerationService {
                     duration
             );
 
+            auditTrailService.logAction(
+                    "DOCUMENT_GENERATE",
+                    "REPORT_GENERATION",
+                    generation.getId().toString(),
+                    Map.of(
+                            "templateId", template.getId().toString(),
+                            "templateNom", template.getNom() != null ? template.getNom() : "",
+                            "statut", "SUCCES",
+                            "hasSignature", hasSignature,
+                            "hasProtection", hasProtection,
+                            "isFacturX", isFacturX
+                    )
+            );
+
             return saved;
         } catch (Exception e) {
             generation.setStatut(GenerationStatus.ECHEC);
@@ -172,6 +225,21 @@ public class ReportGenerationService {
                     duration
             );
 
+            auditTrailService.logAction(
+                    "DOCUMENT_GENERATE",
+                    "REPORT_GENERATION",
+                    generation.getId().toString(),
+                    Map.of(
+                            "templateId", template.getId().toString(),
+                            "templateNom", template.getNom() != null ? template.getNom() : "",
+                            "statut", "ECHEC",
+                            "error", e.getMessage() != null ? e.getMessage() : "Erreur inconnue"
+                    )
+            );
+
+            if (e instanceof ValidationException ve) {
+                throw ve;
+            }
             throw new IllegalStateException("Echec de la generation : " + e.getMessage(), e);
         }
     }
@@ -218,12 +286,25 @@ public class ReportGenerationService {
                 .orElseThrow(() -> new IllegalStateException("Generation introuvable : " + generationId));
 
         // Vérifie l'appartenance
-        loadTemplateForCurrentEntreprise(generation.getTemplate().getId());
+        ReportTemplate template = loadTemplateForCurrentEntreprise(generation.getTemplate().getId());
 
         if (generation.getUrlFichierGenere() == null) {
             throw new IllegalStateException("Aucun fichier disponible pour cette generation");
         }
-        return fileStorageService.loadFile(generation.getUrlFichierGenere());
+        byte[] bytes = fileStorageService.loadFile(generation.getUrlFichierGenere());
+
+        auditTrailService.logAction(
+                "DOCUMENT_DOWNLOAD",
+                "REPORT_GENERATION",
+                generationId.toString(),
+                Map.of(
+                        "templateId", template.getId().toString(),
+                        "templateNom", template.getNom() != null ? template.getNom() : "",
+                        "statut", "SUCCES"
+                )
+        );
+
+        return bytes;
     }
 
     public String generateHtml(UUID templateId, Object rawData) {
@@ -355,6 +436,86 @@ public class ReportGenerationService {
             return "entreprises/" + codeEntreprise.trim() + "/reports/" + generationId + ".pdf";
         }
         return "public/reports/" + generationId + ".pdf";
+    }
+
+    private PdfProtectionOptions extractProtectionOptions(Map<String, Object> data) {
+        if (data == null || data.isEmpty()) return null;
+
+        if (data.containsKey("protection") && data.get("protection") instanceof Map) {
+            try {
+                return objectMapper.convertValue(data.get("protection"), PdfProtectionOptions.class);
+            } catch (Exception ignored) {}
+        }
+
+        String userPwd = null;
+        if (data.containsKey("mot_de_passe_utilisateur")) userPwd = String.valueOf(data.get("mot_de_passe_utilisateur"));
+        else if (data.containsKey("motDePasseUtilisateur")) userPwd = String.valueOf(data.get("motDePasseUtilisateur"));
+        else if (data.containsKey("user_password")) userPwd = String.valueOf(data.get("user_password"));
+
+        String ownerPwd = null;
+        if (data.containsKey("mot_de_passe_proprietaire")) ownerPwd = String.valueOf(data.get("mot_de_passe_proprietaire"));
+        else if (data.containsKey("motDePasseProprietaire")) ownerPwd = String.valueOf(data.get("motDePasseProprietaire"));
+        else if (data.containsKey("owner_password")) ownerPwd = String.valueOf(data.get("owner_password"));
+
+        if ((userPwd != null && !userPwd.isBlank()) || (ownerPwd != null && !ownerPwd.isBlank())) {
+            boolean canPrint = true;
+            if (data.containsKey("autoriser_impression")) canPrint = Boolean.parseBoolean(String.valueOf(data.get("autoriser_impression")));
+            else if (data.containsKey("autoriserImpression")) canPrint = Boolean.parseBoolean(String.valueOf(data.get("autoriserImpression")));
+
+            boolean canCopy = false;
+            if (data.containsKey("autoriser_copie")) canCopy = Boolean.parseBoolean(String.valueOf(data.get("autoriser_copie")));
+            else if (data.containsKey("autoriserCopie")) canCopy = Boolean.parseBoolean(String.valueOf(data.get("autoriserCopie")));
+
+            boolean canModify = false;
+            if (data.containsKey("autoriser_modification")) canModify = Boolean.parseBoolean(String.valueOf(data.get("autoriser_modification")));
+            else if (data.containsKey("autoriserModification")) canModify = Boolean.parseBoolean(String.valueOf(data.get("autoriserModification")));
+
+            return PdfProtectionOptions.builder()
+                    .motDePasseUtilisateur(userPwd)
+                    .motDePasseProprietaire(ownerPwd)
+                    .autoriserImpression(canPrint)
+                    .autoriserCopie(canCopy)
+                    .autoriserModification(canModify)
+                    .tailleCleBits(256)
+                    .build();
+        }
+        return null;
+    }
+
+    private PdfSignatureOptions extractSignatureOptions(Map<String, Object> data) {
+        if (data == null || data.isEmpty()) return null;
+
+        if (data.containsKey("signature") && data.get("signature") instanceof Map) {
+            try {
+                return objectMapper.convertValue(data.get("signature"), PdfSignatureOptions.class);
+            } catch (Exception ignored) {}
+        }
+
+        Object certIdObj = data.get("signature_certificate_id");
+        if (certIdObj == null) certIdObj = data.get("signatureCertificateId");
+        if (certIdObj == null) certIdObj = data.get("certificate_id");
+
+        if (certIdObj != null && !String.valueOf(certIdObj).isBlank()) {
+            UUID certId;
+            try {
+                certId = certIdObj instanceof UUID ? (UUID) certIdObj : UUID.fromString(String.valueOf(certIdObj));
+            } catch (Exception e) {
+                throw new ValidationException(List.of("Identifiant du certificat de signature invalide"));
+            }
+
+            String signataire = data.containsKey("nom_signataire") ? String.valueOf(data.get("nom_signataire")) : (data.containsKey("nomSignataire") ? String.valueOf(data.get("nomSignataire")) : null);
+            String raison = data.containsKey("raison_signature") ? String.valueOf(data.get("raison_signature")) : (data.containsKey("raisonSignature") ? String.valueOf(data.get("raisonSignature")) : "Certification de conformite");
+            String lieu = data.containsKey("lieu_signature") ? String.valueOf(data.get("lieu_signature")) : (data.containsKey("lieuSignature") ? String.valueOf(data.get("lieuSignature")) : null);
+
+            return PdfSignatureOptions.builder()
+                    .certificateId(certId)
+                    .nomSignataire(signataire)
+                    .raison(raison)
+                    .lieu(lieu)
+                    .signatureVisible(false)
+                    .build();
+        }
+        return null;
     }
 
     private double toNumber(Object value) {

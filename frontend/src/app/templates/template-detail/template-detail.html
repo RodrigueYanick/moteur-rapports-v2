@@ -45,13 +45,429 @@
     </div>
 
     <div class="subbar-right actions-bar">
+      <!-- Historique du Workflow -->
+      <button class="btn btn-secondary btn-sm" (click)="openWorkflowHistory()" title="Historique complet des validations">
+        <lucide-icon [img]="icons.history" [size]="14"></lucide-icon>
+        Workflow
+      </button>
+
+      <!-- Options de Sécurité & Signature PDF (si PUBLIE) -->
+      <button *ngIf="template.statut === 'PUBLIE'" class="btn btn-secondary btn-sm" (click)="openSecurityModal()" title="Options de sécurité et signature électronique">
+        <lucide-icon [img]="icons.shieldCheck" [size]="14"></lucide-icon>
+        Générer PDF Sécurisé / Signé
+      </button>
+
+      <!-- Statut BROUILLON -->
       <button
         *ngIf="template.statut === 'BROUILLON'"
+        class="btn btn-secondary btn-sm"
+        (click)="submitForReview()"
+        [disabled]="workflowProcessing"
+        title="Proposer ce modèle pour validation par un administrateur">
+        <lucide-icon [img]="icons.send" [size]="14"></lucide-icon>
+        Soumettre pour revue
+      </button>
+      <button
+        *ngIf="template.statut === 'BROUILLON' && isAdmin"
         class="btn btn-primary btn-sm"
         (click)="publish()"
-        [disabled]="publishing">
-        {{ publishing ? 'Publication...' : 'Publier' }}
+        [disabled]="publishing || workflowProcessing"
+        title="Publier directement sans passer par la revue">
+        {{ publishing ? 'Publication...' : 'Publier directement' }}
       </button>
+
+      <!-- Statut EN_REVUE -->
+      <ng-container *ngIf="template.statut === 'EN_REVUE'">
+        <button
+          *ngIf="isAdmin"
+          class="btn btn-success btn-sm"
+          (click)="approveWorkflow()"
+          [disabled]="workflowProcessing"
+          title="Valider et approuver ce modèle">
+          <lucide-icon [img]="icons.checkCheck" [size]="14"></lucide-icon>
+          Approuver
+        </button>
+        <button
+          *ngIf="isAdmin"
+          class="btn btn-danger btn-sm"
+          (click)="openRejectModal()"
+          [disabled]="workflowProcessing"
+          title="Rejeter et renvoyer en brouillon">
+          <lucide-icon [img]="icons.xCircle" [size]="14"></lucide-icon>
+          Rejeter
+        </button>
+        <span *ngIf="!isAdmin" class="workflow-badge-info">
+          ⏳ En attente de validation admin
+        </span>
+      
+  <!-- Modal Rejet du Workflow -->
+  <div *ngIf="showRejectModal" class="modal-backdrop" (click)="closeRejectModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Rejeter le modèle et demander des corrections</h2>
+        <button class="btn-close" (click)="closeRejectModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-intro">Veuillez indiquer au concepteur le motif du rejet et les modifications attendues :</p>
+        <div class="form-group">
+          <label>Commentaire / Motif du rejet *</label>
+          <textarea [(ngModel)]="rejectionComment" rows="4" placeholder="Ex: Veuillez ajuster le logo, vérifier la charte graphique et réaligner le tableau des totaux..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" (click)="closeRejectModal()">Annuler</button>
+        <button type="button" class="btn btn-danger btn-sm" (click)="confirmReject()" [disabled]="workflowProcessing || !rejectionComment.trim()">
+          Confirmer le rejet
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Historique du Workflow -->
+  <div *ngIf="showWorkflowHistoryModal" class="modal-backdrop" (click)="closeWorkflowHistory()">
+    <div class="modal-card modal-large" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Historique du Cycle de Vie & Workflow</h2>
+        <button class="btn-close" (click)="closeWorkflowHistory()">×</button>
+      </div>
+      <div class="modal-body">
+        <div *ngIf="workflowHistory.length === 0" class="empty-workflow">
+          <lucide-icon [img]="icons.history" [size]="36"></lucide-icon>
+          <p>Aucune transition de workflow enregistrée pour ce modèle.</p>
+        </div>
+
+        <div *ngIf="workflowHistory.length > 0" class="workflow-timeline">
+          <div *ngFor="let h of workflowHistory" class="timeline-step">
+            <div class="step-marker">
+              <span class="step-dot"></span>
+              <span class="step-line"></span>
+            </div>
+            <div class="step-content">
+              <div class="step-header">
+                <span class="badge small" [ngClass]="h.fromStatus.toLowerCase()">{{ h.fromStatus }}</span>
+                <span class="step-arrow">➔</span>
+                <span class="badge small" [ngClass]="h.toStatus.toLowerCase()">{{ h.toStatus }}</span>
+                <span class="step-date">{{ h.timestamp | date:'dd/MM/yyyy HH:mm:ss' }}</span>
+              </div>
+              <div class="step-author">
+                <span>Par : <strong>{{ h.performedBy }}</strong></span>
+              </div>
+              <div *ngIf="h.comment" class="step-comment">
+                💬 « {{ h.comment }} »
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" (click)="closeWorkflowHistory()">Fermer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Génération PDF Sécurisé / Signé -->
+  <div *ngIf="showSecurityModal" class="modal-backdrop" (click)="closeSecurityModal()">
+    <div class="modal-card modal-large" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Options de Protection Cryptographique & Signature PDF</h2>
+        <button class="btn-close" (click)="closeSecurityModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="security-type-selector">
+          <label class="type-card" [class.selected]="securityType === 'NONE'">
+            <input type="radio" name="secType" value="NONE" [(ngModel)]="securityType" />
+            <div class="type-content">
+              <div class="type-title">Standard</div>
+              <div class="type-desc">Génération PDF standard sans verrouillage ni cachet.</div>
+            </div>
+          </label>
+
+          <label class="type-card" [class.selected]="securityType === 'PASSWORD'">
+            <input type="radio" name="secType" value="PASSWORD" [(ngModel)]="securityType" />
+            <div class="type-content">
+              <div class="type-title">Chiffrement AES-256</div>
+              <div class="type-desc">Verrouillage par mot de passe utilisateur & permissions.</div>
+            </div>
+          </label>
+
+          <label class="type-card" [class.selected]="securityType === 'SIGNATURE'">
+            <input type="radio" name="secType" value="SIGNATURE" [(ngModel)]="securityType" />
+            <div class="type-content">
+              <div class="type-title">Signature PAdES Certifiée</div>
+              <div class="type-desc">Cachet électronique d'entreprise infalsifiable (PKCS#12).</div>
+            </div>
+          </label>
+        </div>
+
+        <!-- Formulaire Chiffrement par mot de passe -->
+        <div *ngIf="securityType === 'PASSWORD'" class="security-panel">
+          <h3>Paramètres du Chiffrement AES-256</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Mot de passe utilisateur (Ouverture)</label>
+              <input type="password" [(ngModel)]="pdfUserPassword" placeholder="Requis pour ouvrir le PDF" />
+            </div>
+            <div class="form-group">
+              <label>Mot de passe propriétaire (Droits & Permissions)</label>
+              <input type="password" [(ngModel)]="pdfOwnerPassword" placeholder="Requis pour modifier les restrictions" />
+            </div>
+          </div>
+          <div class="permissions-group">
+            <span class="perm-title">Autorisations accordées aux destinataires :</span>
+            <div class="perm-options">
+              <label class="checkbox-label">
+                <input type="checkbox" [(ngModel)]="pdfAllowPrinting" />
+                Autoriser l'impression
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" [(ngModel)]="pdfAllowCopying" />
+                Autoriser la copie de texte et d'images
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" [(ngModel)]="pdfAllowModification" />
+                Autoriser la modification du document
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Formulaire Signature PAdES -->
+        <div *ngIf="securityType === 'SIGNATURE'" class="security-panel">
+          <h3>Cachet Électronique & Certificat PKCS#12</h3>
+          <div *ngIf="companyCertificates.length === 0" class="alert-empty-cert">
+            ⚠️ Aucun certificat actif configuré pour votre entreprise. Veuillez en importer un dans la rubrique <a routerLink="/certificates" (click)="closeSecurityModal()">Certificats</a>.
+          </div>
+
+          <div *ngIf="companyCertificates.length > 0" class="cert-form">
+            <div class="form-group">
+              <label>Certificat d'Entreprise *</label>
+              <select [(ngModel)]="selectedCertificateId">
+                <option *ngFor="let cert of companyCertificates" [value]="cert.id">
+                  {{ cert.alias }} ({{ cert.filename }})
+                </option>
+              </select>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Motif de la signature</label>
+                <input type="text" [(ngModel)]="signatureReason" placeholder="Ex: Facture certifiée conforme" />
+              </div>
+              <div class="form-group">
+                <label>Lieu / Ville</label>
+                <input type="text" [(ngModel)]="signatureLocation" placeholder="Ex: Paris, France" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Contact / Info signataire</label>
+              <input type="text" [(ngModel)]="signatureContact" placeholder="Ex: contact@entreprise.com" />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" (click)="closeSecurityModal()">Annuler</button>
+        <button type="button" class="btn btn-primary btn-sm" (click)="generatePdfWithOptions()" [disabled]="generatingSecurePdf || (securityType === 'SIGNATURE' && companyCertificates.length === 0)">
+          <lucide-icon [img]="icons.newVersion" [size]="14" [class.spin]="generatingSecurePdf" *ngIf="generatingSecurePdf"></lucide-icon>
+          {{ generatingSecurePdf ? 'Chiffrement / Signature en cours...' : 'Générer & Télécharger' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</ng-container>
+
+      <!-- Statut APPROUVE -->
+      <ng-container *ngIf="template.statut === 'APPROUVE'">
+        <button
+          *ngIf="isAdmin"
+          class="btn btn-primary btn-sm"
+          (click)="publishWorkflow()"
+          [disabled]="workflowProcessing"
+          title="Mettre en production ce modèle">
+          <lucide-icon [img]="icons.check" [size]="14"></lucide-icon>
+          Publier en production
+        </button>
+        <span *ngIf="!isAdmin" class="workflow-badge-info">
+          ✅ Modèle approuvé
+        </span>
+      
+  <!-- Modal Rejet du Workflow -->
+  <div *ngIf="showRejectModal" class="modal-backdrop" (click)="closeRejectModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Rejeter le modèle et demander des corrections</h2>
+        <button class="btn-close" (click)="closeRejectModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-intro">Veuillez indiquer au concepteur le motif du rejet et les modifications attendues :</p>
+        <div class="form-group">
+          <label>Commentaire / Motif du rejet *</label>
+          <textarea [(ngModel)]="rejectionComment" rows="4" placeholder="Ex: Veuillez ajuster le logo, vérifier la charte graphique et réaligner le tableau des totaux..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" (click)="closeRejectModal()">Annuler</button>
+        <button type="button" class="btn btn-danger btn-sm" (click)="confirmReject()" [disabled]="workflowProcessing || !rejectionComment.trim()">
+          Confirmer le rejet
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Historique du Workflow -->
+  <div *ngIf="showWorkflowHistoryModal" class="modal-backdrop" (click)="closeWorkflowHistory()">
+    <div class="modal-card modal-large" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Historique du Cycle de Vie & Workflow</h2>
+        <button class="btn-close" (click)="closeWorkflowHistory()">×</button>
+      </div>
+      <div class="modal-body">
+        <div *ngIf="workflowHistory.length === 0" class="empty-workflow">
+          <lucide-icon [img]="icons.history" [size]="36"></lucide-icon>
+          <p>Aucune transition de workflow enregistrée pour ce modèle.</p>
+        </div>
+
+        <div *ngIf="workflowHistory.length > 0" class="workflow-timeline">
+          <div *ngFor="let h of workflowHistory" class="timeline-step">
+            <div class="step-marker">
+              <span class="step-dot"></span>
+              <span class="step-line"></span>
+            </div>
+            <div class="step-content">
+              <div class="step-header">
+                <span class="badge small" [ngClass]="h.fromStatus.toLowerCase()">{{ h.fromStatus }}</span>
+                <span class="step-arrow">➔</span>
+                <span class="badge small" [ngClass]="h.toStatus.toLowerCase()">{{ h.toStatus }}</span>
+                <span class="step-date">{{ h.timestamp | date:'dd/MM/yyyy HH:mm:ss' }}</span>
+              </div>
+              <div class="step-author">
+                <span>Par : <strong>{{ h.performedBy }}</strong></span>
+              </div>
+              <div *ngIf="h.comment" class="step-comment">
+                💬 « {{ h.comment }} »
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" (click)="closeWorkflowHistory()">Fermer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Génération PDF Sécurisé / Signé -->
+  <div *ngIf="showSecurityModal" class="modal-backdrop" (click)="closeSecurityModal()">
+    <div class="modal-card modal-large" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Options de Protection Cryptographique & Signature PDF</h2>
+        <button class="btn-close" (click)="closeSecurityModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="security-type-selector">
+          <label class="type-card" [class.selected]="securityType === 'NONE'">
+            <input type="radio" name="secType" value="NONE" [(ngModel)]="securityType" />
+            <div class="type-content">
+              <div class="type-title">Standard</div>
+              <div class="type-desc">Génération PDF standard sans verrouillage ni cachet.</div>
+            </div>
+          </label>
+
+          <label class="type-card" [class.selected]="securityType === 'PASSWORD'">
+            <input type="radio" name="secType" value="PASSWORD" [(ngModel)]="securityType" />
+            <div class="type-content">
+              <div class="type-title">Chiffrement AES-256</div>
+              <div class="type-desc">Verrouillage par mot de passe utilisateur & permissions.</div>
+            </div>
+          </label>
+
+          <label class="type-card" [class.selected]="securityType === 'SIGNATURE'">
+            <input type="radio" name="secType" value="SIGNATURE" [(ngModel)]="securityType" />
+            <div class="type-content">
+              <div class="type-title">Signature PAdES Certifiée</div>
+              <div class="type-desc">Cachet électronique d'entreprise infalsifiable (PKCS#12).</div>
+            </div>
+          </label>
+        </div>
+
+        <!-- Formulaire Chiffrement par mot de passe -->
+        <div *ngIf="securityType === 'PASSWORD'" class="security-panel">
+          <h3>Paramètres du Chiffrement AES-256</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Mot de passe utilisateur (Ouverture)</label>
+              <input type="password" [(ngModel)]="pdfUserPassword" placeholder="Requis pour ouvrir le PDF" />
+            </div>
+            <div class="form-group">
+              <label>Mot de passe propriétaire (Droits & Permissions)</label>
+              <input type="password" [(ngModel)]="pdfOwnerPassword" placeholder="Requis pour modifier les restrictions" />
+            </div>
+          </div>
+          <div class="permissions-group">
+            <span class="perm-title">Autorisations accordées aux destinataires :</span>
+            <div class="perm-options">
+              <label class="checkbox-label">
+                <input type="checkbox" [(ngModel)]="pdfAllowPrinting" />
+                Autoriser l'impression
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" [(ngModel)]="pdfAllowCopying" />
+                Autoriser la copie de texte et d'images
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" [(ngModel)]="pdfAllowModification" />
+                Autoriser la modification du document
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Formulaire Signature PAdES -->
+        <div *ngIf="securityType === 'SIGNATURE'" class="security-panel">
+          <h3>Cachet Électronique & Certificat PKCS#12</h3>
+          <div *ngIf="companyCertificates.length === 0" class="alert-empty-cert">
+            ⚠️ Aucun certificat actif configuré pour votre entreprise. Veuillez en importer un dans la rubrique <a routerLink="/certificates" (click)="closeSecurityModal()">Certificats</a>.
+          </div>
+
+          <div *ngIf="companyCertificates.length > 0" class="cert-form">
+            <div class="form-group">
+              <label>Certificat d'Entreprise *</label>
+              <select [(ngModel)]="selectedCertificateId">
+                <option *ngFor="let cert of companyCertificates" [value]="cert.id">
+                  {{ cert.alias }} ({{ cert.filename }})
+                </option>
+              </select>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Motif de la signature</label>
+                <input type="text" [(ngModel)]="signatureReason" placeholder="Ex: Facture certifiée conforme" />
+              </div>
+              <div class="form-group">
+                <label>Lieu / Ville</label>
+                <input type="text" [(ngModel)]="signatureLocation" placeholder="Ex: Paris, France" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Contact / Info signataire</label>
+              <input type="text" [(ngModel)]="signatureContact" placeholder="Ex: contact@entreprise.com" />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" (click)="closeSecurityModal()">Annuler</button>
+        <button type="button" class="btn btn-primary btn-sm" (click)="generatePdfWithOptions()" [disabled]="generatingSecurePdf || (securityType === 'SIGNATURE' && companyCertificates.length === 0)">
+          <lucide-icon [img]="icons.newVersion" [size]="14" [class.spin]="generatingSecurePdf" *ngIf="generatingSecurePdf"></lucide-icon>
+          {{ generatingSecurePdf ? 'Chiffrement / Signature en cours...' : 'Générer & Télécharger' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</ng-container>
+
+      <!-- Statut PUBLIE -->
       <a
         *ngIf="template.statut === 'PUBLIE'"
         [routerLink]="['/batches']"
@@ -74,6 +490,8 @@
         <lucide-icon [img]="icons.newVersion" [size]="14"></lucide-icon>
         Nouvelle version
       </button>
+
+      <!-- Statut ARCHIVE -->
       <button
         *ngIf="template.statut === 'ARCHIVE'"
         class="btn btn-success btn-sm"
@@ -306,7 +724,182 @@
 
           <!-- Vue Arbre Hiérarchique (Tree Graph) -->
           <div class="version-tree-view" *ngIf="versionViewMode === 'tree'">
-            <ng-container *ngTemplateOutlet="treeNodeTpl; context: { $implicit: versionTree.tree, depth: 0 }"></ng-container>
+            <ng-container *ngTemplateOutlet="treeNodeTpl; context: { $implicit: versionTree.tree, depth: 0 }">
+  <!-- Modal Rejet du Workflow -->
+  <div *ngIf="showRejectModal" class="modal-backdrop" (click)="closeRejectModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Rejeter le modèle et demander des corrections</h2>
+        <button class="btn-close" (click)="closeRejectModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-intro">Veuillez indiquer au concepteur le motif du rejet et les modifications attendues :</p>
+        <div class="form-group">
+          <label>Commentaire / Motif du rejet *</label>
+          <textarea [(ngModel)]="rejectionComment" rows="4" placeholder="Ex: Veuillez ajuster le logo, vérifier la charte graphique et réaligner le tableau des totaux..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" (click)="closeRejectModal()">Annuler</button>
+        <button type="button" class="btn btn-danger btn-sm" (click)="confirmReject()" [disabled]="workflowProcessing || !rejectionComment.trim()">
+          Confirmer le rejet
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Historique du Workflow -->
+  <div *ngIf="showWorkflowHistoryModal" class="modal-backdrop" (click)="closeWorkflowHistory()">
+    <div class="modal-card modal-large" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Historique du Cycle de Vie & Workflow</h2>
+        <button class="btn-close" (click)="closeWorkflowHistory()">×</button>
+      </div>
+      <div class="modal-body">
+        <div *ngIf="workflowHistory.length === 0" class="empty-workflow">
+          <lucide-icon [img]="icons.history" [size]="36"></lucide-icon>
+          <p>Aucune transition de workflow enregistrée pour ce modèle.</p>
+        </div>
+
+        <div *ngIf="workflowHistory.length > 0" class="workflow-timeline">
+          <div *ngFor="let h of workflowHistory" class="timeline-step">
+            <div class="step-marker">
+              <span class="step-dot"></span>
+              <span class="step-line"></span>
+            </div>
+            <div class="step-content">
+              <div class="step-header">
+                <span class="badge small" [ngClass]="h.fromStatus.toLowerCase()">{{ h.fromStatus }}</span>
+                <span class="step-arrow">➔</span>
+                <span class="badge small" [ngClass]="h.toStatus.toLowerCase()">{{ h.toStatus }}</span>
+                <span class="step-date">{{ h.timestamp | date:'dd/MM/yyyy HH:mm:ss' }}</span>
+              </div>
+              <div class="step-author">
+                <span>Par : <strong>{{ h.performedBy }}</strong></span>
+              </div>
+              <div *ngIf="h.comment" class="step-comment">
+                💬 « {{ h.comment }} »
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" (click)="closeWorkflowHistory()">Fermer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Génération PDF Sécurisé / Signé -->
+  <div *ngIf="showSecurityModal" class="modal-backdrop" (click)="closeSecurityModal()">
+    <div class="modal-card modal-large" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Options de Protection Cryptographique & Signature PDF</h2>
+        <button class="btn-close" (click)="closeSecurityModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="security-type-selector">
+          <label class="type-card" [class.selected]="securityType === 'NONE'">
+            <input type="radio" name="secType" value="NONE" [(ngModel)]="securityType" />
+            <div class="type-content">
+              <div class="type-title">Standard</div>
+              <div class="type-desc">Génération PDF standard sans verrouillage ni cachet.</div>
+            </div>
+          </label>
+
+          <label class="type-card" [class.selected]="securityType === 'PASSWORD'">
+            <input type="radio" name="secType" value="PASSWORD" [(ngModel)]="securityType" />
+            <div class="type-content">
+              <div class="type-title">Chiffrement AES-256</div>
+              <div class="type-desc">Verrouillage par mot de passe utilisateur & permissions.</div>
+            </div>
+          </label>
+
+          <label class="type-card" [class.selected]="securityType === 'SIGNATURE'">
+            <input type="radio" name="secType" value="SIGNATURE" [(ngModel)]="securityType" />
+            <div class="type-content">
+              <div class="type-title">Signature PAdES Certifiée</div>
+              <div class="type-desc">Cachet électronique d'entreprise infalsifiable (PKCS#12).</div>
+            </div>
+          </label>
+        </div>
+
+        <!-- Formulaire Chiffrement par mot de passe -->
+        <div *ngIf="securityType === 'PASSWORD'" class="security-panel">
+          <h3>Paramètres du Chiffrement AES-256</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Mot de passe utilisateur (Ouverture)</label>
+              <input type="password" [(ngModel)]="pdfUserPassword" placeholder="Requis pour ouvrir le PDF" />
+            </div>
+            <div class="form-group">
+              <label>Mot de passe propriétaire (Droits & Permissions)</label>
+              <input type="password" [(ngModel)]="pdfOwnerPassword" placeholder="Requis pour modifier les restrictions" />
+            </div>
+          </div>
+          <div class="permissions-group">
+            <span class="perm-title">Autorisations accordées aux destinataires :</span>
+            <div class="perm-options">
+              <label class="checkbox-label">
+                <input type="checkbox" [(ngModel)]="pdfAllowPrinting" />
+                Autoriser l'impression
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" [(ngModel)]="pdfAllowCopying" />
+                Autoriser la copie de texte et d'images
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" [(ngModel)]="pdfAllowModification" />
+                Autoriser la modification du document
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Formulaire Signature PAdES -->
+        <div *ngIf="securityType === 'SIGNATURE'" class="security-panel">
+          <h3>Cachet Électronique & Certificat PKCS#12</h3>
+          <div *ngIf="companyCertificates.length === 0" class="alert-empty-cert">
+            ⚠️ Aucun certificat actif configuré pour votre entreprise. Veuillez en importer un dans la rubrique <a routerLink="/certificates" (click)="closeSecurityModal()">Certificats</a>.
+          </div>
+
+          <div *ngIf="companyCertificates.length > 0" class="cert-form">
+            <div class="form-group">
+              <label>Certificat d'Entreprise *</label>
+              <select [(ngModel)]="selectedCertificateId">
+                <option *ngFor="let cert of companyCertificates" [value]="cert.id">
+                  {{ cert.alias }} ({{ cert.filename }})
+                </option>
+              </select>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Motif de la signature</label>
+                <input type="text" [(ngModel)]="signatureReason" placeholder="Ex: Facture certifiée conforme" />
+              </div>
+              <div class="form-group">
+                <label>Lieu / Ville</label>
+                <input type="text" [(ngModel)]="signatureLocation" placeholder="Ex: Paris, France" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Contact / Info signataire</label>
+              <input type="text" [(ngModel)]="signatureContact" placeholder="Ex: contact@entreprise.com" />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" (click)="closeSecurityModal()">Annuler</button>
+        <button type="button" class="btn btn-primary btn-sm" (click)="generatePdfWithOptions()" [disabled]="generatingSecurePdf || (securityType === 'SIGNATURE' && companyCertificates.length === 0)">
+          <lucide-icon [img]="icons.newVersion" [size]="14" [class.spin]="generatingSecurePdf" *ngIf="generatingSecurePdf"></lucide-icon>
+          {{ generatingSecurePdf ? 'Chiffrement / Signature en cours...' : 'Générer & Télécharger' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</ng-container>
           </div>
         </div>
 
@@ -335,8 +928,358 @@
 
             <div class="tree-children" *ngIf="node.children && node.children.length > 0">
               <ng-container *ngFor="let child of node.children">
-                <ng-container *ngTemplateOutlet="treeNodeTpl; context: { $implicit: child, depth: depth + 1 }"></ng-container>
-              </ng-container>
+                <ng-container *ngTemplateOutlet="treeNodeTpl; context: { $implicit: child, depth: depth + 1 }">
+  <!-- Modal Rejet du Workflow -->
+  <div *ngIf="showRejectModal" class="modal-backdrop" (click)="closeRejectModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Rejeter le modèle et demander des corrections</h2>
+        <button class="btn-close" (click)="closeRejectModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-intro">Veuillez indiquer au concepteur le motif du rejet et les modifications attendues :</p>
+        <div class="form-group">
+          <label>Commentaire / Motif du rejet *</label>
+          <textarea [(ngModel)]="rejectionComment" rows="4" placeholder="Ex: Veuillez ajuster le logo, vérifier la charte graphique et réaligner le tableau des totaux..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" (click)="closeRejectModal()">Annuler</button>
+        <button type="button" class="btn btn-danger btn-sm" (click)="confirmReject()" [disabled]="workflowProcessing || !rejectionComment.trim()">
+          Confirmer le rejet
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Historique du Workflow -->
+  <div *ngIf="showWorkflowHistoryModal" class="modal-backdrop" (click)="closeWorkflowHistory()">
+    <div class="modal-card modal-large" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Historique du Cycle de Vie & Workflow</h2>
+        <button class="btn-close" (click)="closeWorkflowHistory()">×</button>
+      </div>
+      <div class="modal-body">
+        <div *ngIf="workflowHistory.length === 0" class="empty-workflow">
+          <lucide-icon [img]="icons.history" [size]="36"></lucide-icon>
+          <p>Aucune transition de workflow enregistrée pour ce modèle.</p>
+        </div>
+
+        <div *ngIf="workflowHistory.length > 0" class="workflow-timeline">
+          <div *ngFor="let h of workflowHistory" class="timeline-step">
+            <div class="step-marker">
+              <span class="step-dot"></span>
+              <span class="step-line"></span>
+            </div>
+            <div class="step-content">
+              <div class="step-header">
+                <span class="badge small" [ngClass]="h.fromStatus.toLowerCase()">{{ h.fromStatus }}</span>
+                <span class="step-arrow">➔</span>
+                <span class="badge small" [ngClass]="h.toStatus.toLowerCase()">{{ h.toStatus }}</span>
+                <span class="step-date">{{ h.timestamp | date:'dd/MM/yyyy HH:mm:ss' }}</span>
+              </div>
+              <div class="step-author">
+                <span>Par : <strong>{{ h.performedBy }}</strong></span>
+              </div>
+              <div *ngIf="h.comment" class="step-comment">
+                💬 « {{ h.comment }} »
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" (click)="closeWorkflowHistory()">Fermer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Génération PDF Sécurisé / Signé -->
+  <div *ngIf="showSecurityModal" class="modal-backdrop" (click)="closeSecurityModal()">
+    <div class="modal-card modal-large" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Options de Protection Cryptographique & Signature PDF</h2>
+        <button class="btn-close" (click)="closeSecurityModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="security-type-selector">
+          <label class="type-card" [class.selected]="securityType === 'NONE'">
+            <input type="radio" name="secType" value="NONE" [(ngModel)]="securityType" />
+            <div class="type-content">
+              <div class="type-title">Standard</div>
+              <div class="type-desc">Génération PDF standard sans verrouillage ni cachet.</div>
+            </div>
+          </label>
+
+          <label class="type-card" [class.selected]="securityType === 'PASSWORD'">
+            <input type="radio" name="secType" value="PASSWORD" [(ngModel)]="securityType" />
+            <div class="type-content">
+              <div class="type-title">Chiffrement AES-256</div>
+              <div class="type-desc">Verrouillage par mot de passe utilisateur & permissions.</div>
+            </div>
+          </label>
+
+          <label class="type-card" [class.selected]="securityType === 'SIGNATURE'">
+            <input type="radio" name="secType" value="SIGNATURE" [(ngModel)]="securityType" />
+            <div class="type-content">
+              <div class="type-title">Signature PAdES Certifiée</div>
+              <div class="type-desc">Cachet électronique d'entreprise infalsifiable (PKCS#12).</div>
+            </div>
+          </label>
+        </div>
+
+        <!-- Formulaire Chiffrement par mot de passe -->
+        <div *ngIf="securityType === 'PASSWORD'" class="security-panel">
+          <h3>Paramètres du Chiffrement AES-256</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Mot de passe utilisateur (Ouverture)</label>
+              <input type="password" [(ngModel)]="pdfUserPassword" placeholder="Requis pour ouvrir le PDF" />
+            </div>
+            <div class="form-group">
+              <label>Mot de passe propriétaire (Droits & Permissions)</label>
+              <input type="password" [(ngModel)]="pdfOwnerPassword" placeholder="Requis pour modifier les restrictions" />
+            </div>
+          </div>
+          <div class="permissions-group">
+            <span class="perm-title">Autorisations accordées aux destinataires :</span>
+            <div class="perm-options">
+              <label class="checkbox-label">
+                <input type="checkbox" [(ngModel)]="pdfAllowPrinting" />
+                Autoriser l'impression
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" [(ngModel)]="pdfAllowCopying" />
+                Autoriser la copie de texte et d'images
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" [(ngModel)]="pdfAllowModification" />
+                Autoriser la modification du document
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Formulaire Signature PAdES -->
+        <div *ngIf="securityType === 'SIGNATURE'" class="security-panel">
+          <h3>Cachet Électronique & Certificat PKCS#12</h3>
+          <div *ngIf="companyCertificates.length === 0" class="alert-empty-cert">
+            ⚠️ Aucun certificat actif configuré pour votre entreprise. Veuillez en importer un dans la rubrique <a routerLink="/certificates" (click)="closeSecurityModal()">Certificats</a>.
+          </div>
+
+          <div *ngIf="companyCertificates.length > 0" class="cert-form">
+            <div class="form-group">
+              <label>Certificat d'Entreprise *</label>
+              <select [(ngModel)]="selectedCertificateId">
+                <option *ngFor="let cert of companyCertificates" [value]="cert.id">
+                  {{ cert.alias }} ({{ cert.filename }})
+                </option>
+              </select>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Motif de la signature</label>
+                <input type="text" [(ngModel)]="signatureReason" placeholder="Ex: Facture certifiée conforme" />
+              </div>
+              <div class="form-group">
+                <label>Lieu / Ville</label>
+                <input type="text" [(ngModel)]="signatureLocation" placeholder="Ex: Paris, France" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Contact / Info signataire</label>
+              <input type="text" [(ngModel)]="signatureContact" placeholder="Ex: contact@entreprise.com" />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" (click)="closeSecurityModal()">Annuler</button>
+        <button type="button" class="btn btn-primary btn-sm" (click)="generatePdfWithOptions()" [disabled]="generatingSecurePdf || (securityType === 'SIGNATURE' && companyCertificates.length === 0)">
+          <lucide-icon [img]="icons.newVersion" [size]="14" [class.spin]="generatingSecurePdf" *ngIf="generatingSecurePdf"></lucide-icon>
+          {{ generatingSecurePdf ? 'Chiffrement / Signature en cours...' : 'Générer & Télécharger' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</ng-container>
+              
+  <!-- Modal Rejet du Workflow -->
+  <div *ngIf="showRejectModal" class="modal-backdrop" (click)="closeRejectModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Rejeter le modèle et demander des corrections</h2>
+        <button class="btn-close" (click)="closeRejectModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-intro">Veuillez indiquer au concepteur le motif du rejet et les modifications attendues :</p>
+        <div class="form-group">
+          <label>Commentaire / Motif du rejet *</label>
+          <textarea [(ngModel)]="rejectionComment" rows="4" placeholder="Ex: Veuillez ajuster le logo, vérifier la charte graphique et réaligner le tableau des totaux..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" (click)="closeRejectModal()">Annuler</button>
+        <button type="button" class="btn btn-danger btn-sm" (click)="confirmReject()" [disabled]="workflowProcessing || !rejectionComment.trim()">
+          Confirmer le rejet
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Historique du Workflow -->
+  <div *ngIf="showWorkflowHistoryModal" class="modal-backdrop" (click)="closeWorkflowHistory()">
+    <div class="modal-card modal-large" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Historique du Cycle de Vie & Workflow</h2>
+        <button class="btn-close" (click)="closeWorkflowHistory()">×</button>
+      </div>
+      <div class="modal-body">
+        <div *ngIf="workflowHistory.length === 0" class="empty-workflow">
+          <lucide-icon [img]="icons.history" [size]="36"></lucide-icon>
+          <p>Aucune transition de workflow enregistrée pour ce modèle.</p>
+        </div>
+
+        <div *ngIf="workflowHistory.length > 0" class="workflow-timeline">
+          <div *ngFor="let h of workflowHistory" class="timeline-step">
+            <div class="step-marker">
+              <span class="step-dot"></span>
+              <span class="step-line"></span>
+            </div>
+            <div class="step-content">
+              <div class="step-header">
+                <span class="badge small" [ngClass]="h.fromStatus.toLowerCase()">{{ h.fromStatus }}</span>
+                <span class="step-arrow">➔</span>
+                <span class="badge small" [ngClass]="h.toStatus.toLowerCase()">{{ h.toStatus }}</span>
+                <span class="step-date">{{ h.timestamp | date:'dd/MM/yyyy HH:mm:ss' }}</span>
+              </div>
+              <div class="step-author">
+                <span>Par : <strong>{{ h.performedBy }}</strong></span>
+              </div>
+              <div *ngIf="h.comment" class="step-comment">
+                💬 « {{ h.comment }} »
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" (click)="closeWorkflowHistory()">Fermer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Génération PDF Sécurisé / Signé -->
+  <div *ngIf="showSecurityModal" class="modal-backdrop" (click)="closeSecurityModal()">
+    <div class="modal-card modal-large" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Options de Protection Cryptographique & Signature PDF</h2>
+        <button class="btn-close" (click)="closeSecurityModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="security-type-selector">
+          <label class="type-card" [class.selected]="securityType === 'NONE'">
+            <input type="radio" name="secType" value="NONE" [(ngModel)]="securityType" />
+            <div class="type-content">
+              <div class="type-title">Standard</div>
+              <div class="type-desc">Génération PDF standard sans verrouillage ni cachet.</div>
+            </div>
+          </label>
+
+          <label class="type-card" [class.selected]="securityType === 'PASSWORD'">
+            <input type="radio" name="secType" value="PASSWORD" [(ngModel)]="securityType" />
+            <div class="type-content">
+              <div class="type-title">Chiffrement AES-256</div>
+              <div class="type-desc">Verrouillage par mot de passe utilisateur & permissions.</div>
+            </div>
+          </label>
+
+          <label class="type-card" [class.selected]="securityType === 'SIGNATURE'">
+            <input type="radio" name="secType" value="SIGNATURE" [(ngModel)]="securityType" />
+            <div class="type-content">
+              <div class="type-title">Signature PAdES Certifiée</div>
+              <div class="type-desc">Cachet électronique d'entreprise infalsifiable (PKCS#12).</div>
+            </div>
+          </label>
+        </div>
+
+        <!-- Formulaire Chiffrement par mot de passe -->
+        <div *ngIf="securityType === 'PASSWORD'" class="security-panel">
+          <h3>Paramètres du Chiffrement AES-256</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Mot de passe utilisateur (Ouverture)</label>
+              <input type="password" [(ngModel)]="pdfUserPassword" placeholder="Requis pour ouvrir le PDF" />
+            </div>
+            <div class="form-group">
+              <label>Mot de passe propriétaire (Droits & Permissions)</label>
+              <input type="password" [(ngModel)]="pdfOwnerPassword" placeholder="Requis pour modifier les restrictions" />
+            </div>
+          </div>
+          <div class="permissions-group">
+            <span class="perm-title">Autorisations accordées aux destinataires :</span>
+            <div class="perm-options">
+              <label class="checkbox-label">
+                <input type="checkbox" [(ngModel)]="pdfAllowPrinting" />
+                Autoriser l'impression
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" [(ngModel)]="pdfAllowCopying" />
+                Autoriser la copie de texte et d'images
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" [(ngModel)]="pdfAllowModification" />
+                Autoriser la modification du document
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Formulaire Signature PAdES -->
+        <div *ngIf="securityType === 'SIGNATURE'" class="security-panel">
+          <h3>Cachet Électronique & Certificat PKCS#12</h3>
+          <div *ngIf="companyCertificates.length === 0" class="alert-empty-cert">
+            ⚠️ Aucun certificat actif configuré pour votre entreprise. Veuillez en importer un dans la rubrique <a routerLink="/certificates" (click)="closeSecurityModal()">Certificats</a>.
+          </div>
+
+          <div *ngIf="companyCertificates.length > 0" class="cert-form">
+            <div class="form-group">
+              <label>Certificat d'Entreprise *</label>
+              <select [(ngModel)]="selectedCertificateId">
+                <option *ngFor="let cert of companyCertificates" [value]="cert.id">
+                  {{ cert.alias }} ({{ cert.filename }})
+                </option>
+              </select>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Motif de la signature</label>
+                <input type="text" [(ngModel)]="signatureReason" placeholder="Ex: Facture certifiée conforme" />
+              </div>
+              <div class="form-group">
+                <label>Lieu / Ville</label>
+                <input type="text" [(ngModel)]="signatureLocation" placeholder="Ex: Paris, France" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Contact / Info signataire</label>
+              <input type="text" [(ngModel)]="signatureContact" placeholder="Ex: contact@entreprise.com" />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" (click)="closeSecurityModal()">Annuler</button>
+        <button type="button" class="btn btn-primary btn-sm" (click)="generatePdfWithOptions()" [disabled]="generatingSecurePdf || (securityType === 'SIGNATURE' && companyCertificates.length === 0)">
+          <lucide-icon [img]="icons.newVersion" [size]="14" [class.spin]="generatingSecurePdf" *ngIf="generatingSecurePdf"></lucide-icon>
+          {{ generatingSecurePdf ? 'Chiffrement / Signature en cours...' : 'Générer & Télécharger' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</ng-container>
             </div>
           </div>
         </ng-template>
@@ -354,6 +1297,181 @@
       </app-variable-validation-form>
 
       <div class="generation-error" *ngIf="generationError">{{ generationError }}</div>
+    </div>
+  </div>
+
+  <!-- Modal Rejet du Workflow -->
+  <div *ngIf="showRejectModal" class="modal-backdrop" (click)="closeRejectModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Rejeter le modèle et demander des corrections</h2>
+        <button class="btn-close" (click)="closeRejectModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-intro">Veuillez indiquer au concepteur le motif du rejet et les modifications attendues :</p>
+        <div class="form-group">
+          <label>Commentaire / Motif du rejet *</label>
+          <textarea [(ngModel)]="rejectionComment" rows="4" placeholder="Ex: Veuillez ajuster le logo, vérifier la charte graphique et réaligner le tableau des totaux..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" (click)="closeRejectModal()">Annuler</button>
+        <button type="button" class="btn btn-danger btn-sm" (click)="confirmReject()" [disabled]="workflowProcessing || !rejectionComment.trim()">
+          Confirmer le rejet
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Historique du Workflow -->
+  <div *ngIf="showWorkflowHistoryModal" class="modal-backdrop" (click)="closeWorkflowHistory()">
+    <div class="modal-card modal-large" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Historique du Cycle de Vie & Workflow</h2>
+        <button class="btn-close" (click)="closeWorkflowHistory()">×</button>
+      </div>
+      <div class="modal-body">
+        <div *ngIf="workflowHistory.length === 0" class="empty-workflow">
+          <lucide-icon [img]="icons.history" [size]="36"></lucide-icon>
+          <p>Aucune transition de workflow enregistrée pour ce modèle.</p>
+        </div>
+
+        <div *ngIf="workflowHistory.length > 0" class="workflow-timeline">
+          <div *ngFor="let h of workflowHistory" class="timeline-step">
+            <div class="step-marker">
+              <span class="step-dot"></span>
+              <span class="step-line"></span>
+            </div>
+            <div class="step-content">
+              <div class="step-header">
+                <span class="badge small" [ngClass]="h.fromStatus.toLowerCase()">{{ h.fromStatus }}</span>
+                <span class="step-arrow">➔</span>
+                <span class="badge small" [ngClass]="h.toStatus.toLowerCase()">{{ h.toStatus }}</span>
+                <span class="step-date">{{ h.timestamp | date:'dd/MM/yyyy HH:mm:ss' }}</span>
+              </div>
+              <div class="step-author">
+                <span>Par : <strong>{{ h.performedBy }}</strong></span>
+              </div>
+              <div *ngIf="h.comment" class="step-comment">
+                💬 « {{ h.comment }} »
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" (click)="closeWorkflowHistory()">Fermer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Génération PDF Sécurisé / Signé -->
+  <div *ngIf="showSecurityModal" class="modal-backdrop" (click)="closeSecurityModal()">
+    <div class="modal-card modal-large" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Options de Protection Cryptographique & Signature PDF</h2>
+        <button class="btn-close" (click)="closeSecurityModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="security-type-selector">
+          <label class="type-card" [class.selected]="securityType === 'NONE'">
+            <input type="radio" name="secType" value="NONE" [(ngModel)]="securityType" />
+            <div class="type-content">
+              <div class="type-title">Standard</div>
+              <div class="type-desc">Génération PDF standard sans verrouillage ni cachet.</div>
+            </div>
+          </label>
+
+          <label class="type-card" [class.selected]="securityType === 'PASSWORD'">
+            <input type="radio" name="secType" value="PASSWORD" [(ngModel)]="securityType" />
+            <div class="type-content">
+              <div class="type-title">Chiffrement AES-256</div>
+              <div class="type-desc">Verrouillage par mot de passe utilisateur & permissions.</div>
+            </div>
+          </label>
+
+          <label class="type-card" [class.selected]="securityType === 'SIGNATURE'">
+            <input type="radio" name="secType" value="SIGNATURE" [(ngModel)]="securityType" />
+            <div class="type-content">
+              <div class="type-title">Signature PAdES Certifiée</div>
+              <div class="type-desc">Cachet électronique d'entreprise infalsifiable (PKCS#12).</div>
+            </div>
+          </label>
+        </div>
+
+        <!-- Formulaire Chiffrement par mot de passe -->
+        <div *ngIf="securityType === 'PASSWORD'" class="security-panel">
+          <h3>Paramètres du Chiffrement AES-256</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Mot de passe utilisateur (Ouverture)</label>
+              <input type="password" [(ngModel)]="pdfUserPassword" placeholder="Requis pour ouvrir le PDF" />
+            </div>
+            <div class="form-group">
+              <label>Mot de passe propriétaire (Droits & Permissions)</label>
+              <input type="password" [(ngModel)]="pdfOwnerPassword" placeholder="Requis pour modifier les restrictions" />
+            </div>
+          </div>
+          <div class="permissions-group">
+            <span class="perm-title">Autorisations accordées aux destinataires :</span>
+            <div class="perm-options">
+              <label class="checkbox-label">
+                <input type="checkbox" [(ngModel)]="pdfAllowPrinting" />
+                Autoriser l'impression
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" [(ngModel)]="pdfAllowCopying" />
+                Autoriser la copie de texte et d'images
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" [(ngModel)]="pdfAllowModification" />
+                Autoriser la modification du document
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Formulaire Signature PAdES -->
+        <div *ngIf="securityType === 'SIGNATURE'" class="security-panel">
+          <h3>Cachet Électronique & Certificat PKCS#12</h3>
+          <div *ngIf="companyCertificates.length === 0" class="alert-empty-cert">
+            ⚠️ Aucun certificat actif configuré pour votre entreprise. Veuillez en importer un dans la rubrique <a routerLink="/certificates" (click)="closeSecurityModal()">Certificats</a>.
+          </div>
+
+          <div *ngIf="companyCertificates.length > 0" class="cert-form">
+            <div class="form-group">
+              <label>Certificat d'Entreprise *</label>
+              <select [(ngModel)]="selectedCertificateId">
+                <option *ngFor="let cert of companyCertificates" [value]="cert.id">
+                  {{ cert.alias }} ({{ cert.filename }})
+                </option>
+              </select>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Motif de la signature</label>
+                <input type="text" [(ngModel)]="signatureReason" placeholder="Ex: Facture certifiée conforme" />
+              </div>
+              <div class="form-group">
+                <label>Lieu / Ville</label>
+                <input type="text" [(ngModel)]="signatureLocation" placeholder="Ex: Paris, France" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Contact / Info signataire</label>
+              <input type="text" [(ngModel)]="signatureContact" placeholder="Ex: contact@entreprise.com" />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" (click)="closeSecurityModal()">Annuler</button>
+        <button type="button" class="btn btn-primary btn-sm" (click)="generatePdfWithOptions()" [disabled]="generatingSecurePdf || (securityType === 'SIGNATURE' && companyCertificates.length === 0)">
+          <lucide-icon [img]="icons.newVersion" [size]="14" [class.spin]="generatingSecurePdf" *ngIf="generatingSecurePdf"></lucide-icon>
+          {{ generatingSecurePdf ? 'Chiffrement / Signature en cours...' : 'Générer & Télécharger' }}
+        </button>
+      </div>
     </div>
   </div>
 </ng-container>

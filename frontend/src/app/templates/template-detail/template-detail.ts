@@ -10,6 +10,22 @@ import { DesignSerializer } from '../../designer/services/design-serializer.serv
 import { Subject, debounceTime } from 'rxjs';
 import { MockDataService } from '../../designer/services/mock-data.service';
 import { VariableValidationForm } from '../../designer/variable-validation-form/variable-validation-form';
+import { TemplateWorkflowService } from '../../services/template-workflow.service';
+import { CertificateService } from '../../services/certificate.service';
+import { AuthService } from '../../services/auth.service';
+import { ToastService } from '../../shared/services/toast.service';
+import { TemplateWorkflowHistory } from '../../models/workflow.model';
+import { CompanyCertificate } from '../../models/certificate.model';
+import {
+  Shield,
+  ShieldCheck,
+  Lock,
+  Send,
+  FileSignature,
+  CheckCheck,
+  XCircle,
+  FileCheck
+} from 'lucide-angular';
 import {
   LucideAngularModule,
   Archive,
@@ -62,6 +78,29 @@ export class TemplateDetail implements OnInit {
   selectedBlock: DesignBlock | null = null;
   modePagination: 'FIXED' | 'AUTO' = 'FIXED';
 
+  // Workflow & Gouvernance
+  workflowHistory: TemplateWorkflowHistory[] = [];
+  showWorkflowHistoryModal = false;
+  showRejectModal = false;
+  rejectionComment = '';
+  workflowProcessing = false;
+
+  // Sécurité & Signature PDF
+  showSecurityModal = false;
+  securityType: 'NONE' | 'PASSWORD' | 'SIGNATURE' = 'NONE';
+  pdfUserPassword = '';
+  pdfOwnerPassword = '';
+  pdfAllowPrinting = true;
+  pdfAllowCopying = false;
+  pdfAllowModification = false;
+
+  companyCertificates: CompanyCertificate[] = [];
+  selectedCertificateId = '';
+  signatureReason = 'Certifié conforme';
+  signatureLocation = 'Paris, France';
+  signatureContact = '';
+  generatingSecurePdf = false;
+
   versionTree: TemplateVersionTreeDto | null = null;
   loadingVersions = false;
   versionViewMode: 'timeline' | 'tree' = 'timeline';
@@ -92,6 +131,14 @@ export class TemplateDetail implements OnInit {
     play: Play,
     check: CheckCircle2,
     alert: AlertCircle,
+    shield: Shield,
+    shieldCheck: ShieldCheck,
+    lock: Lock,
+    send: Send,
+    fileSignature: FileSignature,
+    checkCheck: CheckCheck,
+    xCircle: XCircle,
+    fileCheck: FileCheck,
   };
 
   constructor(
@@ -102,6 +149,10 @@ export class TemplateDetail implements OnInit {
     private cdr: ChangeDetectorRef,
     private serializer: DesignSerializer,
     private mockDataService: MockDataService,
+    private workflowService: TemplateWorkflowService,
+    private certificateService: CertificateService,
+    public auth: AuthService,
+    private toast: ToastService,
   ) {}
 
   ngOnInit(): void {
@@ -551,6 +602,194 @@ export class TemplateDetail implements OnInit {
         this.cdr.detectChanges();
       },
       error: (err) => console.error('Erreur restauration', err)
+    });
+  }
+
+  get isAdmin(): boolean {
+    const role = this.auth.currentRole();
+    return role === 'SUPER_ADMIN' || role === 'ADMIN_ENTREPRISE';
+  }
+
+  submitForReview(): void {
+    if (!this.template) return;
+    this.workflowProcessing = true;
+    this.workflowService.submitForReview(this.template.id).subscribe({
+      next: (updated) => {
+        this.template = updated;
+        this.workflowProcessing = false;
+        this.toast.success('Le modèle a été soumis pour revue à un administrateur', 'Workflow');
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.workflowProcessing = false;
+        this.toast.error(err.error?.message || 'Erreur lors de la soumission', 'Workflow');
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  approveWorkflow(): void {
+    if (!this.template) return;
+    this.workflowProcessing = true;
+    this.workflowService.approve(this.template.id).subscribe({
+      next: (updated) => {
+        this.template = updated;
+        this.workflowProcessing = false;
+        this.toast.success('Modèle approuvé avec succès', 'Workflow');
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.workflowProcessing = false;
+        this.toast.error(err.error?.message || 'Erreur lors de l\'approbation', 'Workflow');
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  openRejectModal(): void {
+    this.rejectionComment = '';
+    this.showRejectModal = true;
+  }
+
+  closeRejectModal(): void {
+    this.showRejectModal = false;
+  }
+
+  confirmReject(): void {
+    if (!this.template || !this.rejectionComment.trim()) {
+      this.toast.error('Le motif du rejet est obligatoire', 'Validation');
+      return;
+    }
+    this.workflowProcessing = true;
+    this.workflowService.reject(this.template.id, { comment: this.rejectionComment.trim() }).subscribe({
+      next: (updated) => {
+        this.template = updated;
+        this.workflowProcessing = false;
+        this.showRejectModal = false;
+        this.toast.info('Modèle retourné en brouillon avec motif', 'Workflow');
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.workflowProcessing = false;
+        this.toast.error(err.error?.message || 'Erreur lors du rejet', 'Workflow');
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  publishWorkflow(): void {
+    if (!this.template) return;
+    this.workflowProcessing = true;
+    this.workflowService.publish(this.template.id).subscribe({
+      next: (updated) => {
+        this.template = updated;
+        this.workflowProcessing = false;
+        this.toast.success('Modèle publié en production', 'Workflow');
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.workflowProcessing = false;
+        this.toast.error(err.error?.message || 'Erreur lors de la publication', 'Workflow');
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  openWorkflowHistory(): void {
+    if (!this.template) return;
+    this.workflowService.getHistory(this.template.id).subscribe({
+      next: (history) => {
+        this.workflowHistory = history || [];
+        this.showWorkflowHistoryModal = true;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.toast.error('Impossible de charger l\'historique du workflow', 'Erreur');
+      }
+    });
+  }
+
+  closeWorkflowHistory(): void {
+    this.showWorkflowHistoryModal = false;
+  }
+
+  openSecurityModal(): void {
+    this.showSecurityModal = true;
+    this.loadCertificatesForSigning();
+  }
+
+  closeSecurityModal(): void {
+    this.showSecurityModal = false;
+  }
+
+  loadCertificatesForSigning(): void {
+    this.certificateService.getAll().subscribe({
+      next: (certs) => {
+        this.companyCertificates = (certs || []).filter(c => c.active && !c.isExpired);
+        if (this.companyCertificates.length > 0 && !this.selectedCertificateId) {
+          this.selectedCertificateId = this.companyCertificates[0].id;
+        }
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  generatePdfWithOptions(): void {
+    if (!this.template) return;
+    this.generatingSecurePdf = true;
+
+    const mockData = this.mockDataService.generate(this.allBlocksFlat);
+    const payload: any = {
+      data: mockData
+    };
+
+    if (this.securityType === 'PASSWORD') {
+      if (!this.pdfUserPassword && !this.pdfOwnerPassword) {
+        this.toast.error('Veuillez spécifier au moins un mot de passe utilisateur ou propriétaire', 'Protection PDF');
+        this.generatingSecurePdf = false;
+        return;
+      }
+      payload.protection = {
+        userPassword: this.pdfUserPassword || undefined,
+        ownerPassword: this.pdfOwnerPassword || undefined,
+        allowPrinting: this.pdfAllowPrinting,
+        allowCopying: this.pdfAllowCopying,
+        allowModification: this.pdfAllowModification
+      };
+    } else if (this.securityType === 'SIGNATURE') {
+      if (!this.selectedCertificateId) {
+        this.toast.error('Veuillez sélectionner un certificat actif pour signer le PDF', 'Signature PAdES');
+        this.generatingSecurePdf = false;
+        return;
+      }
+      payload.signature = {
+        certificateId: this.selectedCertificateId,
+        reason: this.signatureReason,
+        location: this.signatureLocation,
+        contactInfo: this.signatureContact
+      };
+    }
+
+    this.api.generateDocument(this.template.id, payload).subscribe({
+      next: (blob: Blob) => {
+        this.generatingSecurePdf = false;
+        this.showSecurityModal = false;
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const suffix = this.securityType === 'PASSWORD' ? '-protege' : (this.securityType === 'SIGNATURE' ? '-signe' : '');
+        a.download = `${this.template!.nom || 'document'}${suffix}.pdf`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        this.toast.success('Document généré et téléchargé avec succès !', 'Génération');
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.generatingSecurePdf = false;
+        this.handleGenerationError(err);
+        this.toast.error('Échec de la génération du document sécurisé.', 'Erreur');
+        this.cdr.detectChanges();
+      }
     });
   }
 }

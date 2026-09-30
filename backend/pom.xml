@@ -234,6 +234,23 @@
             <artifactId>shedlock-provider-jdbc-template</artifactId>
             <version>5.16.0</version>
         </dependency>
+        <!-- Signature Numérique PAdES & Cryptographie Bouncy Castle (Axe 3) -->
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcprov-jdk18on</artifactId>
+            <version>1.78.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcpkix-jdk18on</artifactId>
+            <version>1.78.1</version>
+        </dependency>
+
+        <!-- AOP pour Audit Trail Déclaratif (Axe 3) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
+        </dependency>
     </dependencies>
     <build>
         <plugins>

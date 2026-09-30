@@ -45,7 +45,7 @@ export class ReportDesigner implements OnInit {
   @Input() templateName = '';
   @Input() savingStatus: 'idle' | 'saving' | 'saved' = 'idle';
   @Input() templateId: string | null = null;
-  @Input() templateStatus: 'BROUILLON' | 'PUBLIE' | 'ARCHIVE' = 'BROUILLON';
+  @Input() templateStatus: 'BROUILLON' | 'EN_REVUE' | 'APPROUVE' | 'PUBLIE' | 'ARCHIVE' = 'BROUILLON';
   @Input() formatPapier: string = 'A4';
   @Input() largeurMm?: number | null;
   @Input() hauteurMm?: number | null;

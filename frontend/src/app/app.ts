@@ -41,6 +41,8 @@ import { CommandPaletteComponent } from '@shared/components/command-palette/comm
         <a routerLink="/batches" routerLinkActive="active">Lots & Webhooks</a>
         <a routerLink="/data-sources" routerLinkActive="active">Connecteurs</a>
         <a routerLink="/schedules" routerLinkActive="active">Planification</a>
+        <a routerLink="/certificates" routerLinkActive="active">Certificats</a>
+        <a routerLink="/audit" routerLinkActive="active" *ngIf="auth.currentRole() === 'SUPER_ADMIN' || auth.currentRole() === 'ADMIN_ENTREPRISE'">Audit</a>
         <a routerLink="/feuille-travail" routerLinkActive="active">Personnaliser la feuille</a>
       </div>
 

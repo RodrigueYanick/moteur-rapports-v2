@@ -16,7 +16,7 @@ import {
 })
 export class DesignerToolbarComponent {
   @Input() templateName = '';
-  @Input() templateStatus: 'BROUILLON' | 'PUBLIE' | 'ARCHIVE' = 'BROUILLON';
+  @Input() templateStatus: 'BROUILLON' | 'EN_REVUE' | 'APPROUVE' | 'PUBLIE' | 'ARCHIVE' = 'BROUILLON';
   @Input() savingStatus: 'idle' | 'saving' | 'saved' = 'idle';
   @Input() canCopy = false;
   @Input() canPaste = false;

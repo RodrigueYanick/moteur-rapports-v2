@@ -51,5 +51,15 @@ export const routes: Routes = [
     loadComponent: () => import('./schedules/schedule-list/schedule-list.component').then(m => m.ScheduleListComponent),
     canActivate: [authGuard]
   },
+  {
+    path: 'certificates',
+    loadComponent: () => import('./certificates/certificate-list/certificate-list.component').then(m => m.CertificateListComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'audit',
+    loadComponent: () => import('./audit/audit-dashboard/audit-dashboard.component').then(m => m.AuditDashboardComponent),
+    canActivate: [authGuard]
+  },
   { path: '**', redirectTo: '/bibliotheque' }
 ];

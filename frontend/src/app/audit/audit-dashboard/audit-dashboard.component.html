@@ -1,0 +1,201 @@
+<div class="audit-container">
+  <div class="header-section">
+    <div>
+      <h1 class="page-title">Piste d'Audit & Gouvernance (Audit Trail)</h1>
+      <p class="page-subtitle">Journal immuable des activités d'entreprise : modifications de modèles, approbations de workflow et générations de documents.</p>
+    </div>
+    <button class="btn-secondary" (click)="loadLogs(); loadStats()" [disabled]="loading">
+      <lucide-icon [img]="icons.refresh" [size]="16" [class.spin]="loading"></lucide-icon>
+      Actualiser
+    </button>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-icon blue">
+        <lucide-icon [img]="icons.activity" [size]="24"></lucide-icon>
+      </div>
+      <div class="kpi-info">
+        <span class="kpi-label">Total Événements</span>
+        <span class="kpi-value">{{ stats?.totalEvents ?? '-' }}</span>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon green">
+        <lucide-icon [img]="icons.fileText" [size]="24"></lucide-icon>
+      </div>
+      <div class="kpi-info">
+        <span class="kpi-label">Documents Générés</span>
+        <span class="kpi-value">{{ stats?.totalByAction?.['DOCUMENT_GENERATE'] ?? 0 }}</span>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon purple">
+        <lucide-icon [img]="icons.gitBranch" [size]="24"></lucide-icon>
+      </div>
+      <div class="kpi-info">
+        <span class="kpi-label">Actions Workflow & Modèles</span>
+        <span class="kpi-value">
+          {{ (stats?.totalByAction?.['WORKFLOW_APPROVE'] ?? 0) + (stats?.totalByAction?.['WORKFLOW_SUBMIT'] ?? 0) + (stats?.totalByAction?.['TEMPLATE_UPDATE'] ?? 0) }}
+        </span>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon amber">
+        <lucide-icon [img]="icons.users" [size]="24"></lucide-icon>
+      </div>
+      <div class="kpi-info">
+        <span class="kpi-label">Utilisateurs Actifs</span>
+        <span class="kpi-value">{{ stats?.activeUsersCount ?? '-' }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Barre de recherche et filtres -->
+  <div class="filters-card">
+    <div class="filters-row">
+      <div class="filter-group">
+        <label>Action</label>
+        <select [(ngModel)]="filterAction" (change)="loadLogs()">
+          <option *ngFor="let a of actionsList" [value]="a.value">{{ a.label }}</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label>Utilisateur / Auteur</label>
+        <input type="text" [(ngModel)]="filterUser" (keyup.enter)="loadLogs()" placeholder="Email ou login" />
+      </div>
+
+      <div class="filter-group">
+        <label>Date Début</label>
+        <input type="date" [(ngModel)]="fromDate" (change)="loadLogs()" />
+      </div>
+
+      <div class="filter-group">
+        <label>Date Fin</label>
+        <input type="date" [(ngModel)]="toDate" (change)="loadLogs()" />
+      </div>
+
+      <div class="filter-actions">
+        <button class="btn-primary" (click)="loadLogs()">
+          <lucide-icon [img]="icons.search" [size]="14"></lucide-icon>
+          Filtrer
+        </button>
+        <button class="btn-secondary" (click)="resetFilters()">Réinitialiser</button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="errorMsg" class="alert alert-error">
+    <lucide-icon [img]="icons.alert" [size]="16"></lucide-icon>
+    <span>{{ errorMsg }}</span>
+  </div>
+
+  <!-- État de chargement -->
+  <div *ngIf="loading && logs.length === 0" class="loading-state">
+    <lucide-icon [img]="icons.refresh" [size]="24" class="spin"></lucide-icon>
+    <span>Chargement du journal d'audit...</span>
+  </div>
+
+  <!-- État vide -->
+  <div *ngIf="!loading && logs.length === 0" class="empty-state">
+    <div class="empty-icon">
+      <lucide-icon [img]="icons.shield" [size]="48"></lucide-icon>
+    </div>
+    <h2>Aucun événement d'audit trouvé</h2>
+    <p>Aucune trace d'audit ne correspond à vos critères de recherche.</p>
+  </div>
+
+  <!-- Table des logs d'audit -->
+  <div *ngIf="logs.length > 0" class="table-card">
+    <table class="audit-table">
+      <thead>
+        <tr>
+          <th>Horodatage</th>
+          <th>Action</th>
+          <th>Entité</th>
+          <th>Auteur</th>
+          <th>Adresse IP</th>
+          <th class="text-right">Détails</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let log of logs">
+          <td class="col-date">
+            <span class="date-main">{{ log.timestamp | date:'dd/MM/yyyy HH:mm:ss' }}</span>
+          </td>
+          <td>
+            <span class="badge" [ngClass]="getActionBadgeClass(log.action)">
+              {{ formatActionLabel(log.action) }}
+            </span>
+          </td>
+          <td>
+            <span class="entity-name">{{ log.entityName || '-' }}</span>
+            <span class="entity-id" *ngIf="log.entityId">#{{ log.entityId | slice:0:8 }}</span>
+          </td>
+          <td class="col-user">
+            <span class="user-pill">{{ log.performedBy }}</span>
+          </td>
+          <td class="col-ip">
+            <code>{{ log.ipAddress || '-' }}</code>
+          </td>
+          <td class="text-right">
+            <button class="btn-icon" (click)="openDetails(log)" title="Voir les détails complets">
+              <lucide-icon [img]="icons.eye" [size]="15"></lucide-icon>
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Modale Détails JSON de l'événement -->
+  <div *ngIf="selectedLog" class="modal-backdrop" (click)="closeDetails()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Détail de l'Événement d'Audit</h2>
+        <button class="btn-close" (click)="closeDetails()">×</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="detail-summary-grid">
+          <div class="summary-item">
+            <span class="label">Action</span>
+            <span class="badge" [ngClass]="getActionBadgeClass(selectedLog.action)">
+              {{ formatActionLabel(selectedLog.action) }}
+            </span>
+          </div>
+          <div class="summary-item">
+            <span class="label">Date & Heure</span>
+            <span class="value">{{ selectedLog.timestamp | date:'dd/MM/yyyy HH:mm:ss' }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="label">Auteur</span>
+            <span class="value">{{ selectedLog.performedBy }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="label">Adresse IP</span>
+            <span class="value">{{ selectedLog.ipAddress || 'Non enregistrée' }}</span>
+          </div>
+          <div class="summary-item full-width" *ngIf="selectedLog.userAgent">
+            <span class="label">User-Agent</span>
+            <span class="value text-mono">{{ selectedLog.userAgent }}</span>
+          </div>
+        </div>
+
+        <div class="details-json-box">
+          <span class="label">Données contextuelles (Payload JSON)</span>
+          <pre class="json-content">{{ formatJsonDetails(selectedLog.details) }}</pre>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="closeDetails()">Fermer</button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -10,8 +10,12 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -59,5 +63,26 @@ public class ReportGenerationController {
             )
             @RequestParam @NonNull UUID templateId) {
         return service.getHistory(templateId);
+    }
+
+    @Operation(
+        summary = "Télécharger le PDF d'une génération spécifique",
+        description = "Retourne le flux binaire PDF généré pour l'identifiant de génération donné."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "PDF récupéré avec succès",
+                     content = @Content(mediaType = "application/pdf")),
+        @ApiResponse(responseCode = "404", description = "Génération introuvable ou fichier indisponible",
+                     content = @Content(schema = @Schema(implementation = ApiError.class)))
+    })
+    @GetMapping("/{id}/download")
+    public ResponseEntity<byte[]> downloadPdf(
+            @Parameter(description = "Identifiant UUID de la génération", required = true)
+            @PathVariable @NonNull UUID id) {
+        byte[] pdf = service.downloadPdf(id);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"generation-" + id + ".pdf\"")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdf);
     }
 }

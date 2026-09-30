@@ -1,0 +1,132 @@
+<div class="certificates-container">
+  <div class="header-section">
+    <div>
+      <h1 class="page-title">Certificats & Cachets Numériques PAdES</h1>
+      <p class="page-subtitle">Gérez vos certificats d'entreprise (PKCS#12 / .p12 / .pfx) pour apposer un cachet électronique infalsifiable sur vos PDF générés.</p>
+    </div>
+    <button class="btn-primary" (click)="openUploadModal()">
+      <lucide-icon [img]="icons.plus" [size]="16"></lucide-icon>
+      Importer un Certificat
+    </button>
+  </div>
+
+  <div class="info-banner">
+    <div class="banner-icon">
+      <lucide-icon [img]="icons.shieldCheck" [size]="24"></lucide-icon>
+    </div>
+    <div class="banner-text">
+      <strong>Sécurité & Conformité PAdES (eIDAS)</strong>
+      <p>L'apposition d'un cachet électronique d'entreprise garantit l'origine, l'intégrité du document et empêche toute altération ultérieure. Le mot de passe de votre certificat est chiffré de bout en bout en AES-256-GCM.</p>
+    </div>
+  </div>
+
+  <div *ngIf="errorMsg" class="alert alert-error">
+    <lucide-icon [img]="icons.alert" [size]="16"></lucide-icon>
+    <span>{{ errorMsg }}</span>
+  </div>
+
+  <!-- État de chargement -->
+  <div *ngIf="loading && certificates.length === 0" class="loading-state">
+    <lucide-icon [img]="icons.refresh" [size]="24" class="spin"></lucide-icon>
+    <span>Chargement des certificats de l'entreprise...</span>
+  </div>
+
+  <!-- État vide -->
+  <div *ngIf="!loading && certificates.length === 0" class="empty-state">
+    <div class="empty-icon">
+      <lucide-icon [img]="icons.key" [size]="48"></lucide-icon>
+    </div>
+    <h2>Aucun certificat d'entreprise enregistré</h2>
+    <p>Importez votre premier fichier de certificat (.p12 ou .pfx) pour commencer à signer automatiquement vos rapports.</p>
+    <button class="btn-secondary" (click)="openUploadModal()">Importer un certificat</button>
+  </div>
+
+  <!-- Grille des certificats -->
+  <div *ngIf="certificates.length > 0" class="certificates-grid">
+    <div *ngFor="let cert of certificates" class="cert-card" [class.inactive]="!cert.active">
+      <div class="card-header">
+        <div class="cert-icon" [class.active]="cert.active">
+          <lucide-icon [img]="icons.shield" [size]="22"></lucide-icon>
+        </div>
+        <div class="card-meta">
+          <h3 class="cert-alias">{{ cert.alias }}</h3>
+          <span class="cert-filename">{{ cert.filename }}</span>
+        </div>
+        <div class="status-pill" [class.active]="cert.active" [class.expired]="cert.isExpired">
+          {{ cert.isExpired ? 'Expiré' : (cert.active ? 'Actif' : 'Inactif') }}
+        </div>
+      </div>
+
+      <div class="card-body">
+        <div class="info-row">
+          <span class="label">Valide du :</span>
+          <span class="value">{{ cert.validFrom ? (cert.validFrom | date:'dd/MM/yyyy') : 'N/A' }}</span>
+        </div>
+        <div class="info-row">
+          <span class="label">Jusqu'au :</span>
+          <span class="value" [class.expired-date]="cert.isExpired">{{ cert.validTo ? (cert.validTo | date:'dd/MM/yyyy') : 'N/A' }}</span>
+        </div>
+        <div class="info-row">
+          <span class="label">Algorithme :</span>
+          <span class="value">SHA256withRSA (PAdES B-B)</span>
+        </div>
+        <div class="info-row">
+          <span class="label">Chiffrement Clé :</span>
+          <span class="value">AES-256-GCM</span>
+        </div>
+      </div>
+
+      <div class="card-footer">
+        <button class="btn-toggle" [class.active]="cert.active" (click)="toggleActive(cert)" title="Activer / Désactiver">
+          {{ cert.active ? 'Désactiver' : 'Activer' }}
+        </button>
+        <button class="btn-icon danger" (click)="deleteCert(cert)" title="Supprimer ce certificat">
+          <lucide-icon [img]="icons.trash" [size]="16"></lucide-icon>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Import Certificat -->
+  <div *ngIf="showUploadModal" class="modal-backdrop" (click)="closeUploadModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Importer un Certificat d'Entreprise (PKCS#12)</h2>
+        <button class="btn-close" (click)="closeUploadModal()">×</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Nom ou Alias du certificat *</label>
+          <input type="text" [(ngModel)]="uploadAlias" placeholder="Ex: Cachet Électronique Finance 2026" />
+        </div>
+
+        <div class="form-group">
+          <label>Fichier Certificat (.p12 / .pfx) *</label>
+          <div class="file-drop-zone">
+            <input type="file" id="certFile" accept=".p12,.pfx" (change)="onFileSelected($event)" />
+            <label for="certFile" class="file-label">
+              <lucide-icon [img]="icons.upload" [size]="24"></lucide-icon>
+              <span *ngIf="!selectedFileName">Cliquez pour parcourir vos fichiers (.p12, .pfx)</span>
+              <span *ngIf="selectedFileName" class="selected-filename">{{ selectedFileName }}</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Mot de passe du fichier PKCS#12</label>
+          <input type="password" [(ngModel)]="uploadPassword" placeholder="Mot de passe du conteneur (si applicable)" />
+          <span class="helper-text">Le mot de passe sera chiffré en AES-256-GCM avant stockage dans la base.</span>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="closeUploadModal()" [disabled]="uploading">Annuler</button>
+        <button type="button" class="btn-primary" (click)="submitUpload()" [disabled]="uploading || !selectedFile || !uploadAlias.trim()">
+          <lucide-icon [img]="icons.refresh" [size]="14" [class.spin]="uploading" *ngIf="uploading"></lucide-icon>
+          {{ uploading ? 'Vérification & Importation...' : 'Valider et Importer' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

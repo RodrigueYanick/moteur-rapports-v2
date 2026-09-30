@@ -3,7 +3,7 @@ export interface Template {
   nom: string;
   description?: string;
   contenuDesign?: any | null;
-  statut: 'BROUILLON' | 'PUBLIE' | 'ARCHIVE';
+  statut: 'BROUILLON' | 'EN_REVUE' | 'APPROUVE' | 'PUBLIE' | 'ARCHIVE';
   version: number;
   dateCreation: string;
   dateModification: string;
@@ -43,7 +43,7 @@ export interface TemplateVersionDto {
   id: string;
   nom: string;
   version: number;
-  statut: 'BROUILLON' | 'PUBLIE' | 'ARCHIVE';
+  statut: 'BROUILLON' | 'EN_REVUE' | 'APPROUVE' | 'PUBLIE' | 'ARCHIVE';
   dateCreation: string;
   dateModification: string;
   parentTemplateId?: string | null;
