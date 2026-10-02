@@ -14,6 +14,7 @@ import {
   ArrowUp, ArrowDown, Layers, MoveHorizontal, MoveVertical
 } from 'lucide-angular';
 import { Variable } from '../../models/variable.model';
+import { TemplateWorkflowStatus } from '../../models/workflow.model';
 import { WatermarkConfig } from '../models/watermark.model';
 import { TemplateFiller } from "../template-filler/template-filler";
 import { FillerDataService } from '../services/filler-data';
@@ -45,7 +46,7 @@ export class ReportDesigner implements OnInit {
   @Input() templateName = '';
   @Input() savingStatus: 'idle' | 'saving' | 'saved' = 'idle';
   @Input() templateId: string | null = null;
-  @Input() templateStatus: 'BROUILLON' | 'EN_REVUE' | 'APPROUVE' | 'PUBLIE' | 'ARCHIVE' = 'BROUILLON';
+  @Input() templateStatus: TemplateWorkflowStatus = 'BROUILLON';
   @Input() formatPapier: string = 'A4';
   @Input() largeurMm?: number | null;
   @Input() hauteurMm?: number | null;

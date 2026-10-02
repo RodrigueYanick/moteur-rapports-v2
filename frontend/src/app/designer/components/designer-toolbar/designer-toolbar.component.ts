@@ -1,5 +1,6 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { TemplateWorkflowStatus } from '../../../models/workflow.model';
 import {
   LucideAngularModule, Undo2, Redo2, Grid3x3, Magnet, Ruler, Minus, Plus, Eye,
   Download, Rocket, Share2, Save, FileText, Check, Loader2,
@@ -16,7 +17,7 @@ import {
 })
 export class DesignerToolbarComponent {
   @Input() templateName = '';
-  @Input() templateStatus: 'BROUILLON' | 'EN_REVUE' | 'APPROUVE' | 'PUBLIE' | 'ARCHIVE' = 'BROUILLON';
+  @Input() templateStatus: TemplateWorkflowStatus = 'BROUILLON';
   @Input() savingStatus: 'idle' | 'saving' | 'saved' = 'idle';
   @Input() canCopy = false;
   @Input() canPaste = false;

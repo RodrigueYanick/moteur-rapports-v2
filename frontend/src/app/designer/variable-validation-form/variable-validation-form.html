@@ -5,9 +5,16 @@
   <!-- ===== Formulaire complet ===== -->
   <div class="validation-form" *ngIf="formVisible">
     <div class="form-header">
-      <lucide-icon [img]="icons.fileCheck" [size]="16"></lucide-icon>
-      <h3>Renseigner les variables du document</h3>
+      <div class="title-with-icon">
+        <lucide-icon [img]="icons.fileCheck" [size]="16"></lucide-icon>
+        <h3>Renseigner les variables du document</h3>
+      </div>
+      <button type="button" class="btn-ai-mock" (click)="generateAiMockData()" [disabled]="aiLoading">
+        <lucide-icon [img]="icons.sparkles" [size]="14"></lucide-icon>
+        <span>{{ aiLoading ? 'Génération IA...' : 'Remplir avec l\'IA' }}</span>
+      </button>
     </div>
+    <div class="ai-success-banner" *ngIf="aiSuccessMessage">{{ aiSuccessMessage }}</div>
 
     <div *ngIf="loading" class="state-msg">Chargement des variables...</div>
     <div *ngIf="error" class="state-msg error">{{ error }}</div>

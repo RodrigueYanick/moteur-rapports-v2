@@ -26,6 +26,6 @@ export class AuditService {
   }
 
   getStats(): Observable<AuditStats> {
-    return this.http.get<AuditStats>(this.baseUrl + '/stats');
+    return this.http.get<AuditStats>(`${this.baseUrl}/stats`);
   }
 }

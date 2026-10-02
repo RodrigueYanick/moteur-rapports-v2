@@ -32,7 +32,7 @@ export class TemplateLibrary implements OnInit {
     'VENTES', 'ACHATS', 'FINANCE', 'RH', 'LOGISTIQUE',
     'STOCK', 'PRODUCTION', 'ADMINISTRATION', 'AUTRES',
   ];
-  statuts: string[] = ['BROUILLON', 'EN_REVUE', 'APPROUVE', 'PUBLIE', 'ARCHIVE'];
+  statuts: string[] = ['BROUILLON', 'PUBLIE', 'ARCHIVE'];
 
   readonly icons = {
     search: Search, plus: Plus, grid: LayoutGrid, list: ListIcon,

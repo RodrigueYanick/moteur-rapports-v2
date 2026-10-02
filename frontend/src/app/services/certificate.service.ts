@@ -26,10 +26,10 @@ export class CertificateService {
   }
 
   toggleActive(id: string): Observable<CompanyCertificate> {
-    return this.http.patch<CompanyCertificate>(this.baseUrl + '/' + id + '/toggle-active', {});
+    return this.http.patch<CompanyCertificate>(`${this.baseUrl}/${id}/toggle-active`, {});
   }
 
   delete(id: string): Observable<void> {
-    return this.http.delete<void>(this.baseUrl + '/' + id);
+    return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }
 }

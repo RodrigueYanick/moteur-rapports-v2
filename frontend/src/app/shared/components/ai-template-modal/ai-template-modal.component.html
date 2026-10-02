@@ -1,0 +1,106 @@
+<div class="ai-modal-backdrop" *ngIf="visible" (click)="closeModal()"></div>
+
+<div class="ai-modal" *ngIf="visible" role="dialog" aria-labelledby="ai-modal-title" aria-modal="true">
+  <div class="modal-header">
+    <div class="header-left">
+      <div class="icon-badge">
+        <lucide-icon [img]="icons.sparkles" [size]="20"></lucide-icon>
+      </div>
+      <div>
+        <h2 id="ai-modal-title">Créer un modèle avec l'IA</h2>
+        <p class="subtitle">Décrivez votre besoin en français et l'IA générera la mise en page, les blocs et les variables.</p>
+      </div>
+    </div>
+    <button type="button" class="btn-close" (click)="closeModal()" aria-label="Fermer" [disabled]="loading">
+      <lucide-icon [img]="icons.x" [size]="18"></lucide-icon>
+    </button>
+  </div>
+
+  <div class="modal-body">
+    <!-- Status IA Pill -->
+    <div class="ai-status-pill" *ngIf="aiStatus">
+      <span class="pulse-dot"></span>
+      <span class="status-text">
+        Moteur IA : <strong>{{ aiStatus.provider === 'GEMINI' ? 'Google Gemini Flash' : 'Moteur Déterministe Hors-Ligne' }}</strong>
+      </span>
+    </div>
+
+    <!-- Suggestions chips -->
+    <div class="suggestions-section">
+      <span class="suggestions-label">Suggestions rapides :</span>
+      <div class="chips-container">
+        <button
+          type="button"
+          class="chip"
+          *ngFor="let s of suggestions"
+          (click)="applySuggestion(s)"
+          [disabled]="loading"
+        >
+          <lucide-icon [img]="icons.wand" [size]="12"></lucide-icon>
+          <span>{{ s.title }}</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Prompt input -->
+    <div class="form-group">
+      <label for="ai-prompt">Description détaillée du document <span class="required">*</span></label>
+      <textarea
+        id="ai-prompt"
+        class="form-control textarea-prompt"
+        rows="4"
+        [(ngModel)]="prompt"
+        [disabled]="loading"
+        placeholder="Ex: Modèle de facture avec entête pour logo et adresse, tableau de prestations avec colonnes Désignation, Quantité, PU HT, TVA 20% et Montant total, encadré des mentions légales et conditions de règlement..."
+      ></textarea>
+    </div>
+
+    <!-- Options ligne 2 colonnes -->
+    <div class="form-row">
+      <div class="form-group col">
+        <label for="ai-name">Nom du modèle (optionnel)</label>
+        <input
+          type="text"
+          id="ai-name"
+          class="form-control"
+          [(ngModel)]="nom"
+          [disabled]="loading"
+          placeholder="Ex: Facture Standard B2B"
+        />
+      </div>
+
+      <div class="form-group col">
+        <label for="ai-cat">Catégorie</label>
+        <select id="ai-cat" class="form-control" [(ngModel)]="categorie" [disabled]="loading">
+          <option *ngFor="let c of categories" [value]="c">{{ c }}</option>
+        </select>
+      </div>
+
+      <div class="form-group col-small">
+        <label for="ai-format">Format</label>
+        <select id="ai-format" class="form-control" [(ngModel)]="formatPapier" [disabled]="loading">
+          <option value="A4">A4</option>
+          <option value="LETTER">Lettre</option>
+          <option value="A5">A5</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Error message -->
+    <div class="alert-error" *ngIf="error">
+      <lucide-icon [img]="icons.alert" [size]="16"></lucide-icon>
+      <span>{{ error }}</span>
+    </div>
+  </div>
+
+  <div class="modal-footer">
+    <button type="button" class="btn btn-secondary" (click)="closeModal()" [disabled]="loading">
+      Annuler
+    </button>
+    <button type="button" class="btn btn-ai-submit" (click)="generate()" [disabled]="loading || !prompt.trim()">
+      <lucide-icon [img]="loading ? icons.loader : icons.sparkles" [size]="16" [class.spin]="loading"></lucide-icon>
+      <span>{{ loading ? 'Conception en cours par l\'IA...' : 'Générer le modèle' }}</span>
+      <lucide-icon [img]="icons.arrowRight" [size]="14" *ngIf="!loading"></lucide-icon>
+    </button>
+  </div>
+</div>

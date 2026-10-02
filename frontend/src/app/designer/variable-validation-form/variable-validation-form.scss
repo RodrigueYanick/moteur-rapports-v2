@@ -47,15 +47,64 @@ $success: #34d399;
 .form-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
   color: $accent;
   margin-bottom: 14px;
+
+  .title-with-icon {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
 
   h3 {
     color: $text-primary;
     font-size: 14px;
     margin: 0;
   }
+}
+
+.btn-ai-mock {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #ffffff;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+}
+
+.ai-success-banner {
+  background: rgba(52, 211, 153, 0.12);
+  border: 1px solid rgba(52, 211, 153, 0.35);
+  border-radius: 8px;
+  color: #34d399;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 8px 12px;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .state-msg {

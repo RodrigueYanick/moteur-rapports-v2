@@ -1,9 +1,13 @@
+import { TemplateWorkflowStatus } from './workflow.model';
+
+export type TemplateStatut = TemplateWorkflowStatus;
+
 export interface Template {
   id: string;
   nom: string;
   description?: string;
   contenuDesign?: any | null;
-  statut: 'BROUILLON' | 'EN_REVUE' | 'APPROUVE' | 'PUBLIE' | 'ARCHIVE';
+  statut: TemplateWorkflowStatus;
   version: number;
   dateCreation: string;
   dateModification: string;
@@ -43,7 +47,7 @@ export interface TemplateVersionDto {
   id: string;
   nom: string;
   version: number;
-  statut: 'BROUILLON' | 'EN_REVUE' | 'APPROUVE' | 'PUBLIE' | 'ARCHIVE';
+  statut: TemplateWorkflowStatus;
   dateCreation: string;
   dateModification: string;
   parentTemplateId?: string | null;

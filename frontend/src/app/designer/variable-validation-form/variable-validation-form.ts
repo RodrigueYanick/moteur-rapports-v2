@@ -24,7 +24,9 @@ import {
   Trash2,
   AlertCircle,
   FileCheck2,
+  Sparkles,
 } from 'lucide-angular';
+import { AiAssistantService } from '../../services/ai-assistant.service';
 import { DesignBlock, DesignPage } from '../models/design-block.model';
 
 @Component({
@@ -49,12 +51,16 @@ export class VariableValidationForm implements OnInit, OnChanges, OnDestroy {
     trash: Trash2,
     alert: AlertCircle,
     fileCheck: FileCheck2,
+    sparkles: Sparkles,
   };
 
   variables: Variable[] = [];
   values: Record<string, any> = {};
   loading = false;
   error: string | null = null;
+
+  aiLoading = false;
+  aiSuccessMessage: string | null = null;
 
   documents: GeneratedDocument[] = [];
   activeDocumentId: string | null = null;
@@ -66,6 +72,7 @@ export class VariableValidationForm implements OnInit, OnChanges, OnDestroy {
   constructor(
     private api: TemplateApiService,
     private fillerData: FillerDataService,
+    private aiService: AiAssistantService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -110,6 +117,53 @@ export class VariableValidationForm implements OnInit, OnChanges, OnDestroy {
 
   trackByRow(index: number): number { return index; }
   trackByCol(index: number, col: string): string { return col; }
+
+  generateAiMockData(): void {
+    if (!this.templateId && (!this.variables || this.variables.length === 0)) return;
+
+    this.aiLoading = true;
+    this.aiSuccessMessage = null;
+
+    // Collect variables info
+    const variableTypes: Record<string, string> = {};
+    const arraySchemas: Record<string, string[]> = {};
+
+    this.variables.forEach((v) => {
+      variableTypes[v.nomVariable] = v.type;
+      if (v.type === 'ARRAY') {
+        arraySchemas[v.nomVariable] = this.getArrayColumns(v.nomVariable);
+      }
+    });
+
+    const request = {
+      templateId: this.templateId ?? undefined,
+      variableTypes,
+      arraySchemas,
+      count: 3,
+    };
+
+    this.aiService.generateMockData(request).subscribe({
+      next: (res) => {
+        this.aiLoading = false;
+        if (res.data) {
+          this.values = { ...this.values, ...res.data };
+          this.fillerData.setValues(this.values);
+          const varCount = Object.keys(res.data).length;
+          this.aiSuccessMessage = `✨ ${varCount} variable(s) remplie(s) avec succès par l'IA !`;
+          setTimeout(() => {
+            this.aiSuccessMessage = null;
+            this.cdr.detectChanges();
+          }, 5000);
+        }
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.aiLoading = false;
+        console.error('Erreur lors de la génération IA des données de test:', err);
+        this.cdr.detectChanges();
+      },
+    });
+  }
 
   private load(): void {
     if (!this.templateId) return;

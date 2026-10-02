@@ -36,6 +36,11 @@
       </button>
     </div>
 
+    <button type="button" (click)="openAiModal()" class="btn-ai">
+      <lucide-icon [img]="icons.sparkles" [size]="15"></lucide-icon>
+      Créer avec l'IA
+    </button>
+
     <button routerLink="/templates/new" class="btn-primary">
       <lucide-icon [img]="icons.plus" [size]="15"></lucide-icon>
       Nouveau modèle
@@ -98,6 +103,7 @@
           <h3>{{ template.nom }}</h3>
           <span class="badge" [ngClass]="getStatusClass(template.statut)">{{ template.statut }}</span>
         </div>
+
         <p class="card-meta">{{ template.categorie || 'AUTRES' }} · {{ template.dateModification | date:'d MMM y' }}</p>
 
         <div class="card-footer">
@@ -189,4 +195,11 @@
       Nouveau modèle
     </button>
   </div>
+
+  <!-- Modal Assistant IA Builder -->
+  <app-ai-template-modal
+    [visible]="showAiModal"
+    (close)="showAiModal = false"
+    (created)="onAiTemplateCreated($event)">
+  </app-ai-template-modal>
 </div>

@@ -13,22 +13,22 @@ export class TemplateWorkflowService {
   constructor(private http: HttpClient) {}
 
   submitForReview(templateId: string, request?: WorkflowActionRequest): Observable<Template> {
-    return this.http.post<Template>(this.baseUrl + '/' + templateId + '/workflow/submit', request || {});
+    return this.http.post<Template>(`${this.baseUrl}/${templateId}/workflow/submit`, request || {});
   }
 
   approve(templateId: string, request?: WorkflowActionRequest): Observable<Template> {
-    return this.http.post<Template>(this.baseUrl + '/' + templateId + '/workflow/approve', request || {});
+    return this.http.post<Template>(`${this.baseUrl}/${templateId}/workflow/approve`, request || {});
   }
 
   reject(templateId: string, request: WorkflowActionRequest): Observable<Template> {
-    return this.http.post<Template>(this.baseUrl + '/' + templateId + '/workflow/reject', request);
+    return this.http.post<Template>(`${this.baseUrl}/${templateId}/workflow/reject`, request);
   }
 
   publish(templateId: string, request?: WorkflowActionRequest): Observable<Template> {
-    return this.http.post<Template>(this.baseUrl + '/' + templateId + '/workflow/publish', request || {});
+    return this.http.post<Template>(`${this.baseUrl}/${templateId}/workflow/publish`, request || {});
   }
 
   getHistory(templateId: string): Observable<TemplateWorkflowHistory[]> {
-    return this.http.get<TemplateWorkflowHistory[]>(this.baseUrl + '/' + templateId + '/workflow/history');
+    return this.http.get<TemplateWorkflowHistory[]>(`${this.baseUrl}/${templateId}/workflow/history`);
   }
 }

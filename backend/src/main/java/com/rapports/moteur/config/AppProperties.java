@@ -12,6 +12,7 @@ public class AppProperties {
     private Storage storage = new Storage();
     private Jwt jwt = new Jwt();
     private Rendering rendering = new Rendering();
+    private Ai ai = new Ai();
 
     @Data
     public static class Storage {
@@ -41,5 +42,15 @@ public class AppProperties {
         private String engine = "gotenberg";
         private String gotenbergEndpoint = "http://localhost:3000";
         private int timeoutSeconds = 15;
+    }
+
+    @Data
+    public static class Ai {
+        private String provider = "gemini";
+        private String apiKey = "";
+        private String model = "gemini-1.5-flash";
+        private String endpoint = "https://generativelanguage.googleapis.com/v1beta";
+        private int timeoutSeconds = 25;
+        private boolean enabled = true;
     }
 }
