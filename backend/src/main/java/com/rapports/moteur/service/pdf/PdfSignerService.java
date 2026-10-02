@@ -57,20 +57,20 @@ public class PdfSignerService {
             }
 
             if (alias == null) {
-                throw new ValidationException(List.of("Aucune clÃ© privÃ©e trouvÃ©e dans le magasin PKCS#12"));
+                throw new ValidationException(List.of("Aucune clé privée trouvée dans le magasin PKCS#12"));
             }
 
             PrivateKey privateKey = (PrivateKey) keyStore.getKey(alias, passwordChars);
             Certificate[] certificateChain = keyStore.getCertificateChain(alias);
             if (certificateChain == null || certificateChain.length == 0) {
-                throw new ValidationException(List.of("Aucune chaÃ®ne de certification trouvÃ©e pour l'alias : " + alias));
+                throw new ValidationException(List.of("Aucune chaîne de certification trouvée pour l'alias : " + alias));
             }
 
             return signPdfWithPrivateKey(pdfBytes, privateKey, certificateChain, options);
         } catch (ValidationException ve) {
             throw ve;
         } catch (Exception e) {
-            throw new ValidationException(List.of("Ã‰chec de la signature numÃ©rique du PDF : " + e.getMessage()));
+            throw new ValidationException(List.of("Échec de la signature numérique du PDF : " + e.getMessage()));
         }
     }
 
