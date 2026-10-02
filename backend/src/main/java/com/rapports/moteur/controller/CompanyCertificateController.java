@@ -8,9 +8,13 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 
@@ -40,10 +44,33 @@ public class CompanyCertificateController {
         return ResponseEntity.ok(certificateService.getCertificate(id));
     }
 
-    @Operation(summary = "Importer un certificat d'entreprise PKCS#12", description = "Valide le trousseau .p12/.pfx, extrait les métadonnées et chiffre le mot de passe en AES-256-GCM")
+    @Operation(summary = "Importer un certificat via multipart (fichier .p12/.pfx)")
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<CertificateResponse> uploadCertificate(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("alias") String alias,
+            @RequestParam(value = "password", required = false) String password) throws IOException {
+        String base64 = Base64.getEncoder().encodeToString(file.getBytes());
+        CertificateCreateRequest request = CertificateCreateRequest.builder()
+                .nom(alias)
+                .alias(alias)
+                .motDePasse(password != null ? password : "")
+                .fichierCertificatBase64(base64)
+                .build();
+        return ResponseEntity.status(HttpStatus.CREATED).body(certificateService.createCertificate(request));
+    }
+
+    @Operation(summary = "Importer un certificat d'entreprise PKCS#12 (JSON)")
     @PostMapping
     public ResponseEntity<CertificateResponse> createCertificate(@Valid @RequestBody CertificateCreateRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(certificateService.createCertificate(request));
+    }
+
+    @Operation(summary = "Bascule automatique du statut actif")
+    @PatchMapping("/{id}/toggle-active")
+    public ResponseEntity<CertificateResponse> toggleActiveAuto(@PathVariable UUID id) {
+        CertificateResponse current = certificateService.getCertificate(id);
+        return ResponseEntity.ok(certificateService.toggleActive(id, !current.isActif()));
     }
 
     @Operation(summary = "Activer ou désactiver un certificat", description = "Bascule le statut actif du certificat")

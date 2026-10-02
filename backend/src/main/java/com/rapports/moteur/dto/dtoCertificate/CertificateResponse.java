@@ -43,4 +43,24 @@ public class CertificateResponse {
                 .dateCreation(entity.getDateCreation())
                 .build();
     }
+
+    public String getAlias() {
+        return (aliasCertificat != null && !aliasCertificat.isBlank()) ? aliasCertificat : nom;
+    }
+
+    public boolean isActive() {
+        return actif;
+    }
+
+    public boolean isExpired() {
+        return expire;
+    }
+
+    public LocalDateTime getValidTo() {
+        return dateExpiration;
+    }
+
+    public String getFilename() {
+        return (nom != null && !nom.isBlank()) ? nom : "certificat.p12";
+    }
 }
