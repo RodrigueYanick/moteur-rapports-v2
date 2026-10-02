@@ -1,18 +1,20 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule, Router } from '@angular/router';  // <-- ajout Router
+import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { TemplateApiService } from '../../services/template-api';
 import { Template } from '../../models/template.model';
 import {
   LucideAngularModule, Search, Plus, LayoutGrid, List as ListIcon,
-  Star, Eye, Edit3, Copy, Trash2, FileText, Loader2, Archive, RefreshCw, RotateCcw
+  Star, Eye, Edit3, Copy, Trash2, FileText, Loader2, Archive, RefreshCw, RotateCcw,
+  Sparkles
 } from 'lucide-angular';
+import { AiTemplateModalComponent } from '../../shared/components/ai-template-modal/ai-template-modal.component';
 
 @Component({
   selector: 'app-template-library',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, LucideAngularModule],
+  imports: [CommonModule, RouterModule, FormsModule, LucideAngularModule, AiTemplateModalComponent],
   templateUrl: './template-library.html',
   styleUrls: ['./template-library.scss'],
 })
@@ -21,6 +23,7 @@ export class TemplateLibrary implements OnInit {
   filteredTemplates: Template[] = [];
   loading = false;
   error = '';
+  showAiModal = false;
 
   searchTerm = '';
   filterCategorie = '';
@@ -32,12 +35,13 @@ export class TemplateLibrary implements OnInit {
     'VENTES', 'ACHATS', 'FINANCE', 'RH', 'LOGISTIQUE',
     'STOCK', 'PRODUCTION', 'ADMINISTRATION', 'AUTRES',
   ];
-  statuts: string[] = ['BROUILLON', 'PUBLIE', 'ARCHIVE'];
+  statuts: string[] = ['BROUILLON', 'EN_REVUE', 'APPROUVE', 'PUBLIE', 'ARCHIVE'];
 
   readonly icons = {
     search: Search, plus: Plus, grid: LayoutGrid, list: ListIcon,
     star: Star, eye: Eye, edit: Edit3, copy: Copy, trash: Trash2,
-    file: FileText, loader: Loader2, archive: Archive, newVersion: RefreshCw, restore: RotateCcw
+    file: FileText, loader: Loader2, archive: Archive, newVersion: RefreshCw, restore: RotateCcw,
+    sparkles: Sparkles
   };
 
   private categoryColors: Record<string, string> = {
@@ -55,20 +59,20 @@ export class TemplateLibrary implements OnInit {
   constructor(
     private api: TemplateApiService,
     private cdr: ChangeDetectorRef,
-    private router: Router    // <-- injection ajoutée
+    private router: Router
   ) {}
 
   ngOnInit(): void {
     this.loadTemplates();
   }
 
-    loadTemplates(): void {
+  loadTemplates(): void {
     this.loading = true;
     this.error = '';
     this.api.getTemplates(this.visibilityFilter, this.searchTerm).subscribe({
       next: (templates) => {
         this.templates = templates;
-        this.applyFilters();  // garde les filtres locaux (catégorie/statut)
+        this.applyFilters();
         this.loading = false;
         this.cdr.detectChanges();
       },
@@ -81,14 +85,11 @@ export class TemplateLibrary implements OnInit {
     });
   }
 
-
-  // Nouvelle méthode pour changer le filtre de visibilité
   setVisibilityFilter(filter: 'ALL' | 'PRIVATE' | 'PUBLIC'): void {
     this.visibilityFilter = filter;
     this.loadTemplates();
   }
 
-  // Ajuster la recherche : lorsque l'utilisateur tape, on relance l'API
   onSearchChange(): void {
     this.loadTemplates();
   }
@@ -144,8 +145,6 @@ export class TemplateLibrary implements OnInit {
     }
   }
 
-  // ---------- NOUVELLES MÉTHODES ----------
-
   archiveTemplate(id: string, event?: Event): void {
     event?.stopPropagation();
     if (!confirm('Archiver ce modèle ?')) return;
@@ -177,6 +176,14 @@ export class TemplateLibrary implements OnInit {
         this.cdr.detectChanges();
       }
     });
+  }
+
+  openAiModal(): void {
+    this.showAiModal = true;
+  }
+
+  onAiTemplateCreated(response: any): void {
+    this.loadTemplates();
   }
 
   getStatusClass(statut: string): string {
