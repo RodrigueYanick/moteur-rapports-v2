@@ -15,16 +15,15 @@
     "importHelpers": true,
     "target": "ES2022",
     "module": "preserve",
-    "baseUrl": "./",
     "paths": {
-      "@shared/*": ["src/app/shared/*"],
-      "@designer/*": ["src/app/designer/*"],
-      "@models/*": ["src/app/models/*"],
-      "@services/*": ["src/app/services/*"],
-      "@templates/*": ["src/app/templates/*"],
-      "@auth/*": ["src/app/auth/*"],
-      "@guards/*": ["src/app/guards/*"],
-      "@interceptors/*": ["src/app/interceptors/*"]
+      "@shared/*": ["./src/app/shared/*"],
+      "@designer/*": ["./src/app/designer/*"],
+      "@models/*": ["./src/app/models/*"],
+      "@services/*": ["./src/app/services/*"],
+      "@templates/*": ["./src/app/templates/*"],
+      "@auth/*": ["./src/app/auth/*"],
+      "@guards/*": ["./src/app/guards/*"],
+      "@interceptors/*": ["./src/app/interceptors/*"]
     }
   },
   "angularCompilerOptions": {
