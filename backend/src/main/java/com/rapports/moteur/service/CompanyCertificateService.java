@@ -57,8 +57,15 @@ public class CompanyCertificateService {
             throw new ValidationException(List.of("Code entreprise manquant dans la session"));
         }
 
+        if (request.getNom() == null || request.getNom().isBlank()) {
+            throw new ValidationException(List.of("Le nom du certificat est obligatoire"));
+        }
+        if (request.getFichierBase64() == null || request.getFichierBase64().isBlank()) {
+            throw new ValidationException(List.of("Le fichier certificat PKCS#12 encodé en base64 est obligatoire"));
+        }
+
         if (repository.existsByCodeEntrepriseAndNom(codeEntreprise, request.getNom())) {
-            throw new ValidationException(List.of("Un certificat avec ce nom existe dÃ©jÃ  pour cette entreprise"));
+            throw new ValidationException(List.of("Un certificat avec ce nom existe déjà pour cette entreprise"));
         }
 
         byte[] certBytes;

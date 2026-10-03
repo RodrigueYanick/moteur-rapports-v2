@@ -29,10 +29,14 @@ import java.security.cert.X509Certificate;
 import java.time.LocalDateTime;
 import java.util.*;
 
+import org.springframework.mock.web.MockMultipartFile;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.containsString;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -234,5 +238,92 @@ class ReportSecurityAndSignatureIntegrationTest extends BaseIntegrationTest {
         assertThat(downloadLog).isNotNull();
         assertThat(downloadLog.getRessourceId()).isEqualTo(genId.toString());
         assertThat(downloadLog.getUserEmail()).isEqualTo("admin@security.com");
+    }
+
+    @Test
+    @DisplayName("API Certificats : Création via JSON, liste, toggle et suppression")
+    void shouldCreateAndManageCertificateViaJsonApi() throws Exception {
+        Map<String, Object> req = new HashMap<>();
+        req.put("alias", "Mon Certificat JSON");
+        req.put("fichierCertificatBase64", p12Base64);
+        req.put("password", P12_PASS);
+        req.put("description", "Certificat de test JSON");
+
+        // 1. Création via POST /api/certificates
+        String resp = mockMvc.perform(post("/api/certificates")
+                        .header("Authorization", token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.nom").value("Mon Certificat JSON"))
+                .andExpect(jsonPath("$.aliasCertificat").value("alias-security"))
+                .andExpect(jsonPath("$.actif").value(true))
+                .andReturn().getResponse().getContentAsString();
+
+        Map<?, ?> json = objectMapper.readValue(resp, Map.class);
+        String certId = (String) json.get("id");
+        assertThat(certId).isNotNull();
+
+        // 2. Liste générale et active
+        mockMvc.perform(get("/api/certificates")
+                        .header("Authorization", token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].nom").value("Mon Certificat JSON"));
+
+        mockMvc.perform(get("/api/certificates/active")
+                        .header("Authorization", token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].nom").value("Mon Certificat JSON"));
+
+        // 3. Consultation unitaire
+        mockMvc.perform(get("/api/certificates/" + certId)
+                        .header("Authorization", token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(certId));
+
+        // 4. Toggle actif auto
+        mockMvc.perform(patch("/api/certificates/" + certId + "/toggle-active")
+                        .header("Authorization", token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.actif").value(false));
+
+        // 5. Toggle actif explicite
+        mockMvc.perform(patch("/api/certificates/" + certId + "/toggle")
+                        .param("actif", "true")
+                        .header("Authorization", token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.actif").value(true));
+
+        // 6. Suppression
+        mockMvc.perform(delete("/api/certificates/" + certId)
+                        .header("Authorization", token))
+                .andExpect(status().isNoContent());
+
+        // Vérifier suppression
+        mockMvc.perform(get("/api/certificates/" + certId)
+                        .header("Authorization", token))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("API Certificats : Création via Multipart form-data")
+    void shouldCreateCertificateViaMultipartApi() throws Exception {
+        byte[] p12RawBytes = Base64.getDecoder().decode(p12Base64);
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "cert.p12",
+                "application/x-pkcs12",
+                p12RawBytes
+        );
+
+        mockMvc.perform(multipart("/api/certificates")
+                        .file(file)
+                        .param("alias", "Certificat Multipart")
+                        .param("password", P12_PASS)
+                        .header("Authorization", token))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.nom").value("Certificat Multipart"))
+                .andExpect(jsonPath("$.aliasCertificat").value("alias-security"))
+                .andExpect(jsonPath("$.actif").value(true));
     }
 }
