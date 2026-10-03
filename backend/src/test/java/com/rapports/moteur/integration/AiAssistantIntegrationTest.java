@@ -123,5 +123,49 @@ class AiAssistantIntegrationTest extends BaseIntegrationTest {
         mockMvc.perform(get("/api/ai/status"))
                 .andExpect(status().isUnauthorized());
     }
+
+    @Test
+    @DisplayName("Génération d'un template de distribution avec prompt complexe et sauvegarde dataSourceMapping")
+    void testGenerateTemplateComplexDistributionPrompt() throws Exception {
+        String prompt = """
+            Crée un template de rapport professionnel et réutilisable pour une entreprise de distribution au Cameroun.
+            Titre : « RAPPORT MENSUEL DES VENTES »
+            Format A4 avec en-tête, résumé 4 indicateurs, tableau des ventes, synthèse financière FCFA.
+            """;
+
+        AiTemplatePromptRequest request = AiTemplatePromptRequest.builder()
+                .prompt(prompt)
+                .nom("Rapport Mensuel des Ventes Cameroun")
+                .categorie("VENTES")
+                .formatPapier("A4")
+                .build();
+
+        String responseContent = mockMvc.perform(post("/api/ai/generate-template")
+                        .header("Authorization", token)
+                        .header("X-Entreprise-Code", testEntreprise.getCode())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message", containsString("succès")))
+                .andExpect(jsonPath("$.data.templateId").isNotEmpty())
+                .andReturn().getResponse().getContentAsString();
+
+        var jsonNode = objectMapper.readTree(responseContent);
+        UUID createdId = UUID.fromString(jsonNode.path("data").path("templateId").asText());
+
+        var optTemplate = templateRepository.findById(createdId);
+        assertThat(optTemplate).isPresent();
+        ReportTemplate template = optTemplate.get();
+
+        // Tester la mise à jour de data_source_mapping avec JSONB
+        template.setDataSourceMapping("{\"col1\":\"var1\",\"col2\":\"var2\"}");
+        ReportTemplate updated = templateRepository.save(template);
+        assertThat(updated.getDataSourceMapping()).isEqualTo("{\"col1\":\"var1\",\"col2\":\"var2\"}");
+
+        // Tester la normalisation automatique à null si chaîne vide
+        updated.setDataSourceMapping("");
+        ReportTemplate cleared = templateRepository.save(updated);
+        assertThat(cleared.getDataSourceMapping()).isNull();
+    }
 }
 

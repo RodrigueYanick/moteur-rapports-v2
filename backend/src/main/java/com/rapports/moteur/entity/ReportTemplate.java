@@ -167,6 +167,7 @@ public class ReportTemplate {
     private String dataSourceQuery;
 
     @Column(name = "data_source_mapping", columnDefinition = "jsonb")
+    @ColumnTransformer(write = "?::jsonb")
     private String dataSourceMapping;
 
 
@@ -176,10 +177,21 @@ public class ReportTemplate {
         dateModification = LocalDateTime.now();
         if (version == null) version = 1;
         if (statut == null) statut = TemplateStatus.BROUILLON;
+        normalizeJsonFields();
     }
 
     @PreUpdate // Méthode appelée avant la mise à jour de l'entité
     protected void onUpdate() {
         dateModification = LocalDateTime.now();
+        normalizeJsonFields();
+    }
+
+    private void normalizeJsonFields() {
+        if (dataSourceMapping != null && dataSourceMapping.isBlank()) {
+            dataSourceMapping = null;
+        }
+        if (schema != null && schema.isBlank()) {
+            schema = null;
+        }
     }
 }
