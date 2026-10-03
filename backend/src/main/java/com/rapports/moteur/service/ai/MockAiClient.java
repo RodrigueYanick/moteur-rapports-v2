@@ -84,7 +84,7 @@ public class MockAiClient implements AiClient {
                   "x": 40,
                   "y": 100,
                   "largeurBox": 320,
-                  "contenu": "<b>{{entreprise_nom}}</b><br>{{entreprise_adresse}}<br>SIRET: {{entreprise_siret}}<br>Email: {{entreprise_email}}",
+                  "contenu": "<b>{{entreprise_nom}}</b><br/>{{entreprise_adresse}}<br/>SIRET: {{entreprise_siret}}<br/>Email: {{entreprise_email}}",
                   "style": {
                     "fontSize": 12,
                     "color": "#374151"
@@ -96,7 +96,7 @@ public class MockAiClient implements AiClient {
                   "x": 420,
                   "y": 100,
                   "largeurBox": 334,
-                  "contenu": "<b>Facturé à :</b><br><b>{{client_nom}}</b><br>{{client_adresse}}<br>Contact: {{client_contact}}",
+                  "contenu": "<b>Facturé à :</b><br/><b>{{client_nom}}</b><br/>{{client_adresse}}<br/>Contact: {{client_contact}}",
                   "style": {
                     "fontSize": 12,
                     "color": "#1f2937"
@@ -134,7 +134,7 @@ public class MockAiClient implements AiClient {
                   "x": 450,
                   "y": 500,
                   "largeurBox": 304,
-                  "contenu": "Total HT : <b>{{total_ht}} €</b><br>TVA (20%%) : <b>{{montant_tva}} €</b><br><hr><span style='font-size:16px;color:%s'><b>Total TTC : {{total_ttc}} €</b></span>",
+                  "contenu": "Total HT : <b>{{total_ht}} €</b><br/>TVA (20%%) : <b>{{montant_tva}} €</b><br/><hr/><span style='font-size:16px;color:%s'><b>Total TTC : {{total_ttc}} €</b></span>",
                   "style": {
                     "fontSize": 13,
                     "color": "#111827",
@@ -147,7 +147,7 @@ public class MockAiClient implements AiClient {
                   "x": 40,
                   "y": 640,
                   "largeurBox": 714,
-                  "contenu": "Conditions de règlement : Paiement à réception par virement bancaire.<br>IBAN: <b>{{entreprise_iban}}</b> | BIC: <b>{{entreprise_bic}}</b>",
+                  "contenu": "Conditions de règlement : Paiement à réception par virement bancaire.<br/>IBAN: <b>{{entreprise_iban}}</b> | BIC: <b>{{entreprise_bic}}</b>",
                   "style": {
                     "fontSize": 10,
                     "color": "#9ca3af",

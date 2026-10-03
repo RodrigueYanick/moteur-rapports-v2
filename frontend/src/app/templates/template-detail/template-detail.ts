@@ -295,23 +295,34 @@ export class TemplateDetail implements OnInit {
   }
 
   private handleGenerationError(err: any): void {
-    if (err.status === 400 && err.error) {
+    const parseErrorBody = (body: any) => {
+      if (body?.detail) {
+        return body.detail;
+      }
+      if (body?.errors && Array.isArray(body.errors)) {
+        return body.errors.join('\n');
+      }
+      if (body?.message) {
+        return body.message;
+      }
+      return 'Erreur lors de la génération. Vérifiez les données et que le template est publié.';
+    };
+
+    if (err.error instanceof Blob) {
       const reader = new FileReader();
       reader.onload = () => {
         try {
           const body = JSON.parse(reader.result as string);
-          if (body.errors && Array.isArray(body.errors)) {
-            this.generationError = body.errors.join('\n');
-          } else if (body.message) {
-            this.generationError = body.message;
-          } else {
-            this.generationError = 'Erreur de validation.';
-          }
+          this.generationError = parseErrorBody(body);
         } catch (e) {
-          this.generationError = 'Erreur de validation (réponse non lisible).';
+          this.generationError = 'Erreur lors de la génération (réponse non lisible).';
         }
       };
       reader.readAsText(err.error);
+    } else if (err.error && typeof err.error === 'object') {
+      this.generationError = parseErrorBody(err.error);
+    } else if (err.message) {
+      this.generationError = err.message;
     } else {
       this.generationError =
         'Erreur lors de la génération. Vérifiez les données et que le template est publié.';
