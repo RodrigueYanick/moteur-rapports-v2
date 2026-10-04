@@ -15,6 +15,7 @@ backend/data/reports/
 # Environnement
 .env
 .env.*
+!.env.example
 
 # Logs
 *.log
