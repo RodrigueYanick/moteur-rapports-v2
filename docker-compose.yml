@@ -7,7 +7,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-reportuser}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rodrigue}
     ports:
-      - "127.0.0.1:${POSTGRES_PORT:-5454}:5432"   # hôte:conteneur (restreint à localhost)
+      - "127.0.0.1:${POSTGRES_PORT:-5455}:5432"   # hôte:conteneur (restreint à localhost)
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
