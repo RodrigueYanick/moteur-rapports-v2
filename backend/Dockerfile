@@ -4,7 +4,7 @@ WORKDIR /workspace
 
 # Copier le pom.xml pour mettre en cache les dépendances
 COPY pom.xml ./pom.xml
-RUN mvn dependency:go-offline -B
+RUN mvn dependency:resolve -B
 
 # Copier le code source
 COPY src ./src
