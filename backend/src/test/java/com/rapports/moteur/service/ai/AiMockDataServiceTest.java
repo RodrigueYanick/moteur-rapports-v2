@@ -78,7 +78,7 @@ class AiMockDataServiceTest {
         }
         """;
 
-        when(aiClientManager.executeWithFallback(anyString(), anyString(), anyBoolean(), any(AtomicBoolean.class)))
+        when(aiClientManager.executeWithFallback(any(), any(), anyBoolean(), any(), any(), any(AtomicBoolean.class)))
                 .thenReturn(mockAiResponse);
         when(aiClientManager.getCurrentProvider()).thenReturn("gemini");
 
@@ -109,7 +109,7 @@ class AiMockDataServiceTest {
                 ))
                 .build();
 
-        when(aiClientManager.executeWithFallback(anyString(), anyString(), anyBoolean(), any(AtomicBoolean.class)))
+        when(aiClientManager.executeWithFallback(any(), any(), anyBoolean(), any(), any(), any(AtomicBoolean.class)))
                 .thenReturn("Ceci n'est pas du JSON");
 
         AiMockDataResponse response = service.generateMockData(request);
@@ -135,7 +135,7 @@ class AiMockDataServiceTest {
         when(schemaExtractorService.extract(anyString())).thenReturn(List.of(
                 new com.rapports.moteur.dto.dtoVariable.ExtractedVariable("nom_client", "STRING", true)
         ));
-        when(aiClientManager.executeWithFallback(anyString(), anyString(), anyBoolean(), any(AtomicBoolean.class)))
+        when(aiClientManager.executeWithFallback(any(), any(), anyBoolean(), any(), any(), any(AtomicBoolean.class)))
                 .thenReturn("{\"nom_client\":\"M. Martin\"}");
         when(aiClientManager.getCurrentProvider()).thenReturn("gemini");
 
@@ -147,6 +147,42 @@ class AiMockDataServiceTest {
 
         assertThat(response).isNotNull();
         assertThat(response.getData()).containsEntry("nom_client", "M. Martin");
+    }
+
+    @Test
+    @DisplayName("Précision arithmétique 100% : recalcul déterministe des totaux HT, TVA et TTC")
+    void testDeterministicFinancialCalculations() {
+        AiMockDataRequest request = AiMockDataRequest.builder()
+                .templateNom("Facture Précision")
+                .variables(List.of(
+                        new AiMockDataRequest.VariableItem("total_ht", "FLOAT", null),
+                        new AiMockDataRequest.VariableItem("montant_tva", "FLOAT", null),
+                        new AiMockDataRequest.VariableItem("total_ttc", "FLOAT", null)
+                ))
+                .build();
+
+        String rawAiJson = """
+        {
+          "lignes": [
+            { "designation": "Prestation A", "quantite": 2, "prix_unitaire": 100.0, "total_ligne": 0 },
+            { "designation": "Prestation B", "quantite": 1, "prix_unitaire": 200.0, "total_ligne": 0 }
+          ],
+          "total_ht": 999.0,
+          "montant_tva": 0.0,
+          "total_ttc": 0.0
+        }
+        """;
+
+        when(aiClientManager.executeWithFallback(any(), any(), anyBoolean(), any(), any(), any(AtomicBoolean.class)))
+                .thenReturn(rawAiJson);
+
+        AiMockDataResponse response = service.generateMockData(request);
+
+        assertThat(response).isNotNull();
+        Map<String, Object> data = response.getData();
+        assertThat(data.get("total_ht")).isEqualTo(400.0);
+        assertThat(data.get("montant_tva")).isEqualTo(80.0);
+        assertThat(data.get("total_ttc")).isEqualTo(480.0);
     }
 }
 

@@ -1,6 +1,7 @@
-import { Component, ChangeDetectorRef, OnInit } from '@angular/core';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { Component, ChangeDetectorRef, OnInit, OnDestroy } from '@angular/core';
+import { Router, NavigationEnd, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { Subscription, filter } from 'rxjs';
 import { CodeEntrepriseModal } from '@shared/components/code-entreprise-modal/code-entreprise-modal';
 import { AuthService } from '@services/auth.service';
 import { ToastContainerComponent } from '@shared/components/toast-container/toast-container.component';
@@ -30,12 +31,26 @@ import { CommandPaletteComponent } from '@shared/components/command-palette/comm
     <app-command-palette [(isOpen)]="commandPaletteOpen"></app-command-palette>
 
     <nav class="navbar">
-      <div class="nav-brand">
-        <span class="brand-icon">📑</span>
-        <span class="brand-text">Moteur de Rapports</span>
+      <div class="nav-left">
+        <!-- Bouton Menu Hamburger Mobile -->
+        <button
+          type="button"
+          class="nav-hamburger-btn"
+          (click)="toggleMobileMenu()"
+          [attr.aria-expanded]="mobileMenuOpen"
+          aria-label="Menu de navigation"
+          *ngIf="auth.isAuthenticated()">
+          <span class="hamburger-icon">{{ mobileMenuOpen ? '✕' : '☰' }}</span>
+        </button>
+
+        <a routerLink="/" class="nav-brand" (click)="closeMobileMenu()">
+          <span class="brand-icon">📑</span>
+          <span class="brand-text">Moteur de Rapports</span>
+        </a>
       </div>
 
-      <div class="nav-links" *ngIf="auth.isAuthenticated()">
+      <!-- Liens Desktop -->
+      <div class="nav-links desktop-only" *ngIf="auth.isAuthenticated()">
         <a routerLink="/bibliotheque" routerLinkActive="active">Bibliothèque</a>
         <a routerLink="/documents" routerLinkActive="active">Mes documents</a>
         <a routerLink="/batches" routerLinkActive="active">Lots & Webhooks</a>
@@ -54,8 +69,8 @@ import { CommandPaletteComponent } from '@shared/components/command-palette/comm
           (click)="commandPaletteOpen = true"
           title="Rechercher ou actionner (Ctrl+K)">
           <span class="search-icon">🔍</span>
-          <span class="search-text">Rechercher...</span>
-          <kbd class="search-kbd">Ctrl K</kbd>
+          <span class="search-text desktop-only">Rechercher...</span>
+          <kbd class="search-kbd desktop-only">Ctrl K</kbd>
         </button>
 
         <!-- Bouton bascule de thème Dark / Light -->
@@ -68,18 +83,18 @@ import { CommandPaletteComponent } from '@shared/components/command-palette/comm
         </button>
 
         <ng-container *ngIf="auth.isAuthenticated(); else loginLink">
-          <div class="user-info-pill">
+          <div class="user-info-pill desktop-only">
             <span class="user-name">👤 {{ auth.currentUser()?.nomComplet || auth.currentUser()?.email }}</span>
             <span class="role-badge" [ngClass]="auth.currentRole() || ''">{{ formatRole(auth.currentRole()) }}</span>
           </div>
 
-          <button type="button" class="company-badge-btn" (click)="openChangeCodeModal()" title="Entreprise active">
+          <button type="button" class="company-badge-btn desktop-only" (click)="openChangeCodeModal()" title="Entreprise active">
             <span class="badge-icon">🏢</span>
             <span class="badge-code">{{ auth.currentEntrepriseCode() }}</span>
             <span class="badge-edit" *ngIf="auth.currentRole() === 'SUPER_ADMIN'">✎</span>
           </button>
 
-          <button type="button" class="logout-btn" (click)="auth.logout()" title="Se déconnecter">
+          <button type="button" class="logout-btn desktop-only" (click)="auth.logout()" title="Se déconnecter">
             <span>Déconnexion</span>
           </button>
         </ng-container>
@@ -90,23 +105,118 @@ import { CommandPaletteComponent } from '@shared/components/command-palette/comm
       </div>
     </nav>
 
+    <!-- Mobile Drawer Backdrop & Menu -->
+    <div
+      class="mobile-drawer-backdrop"
+      *ngIf="mobileMenuOpen && auth.isAuthenticated()"
+      (click)="closeMobileMenu()">
+    </div>
+
+    <aside
+      class="mobile-nav-drawer"
+      [class.open]="mobileMenuOpen && auth.isAuthenticated()"
+      *ngIf="auth.isAuthenticated()">
+      <div class="mobile-drawer-header">
+        <div class="user-info-pill-mobile">
+          <span class="user-name">👤 {{ auth.currentUser()?.nomComplet || auth.currentUser()?.email }}</span>
+          <span class="role-badge" [ngClass]="auth.currentRole() || ''">{{ formatRole(auth.currentRole()) }}</span>
+        </div>
+        <button type="button" class="close-drawer-btn" (click)="closeMobileMenu()" aria-label="Fermer le menu">✕</button>
+      </div>
+
+      <div class="mobile-drawer-company">
+        <button type="button" class="company-badge-btn-mobile" (click)="openChangeCodeModal(); closeMobileMenu()" title="Entreprise active">
+          <span class="badge-icon">🏢</span>
+          <span class="badge-text">Entreprise active :</span>
+          <span class="badge-code">{{ auth.currentEntrepriseCode() }}</span>
+          <span class="badge-edit" *ngIf="auth.currentRole() === 'SUPER_ADMIN'">✎</span>
+        </button>
+      </div>
+
+      <nav class="mobile-drawer-links">
+        <a routerLink="/bibliotheque" routerLinkActive="active" (click)="closeMobileMenu()">
+          <span class="nav-icon">📚</span>
+          <span>Bibliothèque</span>
+        </a>
+        <a routerLink="/documents" routerLinkActive="active" (click)="closeMobileMenu()">
+          <span class="nav-icon">📄</span>
+          <span>Mes documents</span>
+        </a>
+        <a routerLink="/batches" routerLinkActive="active" (click)="closeMobileMenu()">
+          <span class="nav-icon">📦</span>
+          <span>Lots & Webhooks</span>
+        </a>
+        <a routerLink="/data-sources" routerLinkActive="active" (click)="closeMobileMenu()">
+          <span class="nav-icon">🔌</span>
+          <span>Connecteurs</span>
+        </a>
+        <a routerLink="/schedules" routerLinkActive="active" (click)="closeMobileMenu()">
+          <span class="nav-icon">⏰</span>
+          <span>Planification</span>
+        </a>
+        <a routerLink="/certificates" routerLinkActive="active" (click)="closeMobileMenu()">
+          <span class="nav-icon">🔐</span>
+          <span>Certificats</span>
+        </a>
+        <a routerLink="/audit" routerLinkActive="active" *ngIf="auth.currentRole() === 'SUPER_ADMIN' || auth.currentRole() === 'ADMIN_ENTREPRISE'" (click)="closeMobileMenu()">
+          <span class="nav-icon">🛡️</span>
+          <span>Audit & Sécurité</span>
+        </a>
+        <a routerLink="/feuille-travail" routerLinkActive="active" (click)="closeMobileMenu()">
+          <span class="nav-icon">📐</span>
+          <span>Personnaliser la feuille</span>
+        </a>
+      </nav>
+
+      <div class="mobile-drawer-footer">
+        <button type="button" class="logout-btn-mobile" (click)="auth.logout(); closeMobileMenu()">
+          <span>🚪 Déconnexion</span>
+        </button>
+      </div>
+    </aside>
+
     <main id="main-content" tabindex="-1">
       <router-outlet></router-outlet>
     </main>
   `,
   styleUrls: ['./app.scss'],
 })
-export class App implements OnInit {
+export class App implements OnInit, OnDestroy {
   showModal = false;
   commandPaletteOpen = false;
+  mobileMenuOpen = false;
+  private routerSub?: Subscription;
 
   constructor(
     public auth: AuthService,
     public themeService: ThemeService,
+    private router: Router,
     private cdr: ChangeDetectorRef
   ) {}
 
-  ngOnInit(): void {}
+  ngOnInit(): void {
+    this.routerSub = this.router.events
+      .pipe(filter((event) => event instanceof NavigationEnd))
+      .subscribe(() => {
+        this.closeMobileMenu();
+      });
+  }
+
+  ngOnDestroy(): void {
+    this.routerSub?.unsubscribe();
+  }
+
+  toggleMobileMenu(): void {
+    this.mobileMenuOpen = !this.mobileMenuOpen;
+    this.cdr.detectChanges();
+  }
+
+  closeMobileMenu(): void {
+    if (this.mobileMenuOpen) {
+      this.mobileMenuOpen = false;
+      this.cdr.detectChanges();
+    }
+  }
 
   openChangeCodeModal(): void {
     if (this.auth.currentRole() === 'SUPER_ADMIN') {

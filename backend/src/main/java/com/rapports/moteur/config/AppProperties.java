@@ -50,7 +50,14 @@ public class AppProperties {
         private String apiKey = "";
         private String model = "gemini-1.5-flash";
         private String endpoint = "https://generativelanguage.googleapis.com/v1beta";
-        private int timeoutSeconds = 25;
+        private int timeoutSeconds = 30;
         private boolean enabled = true;
+        private double temperatureTemplate = 0.25;
+        private double temperatureMock = 0.05;
+        private double topP = 0.85;
+        private int topK = 40;
+        private int maxOutputTokens = 4096;
+        private int maxRetryAttempts = 2;
+        private boolean cacheEnabled = true;
     }
 }

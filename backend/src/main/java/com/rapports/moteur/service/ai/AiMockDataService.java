@@ -53,21 +53,30 @@ public class AiMockDataService {
 
         // Si un templateId est fourni, charger les variables depuis le template
         if (request.getTemplateId() != null) {
-            ReportTemplate template = loadTemplateForCurrentEntreprise(request.getTemplateId());
-            if (templateNom == null || templateNom.isBlank()) {
-                templateNom = template.getNom();
-            }
-
-            if (request.getVariables() == null || request.getVariables().isEmpty()) {
-                List<ExtractedVariable> extracted = schemaExtractorService.extract(template.getContenuDesign());
-                for (ExtractedVariable ev : extracted) {
-                    variables.add(new AiMockDataRequest.VariableItem(ev.getNom(), ev.getType(), null));
+            try {
+                ReportTemplate template = loadTemplateForCurrentEntreprise(request.getTemplateId());
+                if (templateNom == null || templateNom.isBlank()) {
+                    templateNom = template.getNom();
                 }
-            } else {
-                variables.addAll(request.getVariables());
-            }
 
-            arrayColumnsMap = schemaExtractorService.extractArrayColumns(template.getContenuDesign());
+                if (request.getVariables() == null || request.getVariables().isEmpty()) {
+                    List<ExtractedVariable> extracted = schemaExtractorService.extract(template.getContenuDesign());
+                    for (ExtractedVariable ev : extracted) {
+                        variables.add(new AiMockDataRequest.VariableItem(ev.getNom(), ev.getType(), null));
+                    }
+                } else {
+                    variables.addAll(request.getVariables());
+                }
+
+                arrayColumnsMap = schemaExtractorService.extractArrayColumns(template.getContenuDesign());
+            } catch (Exception e) {
+                log.warn("Impossible de charger le template par id ({}) : {}", request.getTemplateId(), e.getMessage());
+                if (request.getVariables() != null && !request.getVariables().isEmpty()) {
+                    variables.addAll(request.getVariables());
+                } else {
+                    throw e;
+                }
+            }
         } else if (request.getVariables() != null) {
             variables.addAll(request.getVariables());
         }
@@ -78,7 +87,7 @@ public class AiMockDataService {
         String userPrompt = buildPrompt(templateNom, variables, arrayColumnsMap, request.getArrayColumns(), rowCount);
 
         AtomicBoolean usedMock = new AtomicBoolean(false);
-        String rawJson = aiClientManager.executeWithFallback(SYSTEM_INSTRUCTION, userPrompt, true, usedMock);
+        String rawJson = aiClientManager.executeWithFallback(SYSTEM_INSTRUCTION, userPrompt, true, null, null, usedMock);
 
         Map<String, Object> dataMap;
         try {
@@ -89,6 +98,9 @@ public class AiMockDataService {
             dataMap = generateHeuristicFallbackData(variables, arrayColumnsMap, rowCount);
             usedMock.set(true);
         }
+
+        // Post-calcul arithmétique et normalisation de types déterministe
+        postProcessAndVerifyFinancials(dataMap, variables, arrayColumnsMap);
 
         // Piste d'audit
         auditTrailService.log(
@@ -235,5 +247,103 @@ public class AiMockDataService {
             s = s.substring(0, s.length() - 3);
         }
         return s.trim();
+    }
+
+    @SuppressWarnings("unchecked")
+    private void postProcessAndVerifyFinancials(
+            Map<String, Object> dataMap,
+            List<AiMockDataRequest.VariableItem> variables,
+            Map<String, List<String>> arrayColumnsMap) {
+        if (dataMap == null) return;
+
+        double totalHtSum = 0.0;
+        boolean hasCalculatedLines = false;
+
+        for (Map.Entry<String, Object> entry : dataMap.entrySet()) {
+            if (entry.getValue() instanceof List<?> list && !list.isEmpty()) {
+                double listSum = 0.0;
+                boolean listHadCalculations = false;
+                for (Object item : list) {
+                    if (item instanceof Map<?, ?> rowRaw) {
+                        Map<String, Object> row = (Map<String, Object>) rowRaw;
+                        Double qte = findNumericValue(row, "quantite", "qte", "quantité");
+                        Double pu = findNumericValue(row, "prix_unitaire", "pu", "prix", "taux");
+
+                        if (qte != null && pu != null) {
+                            double lineTotal = Math.round(qte * pu * 100.0) / 100.0;
+                            for (String key : row.keySet()) {
+                                if (key.equalsIgnoreCase("total_ligne") || key.equalsIgnoreCase("total") || key.equalsIgnoreCase("montant")) {
+                                    row.put(key, lineTotal);
+                                }
+                            }
+                            listSum += lineTotal;
+                            listHadCalculations = true;
+                        }
+                    }
+                }
+                if (listHadCalculations) {
+                    totalHtSum += listSum;
+                    hasCalculatedLines = true;
+                }
+            }
+        }
+
+        if (hasCalculatedLines && totalHtSum > 0.0) {
+            double finalHt = Math.round(totalHtSum * 100.0) / 100.0;
+            double finalTva = Math.round(finalHt * 0.20 * 100.0) / 100.0;
+            double finalTtc = Math.round((finalHt + finalTva) * 100.0) / 100.0;
+
+            for (String key : new ArrayList<>(dataMap.keySet())) {
+                String lower = key.toLowerCase();
+                if (lower.equals("total_ht") || lower.equals("montant_ht") || lower.equals("totalht")) {
+                    dataMap.put(key, finalHt);
+                } else if (lower.equals("montant_tva") || lower.equals("tva") || lower.equals("total_tva")) {
+                    dataMap.put(key, finalTva);
+                } else if (lower.equals("total_ttc") || lower.equals("montant_ttc") || lower.equals("totalttc") || lower.equals("net_a_payer")) {
+                    dataMap.put(key, finalTtc);
+                }
+            }
+        }
+
+        if (variables != null) {
+            for (AiMockDataRequest.VariableItem v : variables) {
+                if (v.getNom() != null && dataMap.containsKey(v.getNom())) {
+                    Object val = dataMap.get(v.getNom());
+                    String expectedType = v.getType() != null ? v.getType().toUpperCase() : "STRING";
+                    if ("NUMBER".equals(expectedType) || "FLOAT".equals(expectedType) || "INTEGER".equals(expectedType)) {
+                        if (val instanceof String sVal) {
+                            try {
+                                if ("INTEGER".equals(expectedType)) {
+                                    dataMap.put(v.getNom(), Long.parseLong(sVal.replaceAll("[^0-9-]", "")));
+                                } else {
+                                    dataMap.put(v.getNom(), Double.parseDouble(sVal.replace(",", ".").replaceAll("[^0-9.-]", "")));
+                                }
+                            } catch (Exception ignored) {}
+                        }
+                    } else if ("BOOLEAN".equals(expectedType)) {
+                        if (val instanceof String sVal) {
+                            dataMap.put(v.getNom(), Boolean.parseBoolean(sVal));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private Double findNumericValue(Map<String, Object> map, String... keys) {
+        for (String k : keys) {
+            for (Map.Entry<String, Object> e : map.entrySet()) {
+                if (e.getKey().equalsIgnoreCase(k)) {
+                    Object v = e.getValue();
+                    if (v instanceof Number n) return n.doubleValue();
+                    if (v instanceof String s) {
+                        try {
+                            return Double.parseDouble(s.replace(",", ".").replaceAll("[^0-9.-]", ""));
+                        } catch (Exception ignored) {}
+                    }
+                }
+            }
+        }
+        return null;
     }
 }

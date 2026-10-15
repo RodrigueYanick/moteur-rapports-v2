@@ -230,3 +230,106 @@ h3 {
     box-shadow: var(--shadow-lg);
   }
 }
+
+/* ==========================================================================
+   Universal Responsive Architecture & Utilities
+   ========================================================================== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+img, svg, video, canvas {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Responsive Table Wrapper with Momentum Scroll */
+.table-responsive,
+.table-responsive-wrapper,
+.table-wrapper,
+.table-card {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface-border) transparent;
+
+  &::-webkit-scrollbar {
+    height: 6px;
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--surface-border);
+    border-radius: 4px;
+  }
+}
+
+/* Fluid Page Containers */
+.page-container,
+.library-container,
+.document-list-container,
+.batches-container,
+.schedules-container,
+.audit-container {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Mobile Touch Tap Targets */
+@media (pointer: coarse) {
+  button,
+  .btn,
+  select,
+  input[type="button"],
+  input[type="submit"] {
+    min-height: 42px;
+  }
+}
+
+/* Responsive Breakpoints & Universal Adjustments */
+@media (max-width: 768px) {
+  h1 {
+    font-size: clamp(1.4rem, 4vw, 1.85rem) !important;
+  }
+
+  h2 {
+    font-size: clamp(1.2rem, 3.2vw, 1.45rem) !important;
+  }
+
+  .page-header,
+  .header-section {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 1rem !important;
+
+    .header-actions {
+      width: 100% !important;
+      justify-content: flex-start !important;
+      flex-wrap: wrap !important;
+
+      button, a, .filter-select {
+        flex: 1 1 auto;
+      }
+    }
+  }
+
+  /* Responsive Modal constraints */
+  .modal-dialog,
+  .ai-modal,
+  .modal-content {
+    width: 95vw !important;
+    max-width: 95vw !important;
+    margin: 10px auto !important;
+    padding: 1rem !important;
+  }
+}
+

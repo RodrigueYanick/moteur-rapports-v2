@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
@@ -32,10 +33,22 @@ public class AiClientManager {
      * en cas d'indisponibilité ou d'erreur de l'API distante.
      */
     public String executeWithFallback(String systemInstruction, String userPrompt, boolean jsonMode, AtomicBoolean usedMock) {
+        return executeWithFallback(systemInstruction, userPrompt, jsonMode, null, null, usedMock);
+    }
+
+    /**
+     * Exécute une génération avec contrôle de température et schéma structuré.
+     */
+    public String executeWithFallback(String systemInstruction,
+                                       String userPrompt,
+                                       boolean jsonMode,
+                                       Double temperature,
+                                       Map<String, Object> responseSchema,
+                                       AtomicBoolean usedMock) {
         AiClient active = getActiveClient();
         if (active instanceof GeminiAiClient) {
             try {
-                String result = active.generateContent(systemInstruction, userPrompt, jsonMode);
+                String result = active.generateContent(systemInstruction, userPrompt, jsonMode, temperature, responseSchema);
                 usedMock.set(false);
                 return result;
             } catch (Exception ex) {

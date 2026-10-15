@@ -1,0 +1,99 @@
+[
+  {
+    "customId": "LOT-2026-001",
+    "data": {
+      "entreprise_nom": "CAMEROUN DISTRIBUTION SARL",
+      "entreprise_adresse": "Zone Industrielle Bassa BP 458 Douala",
+      "entreprise_telephone": "+237 233 42 10 00",
+      "entreprise_email": "direction@camdist.cm",
+      "rapport_periode": "Janvier 2026",
+      "rapport_date": "31/01/2026",
+      "stat_ca": 12500000,
+      "stat_commandes": 450,
+      "stat_clients": 128,
+      "stat_top_produit": "Huile de Palme 5L",
+      "sous_total": 12500000,
+      "remise": 0,
+      "tva": 2406250,
+      "total_ttc": 14906250,
+      "analyse_evolution": "Croissance de +12% sur le mois",
+      "analyse_observations": "Forte demande sur le secteur littoral",
+      "ventes": [
+        {
+          "date": "15/01/2026",
+          "commande": "CMD-001",
+          "client": "Supermarché Dovv",
+          "produit": "Huile de Palme 5L",
+          "quantite": 150,
+          "prix_unitaire": 6500,
+          "total": 975000
+        }
+      ]
+    }
+  },
+  {
+    "customId": "LOT-2026-002",
+    "data": {
+      "entreprise_nom": "CAMEROUN DISTRIBUTION SARL",
+      "entreprise_adresse": "Zone Industrielle Bassa BP 458 Douala",
+      "entreprise_telephone": "+237 233 42 10 00",
+      "entreprise_email": "direction@camdist.cm",
+      "rapport_periode": "Février 2026",
+      "rapport_date": "28/02/2026",
+      "stat_ca": 14200000,
+      "stat_commandes": 480,
+      "stat_clients": 135,
+      "stat_top_produit": "Riz Parfumé 25kg",
+      "sous_total": 14200000,
+      "remise": 50000,
+      "tva": 2723650,
+      "total_ttc": 16873650,
+      "analyse_evolution": "Progression continue de +8%",
+      "analyse_observations": "Bon écoulement des stocks céréaliers",
+      "ventes": [
+        {
+          "date": "12/02/2026",
+          "commande": "CMD-002",
+          "client": "Bao Market",
+          "produit": "Riz Parfumé 25kg",
+          "quantite": 200,
+          "prix_unitaire": 18500,
+          "total": 3700000
+        }
+      ]
+    }
+  },
+  {
+    "customId": "LOT-2026-003",
+    "data": {
+      "entreprise_nom": "CAMEROUN DISTRIBUTION SARL",
+      "entreprise_adresse": "Zone Industrielle Bassa BP 458 Douala",
+      "entreprise_telephone": "+237 233 42 10 00",
+      "entreprise_email": "direction@camdist.cm",
+      "rapport_periode": "Mars 2026",
+      "rapport_date": "31/03/2026",
+      "stat_ca": 15800000,
+      "stat_commandes": 520,
+      "stat_clients": 142,
+      "stat_top_produit": "Sucre Blanc 1kg",
+      "sous_total": 15800000,
+      "remise": 100000,
+      "tva": 3022250,
+      "total_ttc": 18722250,
+      "analyse_evolution": "Hausse exceptionnelle avant Pâques",
+      "analyse_observations": "Pic d'activité dans le grand Nord",
+      "ventes": [
+        {
+          "date": "20/03/2026",
+          "commande": "CMD-003",
+          "client": "Carrefour Market Douala",
+          "produit": "Sucre Blanc 1kg",
+          "quantite": 500,
+          "prix_unitaire": 900,
+          "total": 450000
+        }
+      ]
+    }
+  }
+]
+

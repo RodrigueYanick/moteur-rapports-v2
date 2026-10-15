@@ -11,9 +11,8 @@ $text-muted: #676c7f;
 $danger: #ef4444;
 
 .document-list-container {
-  max-width: 95%;
-  // margin: 0 auto;
-  // padding: 20px;
+  width: 100%;
+  max-width: 100%;
   color: $text-primary;
   font-family: 'Inter', -apple-system, sans-serif;
 }
@@ -22,19 +21,19 @@ $danger: #ef4444;
 .toolbar {
   display: flex;
   align-items: center;
-  gap: 50px;
+  gap: clamp(12px, 2vw, 24px);
   flex-wrap: wrap;
-  margin-bottom: 42px;
+  margin-bottom: 24px;
 }
 
 .header-title {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 12px;
   color: $accent;
 
   h1 {
-    font-size: 35px;
+    font-size: clamp(20px, 3.5vw, 32px);
     font-weight: 700;
     font-family: 'Inter', -apple-system, sans-serif;
     font-style: italic;
@@ -46,13 +45,13 @@ $danger: #ef4444;
 .search-box {
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 12px;
   background: $bg-card;
   border: 1px solid $border;
   border-radius: 9px;
-  padding: 9px 12px;
-  min-width: 300px;
-  height: 36px;
+  padding: 8px 12px;
+  min-width: 240px;
+  height: 40px;
   color: $text-secondary;
   transition: border-color 0.15s ease;
 
@@ -154,8 +153,8 @@ $danger: #ef4444;
 /* ---------- Grille de cartes ---------- */
 .cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-  gap: 28px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  gap: 16px;
 }
 
 .card {
@@ -306,7 +305,8 @@ $danger: #ef4444;
   background: $bg-panel;
   border: 1px solid $border;
   border-radius: 12px;
-  overflow: hidden;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .table {
@@ -442,5 +442,58 @@ $danger: #ef4444;
   .empty-hint {
     font-size: 12px;
     color: $text-muted;
+  }
+}
+
+/* ---------- Media Queries Responsives ---------- */
+@media (max-width: 768px) {
+  .toolbar {
+    gap: 12px;
+    margin-bottom: 16px;
+
+    .header-title {
+      width: 100%;
+    }
+
+    .search-box {
+      width: 100%;
+      min-width: 100%;
+      order: 1;
+    }
+
+    .filter-select {
+      flex: 1 1 calc(50% - 6px);
+      min-width: 130px;
+      height: 44px;
+      min-height: 44px;
+      font-size: 14px;
+      order: 2;
+    }
+
+    .doc-count {
+      order: 3;
+      font-size: 14px;
+      margin: 4px 0;
+    }
+
+    .view-toggle {
+      order: 4;
+      margin-left: auto;
+    }
+  }
+
+  .card .hover-actions {
+    opacity: 0.9;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0) 100%);
+    top: auto;
+    bottom: 0;
+    height: 52px;
+    padding: 0 8px;
+    gap: 6px;
+
+    .hover-btn {
+      font-size: 13px;
+      padding: 6px 8px;
+    }
   }
 }

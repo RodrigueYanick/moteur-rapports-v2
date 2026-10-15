@@ -106,6 +106,7 @@ export class ReportDesigner implements OnInit {
   activePageIndex = 0;
   editingPageIndex: number | null = null;
   showPageSettingsModal = false;
+  activeMobileTab: 'layers' | 'canvas' | 'properties' = 'canvas';
 
   editingSettings = {
     formatPapier: 'A4',
@@ -498,6 +499,7 @@ export class ReportDesigner implements OnInit {
 
     this.clampBlockToUsableArea(newBlock);
     this.blocks.push(newBlock);
+    this.activeMobileTab = 'canvas';
     this.afterPagesChanged();
   }
 
@@ -595,6 +597,9 @@ export class ReportDesigner implements OnInit {
   onCanvasBlockSelected(block: DesignBlock | null): void {
     this.selectedBlock = block;
     this.selectionService.select(block, false, this.blocks);
+    if (block && typeof window !== 'undefined' && window.innerWidth <= 1024) {
+      this.activeMobileTab = 'properties';
+    }
   }
 
   // ---------- Presse-papier délégué ----------

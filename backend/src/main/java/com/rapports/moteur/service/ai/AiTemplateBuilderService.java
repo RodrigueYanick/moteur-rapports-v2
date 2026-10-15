@@ -89,8 +89,19 @@ public class AiTemplateBuilderService {
             throw new IllegalArgumentException("Le prompt utilisateur ne peut pas être vide");
         }
 
+        CompanyWorkspaceConfig defaultCfg = workspaceConfigService.getEntityForCurrentEntreprise();
+        String contextualPrompt = buildContextualPrompt(request, defaultCfg);
+
         AtomicBoolean usedMock = new AtomicBoolean(false);
-        String rawJson = aiClientManager.executeWithFallback(SYSTEM_INSTRUCTION, request.getPrompt(), true, usedMock);
+        Map<String, Object> responseSchema = buildTemplateResponseSchema();
+        String rawJson = aiClientManager.executeWithFallback(
+                SYSTEM_INSTRUCTION,
+                contextualPrompt,
+                true,
+                null,
+                responseSchema,
+                usedMock
+        );
 
         String cleanedJson = sanitizeJson(rawJson);
 
@@ -101,6 +112,8 @@ public class AiTemplateBuilderService {
             log.error("Échec de parsing JSON du modèle IA : {}", cleanedJson, e);
             throw new AiException("Le modèle IA a renvoyé un format JSON invalide : " + e.getMessage(), e);
         }
+
+        root = postProcessAndNormalizeDesign(root);
 
         String nom = request.getNom() != null && !request.getNom().isBlank() 
                 ? request.getNom() 
@@ -143,7 +156,6 @@ public class AiTemplateBuilderService {
         template.setCodeEntreprise(currentCodeEntreprise);
 
         // Héritage des options de workspace par défaut
-        CompanyWorkspaceConfig defaultCfg = workspaceConfigService.getEntityForCurrentEntreprise();
         template.setLargeurMm(defaultCfg != null && defaultCfg.getLargeurMm() != null ? defaultCfg.getLargeurMm() : 210);
         template.setHauteurMm(defaultCfg != null && defaultCfg.getHauteurMm() != null ? defaultCfg.getHauteurMm() : 297);
         template.setMargeGaucheMm(defaultCfg != null && defaultCfg.getMargeGaucheMm() != null ? defaultCfg.getMargeGaucheMm() : 10);
@@ -233,6 +245,152 @@ public class AiTemplateBuilderService {
         } catch (Exception e) {
             return VariableType.STRING;
         }
+    }
+
+    private String buildContextualPrompt(AiTemplatePromptRequest request, CompanyWorkspaceConfig defaultCfg) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("PROMPT UTILISATEUR : \n").append(request.getPrompt()).append("\n\n");
+        sb.append("CONTRAINTES GÉOMÉTRIQUES ET CHARTE GRAPHIQUE :\n");
+        sb.append("- Format de papier cible : ").append(request.getFormatPapier() != null ? request.getFormatPapier() : "A4").append("\n");
+        sb.append("- Largeur utile de la page : 794 pixels (zone imprimable : x de 40 à 754 px)\n");
+        if (defaultCfg != null && defaultCfg.getCouleurFond() != null) {
+            sb.append("- Couleur de fond par défaut : ").append(defaultCfg.getCouleurFond()).append("\n");
+        }
+        sb.append("- Règle de non-chevauchement vertical : chaque bloc successif doit avoir un 'y' strictement supérieur au 'y' précédent + sa hauteur estimée (au minimum +30px pour du texte, +120px pour un tableau).\n");
+        sb.append("- Utiliser des balises Mustache standard {{nom_variable}} en minuscules et sans espaces.\n\n");
+
+        String lower = request.getPrompt().toLowerCase();
+        if (lower.contains("paie") || lower.contains("salaire") || "RH".equalsIgnoreCase(request.getCategorie())) {
+            sb.append("""
+            EXEMPLE DE STRUCTURE RH ATTENDUE :
+            - Titre : BULLETIN DE PAIE - {{periode}} (y=40)
+            - Émetteur (y=100) : {{entreprise_nom}}, SIRET {{entreprise_siret}}
+            - Salarié (y=100, x=420) : {{employe_nom}}, Poste : {{employe_poste}}, Matricule : {{employe_matricule}}
+            - Tableau des cotisations (y=220) avec source="{{cotisations}}" et colonnes : Rubrique, Base, Taux, Montant
+            - Totaux (y=520) : Salaire Brut {{salaire_brut}}, Net Imposable {{net_imposable}}, Net à Payer {{net_a_payer}} €
+            """);
+        } else {
+            sb.append("""
+            EXEMPLE DE STRUCTURE VENTES/FACTURATION ATTENDUE :
+            - En-tête (y=40) : TITRE DU DOCUMENT N° {{numero_document}}
+            - Émetteur (y=100, x=40, w=340) : {{entreprise_nom}}, {{entreprise_adresse}}, SIRET {{entreprise_siret}}
+            - Client (y=100, x=420, w=334) : {{client_nom}}, {{client_adresse}}, Email {{client_email}}
+            - Métadonnées (y=200, x=40) : Date d'émission {{date_emission}} | Échéance {{date_echeance}}
+            - Tableau dynamique (y=250, x=40, w=714) : source="{{lignes}}" avec colonnes : Désignation, Quantité, Prix unitaire, Total HT
+            - Récapitulatif financier (y=500, x=450, w=304) : Total HT {{total_ht}} €, TVA {{montant_tva}} €, Total TTC {{total_ttc}} €
+            - Modalités (y=640, x=40, w=714) : Conditions de règlement, IBAN {{entreprise_iban}}
+            """);
+        }
+        return sb.toString();
+    }
+
+    private Map<String, Object> buildTemplateResponseSchema() {
+        Map<String, Object> colItem = Map.of(
+                "type", "OBJECT",
+                "properties", Map.of(
+                        "titre", Map.of("type", "STRING"),
+                        "variable", Map.of("type", "STRING")
+                ),
+                "required", List.of("titre", "variable")
+        );
+
+        Map<String, Object> styleProps = Map.of(
+                "type", "OBJECT",
+                "properties", Map.of(
+                        "fontSize", Map.of("type", "NUMBER"),
+                        "bold", Map.of("type", "BOOLEAN"),
+                        "color", Map.of("type", "STRING"),
+                        "align", Map.of("type", "STRING")
+                )
+        );
+
+        Map<String, Object> blocItem = Map.of(
+                "type", "OBJECT",
+                "properties", Map.of(
+                        "id", Map.of("type", "STRING"),
+                        "type", Map.of("type", "STRING"),
+                        "x", Map.of("type", "NUMBER"),
+                        "y", Map.of("type", "NUMBER"),
+                        "largeurBox", Map.of("type", "NUMBER"),
+                        "contenu", Map.of("type", "STRING"),
+                        "source", Map.of("type", "STRING"),
+                        "colonnes", Map.of("type", "ARRAY", "items", colItem),
+                        "style", styleProps
+                ),
+                "required", List.of("id", "type", "x", "y", "largeurBox", "contenu")
+        );
+
+        Map<String, Object> pageItem = Map.of(
+                "type", "OBJECT",
+                "properties", Map.of(
+                        "nom", Map.of("type", "STRING"),
+                        "blocs", Map.of("type", "ARRAY", "items", blocItem)
+                ),
+                "required", List.of("nom", "blocs")
+        );
+
+        Map<String, Object> props = new LinkedHashMap<>();
+        props.put("nom", Map.of("type", "STRING"));
+        props.put("description", Map.of("type", "STRING"));
+        props.put("categorie", Map.of("type", "STRING"));
+        props.put("formatPapier", Map.of("type", "STRING"));
+        props.put("pages", Map.of("type", "ARRAY", "items", pageItem));
+
+        Map<String, Object> schema = new LinkedHashMap<>();
+        schema.put("type", "OBJECT");
+        schema.put("properties", props);
+        schema.put("required", List.of("nom", "formatPapier", "pages"));
+        return schema;
+    }
+
+    private JsonNode postProcessAndNormalizeDesign(JsonNode root) {
+        if (!root.isObject()) return root;
+        com.fasterxml.jackson.databind.node.ObjectNode rootObj = (com.fasterxml.jackson.databind.node.ObjectNode) root;
+        JsonNode pagesNode = rootObj.path("pages");
+        if (!pagesNode.isArray() || pagesNode.isEmpty()) {
+            return root;
+        }
+
+        int blockCounter = 1;
+        for (JsonNode pageNode : pagesNode) {
+            JsonNode blocsNode = pageNode.path("blocs");
+            if (blocsNode.isArray()) {
+                for (JsonNode bloc : blocsNode) {
+                    if (bloc.isObject()) {
+                        com.fasterxml.jackson.databind.node.ObjectNode b = (com.fasterxml.jackson.databind.node.ObjectNode) bloc;
+                        if (!b.hasNonNull("id") || b.get("id").asText().isBlank()) {
+                            b.put("id", "b_auto_" + (blockCounter++));
+                        }
+                        int x = b.path("x").asInt(40);
+                        int y = b.path("y").asInt(40);
+                        int w = b.path("largeurBox").asInt(714);
+
+                        x = Math.max(20, Math.min(x, 700));
+                        y = Math.max(20, Math.min(y, 1100));
+                        w = Math.max(60, Math.min(w, 754));
+                        if (x + w > 754) {
+                            w = 754 - x;
+                        }
+                        b.put("x", x);
+                        b.put("y", y);
+                        b.put("largeurBox", w);
+
+                        String type = b.path("type").asText("texte").toLowerCase();
+                        if (!List.of("titre", "texte", "tableau", "rectangle", "separateur", "image").contains(type)) {
+                            type = "texte";
+                        }
+                        b.put("type", type);
+
+                        if (b.has("contenu")) {
+                            String contenu = b.get("contenu").asText("");
+                            contenu = contenu.replaceAll("\\{\\{\\s+([a-zA-Z0-9_]+)\\s+\\}\\}", "{{$1}}");
+                            b.put("contenu", contenu);
+                        }
+                    }
+                }
+            }
+        }
+        return rootObj;
     }
 
     private String escapeJson(String s) {

@@ -98,7 +98,7 @@ class AiTemplateBuilderServiceTest {
         }
         """;
 
-        when(aiClientManager.executeWithFallback(anyString(), anyString(), anyBoolean(), any(AtomicBoolean.class)))
+        when(aiClientManager.executeWithFallback(any(), any(), anyBoolean(), any(), any(), any(AtomicBoolean.class)))
                 .thenReturn(generatedJson);
         when(aiClientManager.getCurrentProvider()).thenReturn("gemini");
         when(entrepriseService.getCurrentCodeEntreprise()).thenReturn("ENT-001");

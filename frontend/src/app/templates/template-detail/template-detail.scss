@@ -971,3 +971,61 @@ textarea {
     }
   }
 }
+
+/* ---------- Media Queries Responsives Studio Detail ---------- */
+@media (max-width: 768px) {
+  .studio-subbar {
+    padding: 0.5rem 0.75rem;
+    gap: 0.5rem;
+
+    .subbar-left {
+      width: 100%;
+      justify-content: space-between;
+    }
+
+    .subbar-center {
+      width: 100%;
+      overflow-x: auto;
+      white-space: nowrap;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 2px;
+
+      .segmented-control {
+        width: 100%;
+        display: flex;
+
+        .segment-btn {
+          flex: 1;
+          text-align: center;
+          padding: 0.35rem 0.5rem;
+          font-size: 0.75rem;
+        }
+      }
+    }
+
+    .subbar-right {
+      width: 100%;
+      justify-content: flex-end;
+    }
+  }
+
+  .studio-view-content {
+    padding: clamp(0.75rem, 2vw, 1.5rem);
+  }
+
+  .security-type-selector {
+    grid-template-columns: 1fr;
+  }
+
+  .card {
+    padding: 1rem;
+    overflow-x: auto;
+
+    .table {
+      display: block;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      min-width: 480px;
+    }
+  }
+}

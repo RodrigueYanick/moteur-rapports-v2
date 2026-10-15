@@ -27,6 +27,7 @@ import {
   Sparkles,
 } from 'lucide-angular';
 import { AiAssistantService } from '../../services/ai-assistant.service';
+import { AiMockDataRequest, AiVariableItem } from '../../models/ai.model';
 import { DesignBlock, DesignPage } from '../models/design-block.model';
 
 @Component({
@@ -124,22 +125,31 @@ export class VariableValidationForm implements OnInit, OnChanges, OnDestroy {
     this.aiLoading = true;
     this.aiSuccessMessage = null;
 
-    // Collect variables info
-    const variableTypes: Record<string, string> = {};
-    const arraySchemas: Record<string, string[]> = {};
+    // Collect variables info into AiVariableItem array
+    const variableItems: AiVariableItem[] = (this.variables || []).map((v) => ({
+      nom: v.nomVariable,
+      type: v.type,
+      description: v.description,
+    }));
 
-    this.variables.forEach((v) => {
-      variableTypes[v.nomVariable] = v.type;
+    // Collect array columns if present
+    const arrayCols: string[] = [];
+    (this.variables || []).forEach((v) => {
       if (v.type === 'ARRAY') {
-        arraySchemas[v.nomVariable] = this.getArrayColumns(v.nomVariable);
+        const cols = this.getArrayColumns(v.nomVariable);
+        if (cols && cols.length > 0) {
+          arrayCols.push(...cols);
+        }
       }
     });
 
-    const request = {
-      templateId: this.templateId ?? undefined,
-      variableTypes,
-      arraySchemas,
-      count: 3,
+    const isUuid = !!this.templateId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(this.templateId);
+
+    const request: AiMockDataRequest = {
+      templateId: isUuid ? this.templateId! : undefined,
+      variables: variableItems,
+      arrayColumns: arrayCols.length > 0 ? arrayCols : undefined,
+      rowCount: 3,
     };
 
     this.aiService.generateMockData(request).subscribe({

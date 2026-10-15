@@ -21,6 +21,8 @@ $success: #10b981;
   box-shadow: var(--shadow-sm);
   z-index: 10;
   margin-top: 0px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .toolbar-left,
@@ -294,6 +296,38 @@ $success: #10b981;
   &:hover {
     background: $accent-hover;
     box-shadow: 0 4px 14px rgba(109, 94, 252, 0.35);
+  }
+}
+
+@media (max-width: 768px) {
+  .toolbar-left {
+    min-width: auto;
+    gap: 8px;
+
+    .template-info {
+      max-width: 120px;
+
+      h2, .title {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    }
+  }
+
+  .toolbar-right {
+    min-width: auto;
+    gap: 4px;
+
+    .secondary-btn span,
+    .primary-btn span {
+      display: none;
+    }
+
+    .secondary-btn,
+    .primary-btn {
+      padding: 0 10px;
+    }
   }
 }
 

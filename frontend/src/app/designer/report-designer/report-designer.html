@@ -60,7 +60,10 @@
     (lockedAction)="showLockedMessage()"
   ></app-designer-page-tabs>
 
-  <div class="main-area">
+  <div class="main-area"
+       [class.mobile-tab-layers]="activeMobileTab === 'layers'"
+       [class.mobile-tab-canvas]="activeMobileTab === 'canvas'"
+       [class.mobile-tab-props]="activeMobileTab === 'properties'">
     <div class="left-panel">
       <app-sidebar
         [blocks]="blocks"
@@ -170,6 +173,41 @@
       </ng-template>
     </div>
   </div>
+
+  <!-- Dock de navigation mobile pour basculer facilement entre calques, canevas et propriétés -->
+  <nav class="mobile-designer-nav" aria-label="Navigation des panneaux">
+    <button
+      type="button"
+      class="mobile-tab-btn"
+      [class.active]="activeMobileTab === 'layers'"
+      (click)="activeMobileTab = 'layers'"
+      title="Blocs et Calques"
+    >
+      <lucide-icon [img]="icons.layers" [size]="18"></lucide-icon>
+      <span>Blocs</span>
+    </button>
+    <button
+      type="button"
+      class="mobile-tab-btn"
+      [class.active]="activeMobileTab === 'canvas'"
+      (click)="activeMobileTab = 'canvas'"
+      title="Canevas de design"
+    >
+      <lucide-icon [img]="icons.fileText" [size]="18"></lucide-icon>
+      <span>Canevas</span>
+    </button>
+    <button
+      type="button"
+      class="mobile-tab-btn"
+      [class.active]="activeMobileTab === 'properties'"
+      (click)="activeMobileTab = 'properties'"
+      title="Propriétés du bloc"
+    >
+      <lucide-icon [img]="icons.settings" [size]="18"></lucide-icon>
+      <span>Propriétés</span>
+      <span class="tab-badge-dot" *ngIf="selectedBlock"></span>
+    </button>
+  </nav>
 
   <div class="status-bar">
     <span class="status-item">

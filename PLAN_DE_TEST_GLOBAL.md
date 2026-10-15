@@ -3,11 +3,14 @@
 Ce document est un guide pas-à-pas conçu pour tester l'intégralité de la plateforme **Moteur de Rapports** (Frontend Angular, Backend Spring Boot, Moteur Gotenberg, Stockage MinIO S3, Base PostgreSQL).
 
 > [!IMPORTANT]
-> **Règle essentielle sur les variables et les données :**
-> 1. **Pas de points dans les noms de variables** : Le moteur de validation de l'application (`DataValidatorService` et le validateur Angular `/^[a-zA-Z0-9_]+$/`) utilise des clés de premier niveau en `snake_case` (ex: `entreprise_nom`, `rapport_periode`, `total_ttc`). N'utilisez pas `entreprise.nom` ni `rapport.periode`.
-> 2. **Tableaux dynamiques** : Le tableau se lie à une variable source de type `ARRAY` (ex: `ventes`). Chaque colonne renseigne directement la propriété de l'objet (ex: `date`, `client`, `quantite`, `prix_unitaire`, `total`), sans préfixe `{{item.}}`.
-> 3. **Publication obligatoire** : Un modèle doit obligatoirement être **Publié** (`PUBLIE`) via le bouton *Publier* de l'éditeur avant de pouvoir générer un document. Un modèle en statut *Brouillon* (`BROUILLON`) refuse la génération avec une erreur 400/422.
-> 4. **Valeurs numériques** : Les montants et quantités dans le JSON doivent être des nombres purs (ex: `14850000`, `8500`) et non des chaînes avec espaces (ex: `"14 850 000"`), car le backend valide le type `FLOAT` avec `Double.parseDouble()`. Le symbole `FCFA` s'ajoute dans le modèle ou par formule.
+> **Règles fondamentales du Moteur de Rapports :**
+> 1. **Noms de variables valides** : Utilisez impérativement des variables en `snake_case` (ex: `entreprise_nom`, `rapport_periode`, `total_ttc`). N'utilisez **jamais de points** (`entreprise.nom` est interdit par le validateur regex `/^[a-zA-Z0-9_]+$/`).
+> 2. **Retours à la ligne respectés** : Les sauts de ligne saisis dans vos blocs texte ou transmis dans les variables sont fidèlement conservés dans le rendu HTML et dans le PDF généré grâce à `white-space: pre-wrap; word-break: break-word;`.
+> 3. **Publication obligatoire pour la génération** : Un modèle doit être au statut **Publié** (`PUBLIE`) via le bouton *Publier* de la barre d'outils pour autoriser la génération de PDF finaux.
+> 4. **Enregistrement de document vs Téléchargement direct** :
+>    - **Générer le PDF** : compile le document à la volée, le stocke dans MinIO et lance son téléchargement direct.
+>    - **Enregistrer le document** (dans l'onglet *Remplir le modèle*) : sauvegarde une instance réutilisable dans la base de données, visible immédiatement dans le menu **Documents** (`/documents`) pour la visionneuse intégrée, l'envoi d'emails et les ré-exports.
+> 5. **Données de traitement par lot (Batches)** : Le fichier CSV ou Excel téléversé doit contenir les colonnes correspondant exactement aux variables obligatoires du modèle sélectionné. Pour le modèle *RAPPORT MENSUEL DES VENTES*, utilisez [`donnees_ventes_10_rapports.csv`](file:///d:/programme/Mera_Project/moteur-rapports/donnees_ventes_10_rapports.csv) ou [`donnees_ventes_sample_batch.json`](file:///d:/programme/Mera_Project/moteur-rapports/donnees_ventes_sample_batch.json).
 
 ---
 
@@ -15,13 +18,13 @@ Ce document est un guide pas-à-pas conçu pour tester l'intégralité de la pla
 1. [Étape 0 : Vérification Préalable de l'Environnement Docker](#étape-0--vérification-préalable-de-lenvironnement-docker)
 2. [Étape 1 : Authentification & Gestion de Session](#étape-1--authentification--gestion-de-session)
 3. [Étape 2 : Configuration de la Feuille de Travail Entreprise](#étape-2--configuration-de-la-feuille-de-travail-entreprise)
-4. [Étape 3 : Création & Design d'un Modèle de Rapport](#étape-3--création--design-dun-modèle-de-rapport)
-5. [Étape 4 : Publication du Modèle & Génération PDF (Gotenberg)](#étape-4--publication-du-modèle--génération-pdf-gotenberg)
-6. [Étape 5 : Stockage MinIO S3 & Gestion des Documents](#étape-5--stockage-minio-s3--gestion-des-documents)
+4. [Étape 3 : Conception du Modèle dans le Designer](#étape-3--conception-du-modèle-dans-le-designer)
+5. [Étape 4 : Publication du Modèle, Remplissage & Génération PDF](#étape-4--publication-du-modèle-remplissage--génération-pdf)
+6. [Étape 5 : Gestion des Documents & Stockage MinIO S3](#étape-5--gestion-des-documents--stockage-minio-s3)
 7. [Étape 6 : Traitements par Lots (Batches) avec CSV/Excel](#étape-6--traitements-par-lots-batches-avec-csvexcel)
-8. [Étape 7 : Sources de Données Externes & Planifications (Cron)](#étape-7--sources-de-données-externes--planifications-cron)
-9. [Étape 8 : Certificats Numériques & Piste d'Audit](#étape-8--certificats-numériques--piste-daudit)
-10. [Étape 9 : Exécution des Suites de Tests Automatisés](#étape-9--exécution-des-suites-de-tests-automatisés)
+8. [Étape 7 : Connecteurs de Données Distants & Planifications Cron](#étape-7--connecteurs-de-données-distants--planifications-cron)
+9. [Étape 8 : Sécurité Cryptographique & Piste d'Audit](#étape-8--sécurité-cryptographique--piste-daudit)
+10. [Étape 9 : Validation des Suites de Tests Automatisés](#étape-9--validation-des-suites-de-tests-automatisés)
 11. [Matrice de Recette & Checklist Finale](#matrice-de-recette--checklist-finale)
 
 ---
@@ -56,331 +59,283 @@ docker compose ps
 
 ## Étape 1 : Authentification & Gestion de Session
 
-### 1.1 Inscription d'un compte entreprise
-1. Rendez-vous sur [http://localhost/auth/register](http://localhost/auth/register).
-2. Renseignez :
-   - **Nom** : `Administrateur`
-   - **Prénom** : `Test`
-   - **Email** : `admin@distribution-cameroun.cm`
-   - **Mot de passe** : `MotDePasseFort123!`
-   - **Nom de l'entreprise** : `CAMEROUN DISTRIBUTION SARL`
-   - **Code Entreprise** : `CAMDIST`
-3. Cliquez sur **S'inscrire**.
-4. **Vérification** : Redirection vers `/bibliotheque`, l'en-tête affiche l'utilisateur connecté et son code entreprise `CAMDIST`.
-
-### 1.2 Déconnexion & Contrôle du Guard
-1. Cliquez sur le bouton de déconnexion en haut à droite.
-2. Tentez d'accéder directement à [http://localhost/bibliotheque](http://localhost/bibliotheque).
-   - **Vérification** : Redirection automatique vers `/auth/login`.
-3. Reconnectez-vous avec `admin@distribution-cameroun.cm` et `MotDePasseFort123!`.
-   - **Vérification** : Connexion réussie et accès rétabli.
+### 1.1 Connexion ou Inscription d'un compte entreprise
+1. Rendez-vous sur [http://localhost/auth/login](http://localhost/auth/login) (ou `/auth/register` si vous n'avez pas de compte).
+2. Connectez-vous avec vos identifiants (ex: `yandzurodriguez@gmail.com` ou `admin@camdist.cm`).
+3. **Vérification** :
+   - Redirection fluide vers la bibliothèque `/bibliotheque`.
+   - Votre nom et votre badge d'entreprise `CAMDIST` s'affichent dans la barre de navigation.
+   - Les appels API incluent automatiquement le header Bearer JWT et `X-Entreprise-Code`.
 
 ---
 
 ## Étape 2 : Configuration de la Feuille de Travail Entreprise
 
-### Objectif
-Définir les en-têtes, pieds de page et marges par défaut pour tous les futurs rapports de l'entreprise `CAMDIST`.
-
-1. Accédez à [http://localhost/feuille-travail](http://localhost/feuille-travail).
-2. Renseignez les paramètres suivants :
-   - **Format Papier** : `A4`
-   - **Orientation** : `Portrait`
-   - **Marges** :
-     - Haut : `15 mm`
-     - Bas : `15 mm`
-     - Gauche : `10 mm`
-     - Droite : `10 mm`
-   - **En-tête (Header)** :
-     - Activer : ✅
-     - Hauteur : `20 mm`
-     - Contenu : `CAMEROUN DISTRIBUTION SARL – Siège Social Akwa Douala`
-     - Ligne de séparation : ✅
-   - **Pied de page (Footer)** :
-     - Activer : ✅
-     - Hauteur : `15 mm`
-     - Numérotation de page : ✅ Format `PAGE_X_SUR_Y` ("Page X sur Y")
-     - Contenu : `Document généré automatiquement - Tous droits réservés`
-3. Cliquez sur **Enregistrer la configuration**.
-4. **Vérification** : Un message de confirmation s'affiche et les données sont conservées après un rechargement de page (F5).
+1. Cliquez sur le menu **Feuille de travail** (ou accédez à [http://localhost/feuille-travail](http://localhost/feuille-travail)).
+2. Configurez les propriétés par défaut de l'entreprise :
+   - Format de page : `A4`
+   - Marges : `10 mm` partout
+   - En-tête récurrent : Actif (`CAMEROUN DISTRIBUTION SARL - Rapport Officiel`)
+   - Pied de page récurrent : Actif avec numérotation de page automatique (`Page {page} / {pages}`)
+3. Cliquez sur **Enregistrer les paramètres**.
+4. **Vérification** : Message de confirmation et persistance en base de données.
 
 ---
 
-## Étape 3 : Création & Design d'un Modèle de Rapport
+## Étape 3 : Conception du Modèle dans le Designer
 
 ### 3.1 Création du Modèle
-1. Rendez-vous sur [http://localhost/templates/new](http://localhost/templates/new).
-2. Remplissez :
-   - **Nom du Modèle** : `RAPPORT MENSUEL DES VENTES`
-   - **Catégorie** : `VENTES`
-   - **Description** : `Rapport mensuel des ventes et synthèse financière pour entreprise de distribution`
-   - **Format** : `A4`
-3. Cliquez sur **Créer et Ouvrir le Studio**.
+1. Cliquez sur **Nouveau modèle** dans la bibliothèque.
+2. Nom : `RAPPORT MENSUEL DES VENTES`
+3. Catégorie : `Rapport d'activité` (ou `Ventes`)
+4. Description : `Rapport mensuel détaillé des performances de ventes et chiffres d'affaires`
+5. Cliquez sur **Créer le modèle**.
 
 ### 3.2 Déclaration des Variables dans l'onglet "Variables"
-Dans la barre latérale gauche de l'éditeur, basculez sur l'onglet **Variables** et ajoutez les variables requises (le formulaire valide le motif `/^[a-zA-Z0-9_]+$/`) :
+Dans la barre latérale gauche de l'éditeur, sélectionnez l'onglet **Variables** :
 
 | Nom de variable | Type | Obligatoire | Description |
 | :--- | :--- | :--- | :--- |
 | `entreprise_nom` | `STRING` | Non | Nom de la société |
-| `entreprise_adresse` | `STRING` | Non | Adresse à Douala |
+| `entreprise_adresse` | `STRING` | Non | Adresse Douala |
 | `entreprise_telephone` | `STRING` | Non | Téléphone |
 | `entreprise_email` | `STRING` | Non | Email contact |
-| `rapport_periode` | `STRING` | Oui | Période (ex: Septembre 2026) |
+| `rapport_periode` | `STRING` | Oui | Période (ex: Janvier 2026) |
 | `rapport_date` | `STRING` | Oui | Date de génération |
 | `stat_ca` | `FLOAT` | Oui | Chiffre d'affaires en FCFA |
 | `stat_commandes` | `FLOAT` | Oui | Nombre de commandes |
 | `stat_clients` | `FLOAT` | Oui | Nombre de clients |
-| `stat_top_produit` | `STRING` | Non | Produit le plus vendu |
-| `sous_total` | `FLOAT` | Oui | Sous-total en FCFA |
-| `remise` | `FLOAT` | Non | Montant remise en FCFA |
-| `tva` | `FLOAT` | Oui | Montant TVA (19.25%) |
-| `total_ttc` | `FLOAT` | Oui | Montant Total Net TTC |
-| `analyse_evolution` | `STRING` | Non | Commentaire sur l'évolution |
+| `stat_top_produit` | `STRING` | Oui | Produit phare |
+| `sous_total` | `FLOAT` | Oui | Sous-total |
+| `remise` | `FLOAT` | Non | Remise accordée |
+| `tva` | `FLOAT` | Oui | TVA |
+| `total_ttc` | `FLOAT` | Oui | Total TTC net |
+| `analyse_evolution` | `STRING` | Non | Commentaire commercial |
 | `analyse_observations` | `STRING` | Non | Recommandations |
-| `ventes` | `ARRAY` | Oui | Collection dynamique des ventes |
+| `ventes` | `ARRAY` | Oui | Tableau dynamique des ventes |
 
-### 3.3 Composition des Blocs sur la Page
-Dans l'onglet **Composants** (ou Bibliothèque) :
-
-1. **En-tête & Coordonnées** :
-   - Ajoutez un bloc **Titre** : `RAPPORT MENSUEL DES VENTES` (Centré, Gras, taille 20).
-   - Ajoutez un bloc **Texte** pour les coordonnées :
+### 3.3 Composition des Blocs avec Retours à la Ligne
+Dans l'onglet **Composants** :
+1. **Titre** :
+   - Type `titre` : `RAPPORT MENSUEL DES VENTES` (Centré, Gras, 20px).
+2. **Coordonnées (avec retours à la ligne `\n`)** :
+   - Type `texte` :
      ```text
-     {{entreprise_nom}}
-     {{entreprise_adresse}} | Tél : {{entreprise_telephone}} | Email : {{entreprise_email}}
-     Période : {{rapport_periode}} | Émis le : {{rapport_date}}
+     Nom : {{entreprise_nom}}
+     Adresse : {{entreprise_adresse}}
+     Tel : {{entreprise_telephone}}
+     Email : {{entreprise_email}}
+     Periode : {{rapport_periode}}
+     Emis le : {{rapport_date}}
      ```
-
-2. **Indicateurs Clés (KPIs)** :
-   - Ajoutez 4 blocs **Texte** ou cartouches pour afficher :
+3. **Cartouches KPIs** :
+   - 4 blocs textes :
      - `Chiffre d'Affaires : {{stat_ca}} FCFA`
      - `Commandes : {{stat_commandes}}`
      - `Clients actifs : {{stat_clients}}`
      - `Top Produit : {{stat_top_produit}}`
-
-3. **Tableau Dynamique des Ventes** :
-   - Ajoutez un bloc **Tableau**.
-   - Dans le panneau de droite (Éditeur de bloc), cochez/sélectionnez le **Mode Dynamique**.
-   - **Source (variable Tableau)** : Sélectionnez `ventes`.
-   - Configurez les colonnes :
-     - Colonne 1 $\rightarrow$ Titre : `Date` \| Variable : `date`
-     - Colonne 2 $\rightarrow$ Titre : `N° Commande` \| Variable : `commande`
-     - Colonne 3 $\rightarrow$ Titre : `Client` \| Variable : `client`
-     - Colonne 4 $\rightarrow$ Titre : `Produit` \| Variable : `produit`
-     - Colonne 5 $\rightarrow$ Titre : `Quantité` \| Variable : `quantite`
-     - Colonne 6 $\rightarrow$ Titre : `P.U. (FCFA)` \| Variable : `prix_unitaire`
-     - Colonne 7 $\rightarrow$ Titre : `Total (FCFA)` \| Variable : `total` *(ou laissez vide avec Formule : `quantite * prix_unitaire`)*
-
-4. **Synthèse Financière & Analyse** :
-   - Ajoutez un bloc **Texte** pour les totaux :
+4. **Tableau Dynamique des Ventes** :
+   - Bloc `tableau` lié à la source `ventes`.
+   - Colonnes :
+     - `date` (Titre: Date)
+     - `commande` (Titre: N° Commande)
+     - `client` (Titre: Client)
+     - `produit` (Titre: Produit)
+     - `quantite` (Titre: Quantite)
+     - `prix_unitaire` (Titre: P.U. FCFA)
+     - `total` (Titre: Total FCFA)
+5. **Totaux et Synthèse (avec retours à la ligne `\n`)** :
+   - Type `texte` :
      ```text
      Sous-total : {{sous_total}} FCFA
      Remise accordée : {{remise}} FCFA
      TVA (19.25%) : {{tva}} FCFA
      TOTAL TTC : {{total_ttc}} FCFA
      ```
-   - Ajoutez un bloc **Texte** pour l'analyse :
+   - Type `texte` pour l'analyse :
      ```text
      Évolution : {{analyse_evolution}}
      Observations : {{analyse_observations}}
      ```
-
-5. **Sauvegarde** :
-   - Cliquez sur **Enregistrer** (icône disquette en haut).
-   - **Vérification** : Message "Enregistré avec succès".
+6. Cliquez sur l'icône **Enregistrer** (disquette).
 
 ---
 
-## Étape 4 : Publication du Modèle & Génération PDF (Gotenberg)
+## Étape 4 : Publication du Modèle, Remplissage & Génération PDF
 
 ### 4.1 Publication du Modèle (OBLIGATOIRE)
-> [!WARNING]
-> Avant de générer, le modèle doit être publié !
-1. Cliquez sur le bouton **Publier** dans la barre d'outils supérieure de l'éditeur de modèle.
+1. Dans la barre d'outils supérieure de l'éditeur de modèle, cliquez sur le bouton **Publier**.
 2. Confirmez la publication.
-3. **Vérification** : Le badge du statut passe de `BROUILLON` à `PUBLIE`.
+3. Le badge passe au vert : `PUBLIE`.
 
-### 4.2 Injection du Jeu de Données de Test Conforme
-Dans le panneau de génération / test du template, utilisez le payload JSON valide ci-dessous :
+### 4.2 Panneau de Remplissage & Test du Modèle
+> [!TIP]
+> **Où se trouve le panneau de remplissage / test ?**
+> Dans la barre latérale gauche de l'éditeur de modèle, cliquez sur l'onglet **Remplir** (icône presse-papiers avec coche `ClipboardList`, située à côté de l'onglet Composants et Variables).
+> Vous y avez accès à :
+> 1. Le bouton **« Remplir avec l'IA ✨ »** qui génère automatiquement des données réalistes cohérentes.
+> 2. Les champs de formulaire pour chaque variable du modèle.
+> 3. L'ajout de lignes dans le tableau dynamique `ventes`.
+> 4. Le bouton **« Enregistrer le document »** (icône disquette verte) pour persister ce rapport dans `/documents`.
+> 5. Le bouton **« Générer le PDF »** (icône imprimante) pour le téléchargement immédiat.
 
-```json
-{
-  "entreprise_nom": "CAMEROUN DISTRIBUTION SARL",
-  "entreprise_adresse": "Akwa, Boulevard de la Liberté, Douala",
-  "entreprise_telephone": "+237 699 00 11 22",
-  "entreprise_email": "contact@camdistribution.cm",
-  "rapport_periode": "Septembre 2026",
-  "rapport_date": "04/10/2026",
-  "stat_ca": 14850000,
-  "stat_commandes": 128,
-  "stat_clients": 45,
-  "stat_top_produit": "Huile de Palme Raffinée 5L",
-  "sous_total": 2025000,
-  "remise": 25000,
-  "tva": 385000,
-  "total_ttc": 2385000,
-  "analyse_evolution": "Croissance des ventes de +14% par rapport au mois précédent.",
-  "analyse_observations": "Prévoir un réapprovisionnement avant la mi-octobre pour éviter les ruptures.",
-  "ventes": [
-    {
-      "date": "02/09/2026",
-      "commande": "CMD-2026-089",
-      "client": "Supermarché Dovv Yaoundé",
-      "produit": "Huile de Palme Raffinée 5L",
-      "quantite": 50,
-      "prix_unitaire": 8500,
-      "total": 425000
-    },
-    {
-      "date": "05/09/2026",
-      "commande": "CMD-2026-090",
-      "client": "Boutique Le Bon Marché Douala",
-      "produit": "Riz Parfumé 25kg",
-      "quantite": 30,
-      "prix_unitaire": 18000,
-      "total": 540000
-    },
-    {
-      "date": "12/09/2026",
-      "commande": "CMD-2026-091",
-      "client": "Alimentation Générale Bafoussam",
-      "produit": "Sucre en Poudre 1kg (Carton de 20)",
-      "quantite": 40,
-      "prix_unitaire": 14500,
-      "total": 580000
-    },
-    {
-      "date": "18/09/2026",
-      "commande": "CMD-2026-092",
-      "client": "Hôtel Sawa Douala",
-      "produit": "Farine de Blé Supérieure 50kg",
-      "quantite": 20,
-      "prix_unitaire": 24000,
-      "total": 480000
-    }
-  ]
-}
-```
+#### Option A : Génération automatique assistée par l'IA
+- Cliquez sur le bouton **« Remplir avec l'IA ✨ »**.
+- Le service génère un jeu complet de données réalistes en quelques secondes.
 
-### 4.3 Génération & Rendu PDF
-1. Cliquez sur **Générer le PDF** (ou **Générer avec ces données**).
+#### Option B : Remplissage manuel ou injection de données
+Renseignez les champs du formulaire :
+- `rapport_periode` : `Janvier 2026`
+- `rapport_date` : `31/01/2026`
+- `stat_ca` : `12500000`
+- `stat_commandes` : `450`
+- `stat_clients` : `128`
+- `stat_top_produit` : `Huile de Palme 5L`
+- `sous_total` : `12500000`
+- `remise` : `0`
+- `tva` : `2406250`
+- `total_ttc` : `14906250`
+- `analyse_evolution` : `Croissance de +12% sur le mois`
+- `analyse_observations` : `Forte demande sur le littoral`
+- Ajoutez au moins 1 ligne dans le tableau `ventes` :
+  - `date` : `15/01/2026` | `commande` : `CMD-001` | `client` : `Supermarché Dovv` | `produit` : `Huile de Palme 5L` | `quantite` : `150` | `prix_unitaire` : `6500` | `total` : `975000`
+
+### 4.3 Sauvegarde Permanente du Document
+1. Dans le champ **Nom du document** (au-dessus du bouton Enregistrer), saisissez :
+   `Rapport Ventes Janvier 2026`
+2. Cliquez sur **Enregistrer le document**.
+3. **Vérification** : Le document est enregistré avec succès et apparaît dans la liste des documents sauvegardés du panneau.
+
+### 4.4 Génération & Rendu PDF
+1. Cliquez sur **Générer le PDF**.
 2. **Vérifications attendues** :
-   - Aucune erreur 422 ni 400 dans la console navigateur.
-   - Le PDF s'affiche dans la prévisualisation ou se télécharge directement (`rapport.pdf`).
-   - Le moteur Gotenberg applique la typographie propre et les largeurs de colonnes.
-   - L'en-tête et le pied de page d'entreprise configurés à l'Étape 2 apparaissent avec `Page 1 sur 1`.
+   - Le fichier PDF est compilé par Gotenberg et téléchargé immédiatement (`rapport.pdf`).
+   - Les **retours à la ligne** saisis dans les blocs textes sont **parfaitement respectés** (chaque information est bien sur sa propre ligne et non collée sur une seule ligne).
+   - Le tableau des ventes est mis en page proprement avec ses en-têtes et bordures.
+   - Les totaux et indicateurs s'affichent correctement.
 
 ---
 
-## Étape 5 : Stockage MinIO S3 & Gestion des Documents
+## Étape 5 : Gestion des Documents & Stockage MinIO S3
 
-### 5.1 Consultation de l'Historique dans l'Application
-1. Cliquez sur le menu **Documents** ou accédez à [http://localhost/documents](http://localhost/documents).
-2. **Vérification** :
-   - Le document généré apparaît avec le nom du modèle `RAPPORT MENSUEL DES VENTES`.
-   - Le statut est `SUCCES` ou `COMPLETED`.
-   - Cliquez sur **Télécharger** : Le fichier PDF binaire est restitué instantanément.
+### 5.1 Consultation de l'Espace Documents de l'Application
+1. Rendez-vous dans le menu **Documents** de la barre latérale gauche ([http://localhost/documents](http://localhost/documents)).
+2. **Vérifications** :
+   - Votre document `Rapport Ventes Janvier 2026` y est listé avec son badge de modèle `RAPPORT MENSUEL DES VENTES`.
+   - **Visionneuse PDF intégrée** : Cliquez sur l'icône **Œil** (Aperçu) pour ouvrir la modal de prévisualisation PDF intégrée.
+   - **Téléchargement** : Cliquez sur l'icône **Télécharger** pour récupérer le PDF.
+   - **Export Excel** : Cliquez sur l'icône **Tableur** pour exporter les données du rapport en `.xlsx`.
+   - **Expédition par Email** : Cliquez sur l'icône **Envoyer** pour tester la modale d'envoi d'email avec destinataire.
 
 ### 5.2 Contrôle de l'Object Storage MinIO
-1. Ouvrez [http://localhost:9001](http://localhost:9001) dans un nouvel onglet.
+1. Ouvrez [http://localhost:9001](http://localhost:9001) dans votre navigateur.
 2. Connectez-vous avec `minioadmin` / `minioadmin`.
-3. Cliquez sur **Buckets** puis sur `rapports-pdf`.
-4. Ouvrez le dossier `entreprises/CAMDIST/reports/`.
-5. **Vérification** : Le fichier `.pdf` y est présent, attestant de l'isolation multi-tenant des données dans MinIO S3.
+3. Cliquez sur **Buckets** $\rightarrow$ `rapports-pdf` $\rightarrow$ dossier `entreprises/CAMDIST/reports/`.
+4. **Vérification** : Les fichiers PDF générés y sont stockés de manière isolée et chiffrée.
 
 ---
 
 ## Étape 6 : Traitements par Lots (Batches) avec CSV/Excel
 
 ### Objectif
-Vérifier l'importation de fichiers tabulaires pour générer plusieurs rapports à la chaîne en arrière-plan.
+Générer automatiquement une série de rapports en arrière-plan à partir d'un fichier tabulaire.
 
 1. Rendez-vous sur [http://localhost/batches](http://localhost/batches).
 2. Cliquez sur **Nouveau traitement par lot**.
-3. Sélectionnez le modèle `RAPPORT MENSUEL DES VENTES` (ou `Facture commerciale`).
-4. Téléversez le fichier exemple fourni à la racine du projet :
-   - Fichier : [`donnees_factures_10_rapports.csv`](file:///d:/programme/Mera_Project/moteur-rapports/donnees_factures_10_rapports.csv) (ou `.xlsx`).
-5. Lancez le traitement.
-6. **Vérifications** :
-   - La barre de progression avance jusqu'à 100%.
-   - Le statut du lot passe à `TERMINE` (`COMPLETED`).
-   - Les rapports générés peuvent être téléchargés unitairement ou en archive ZIP.
+3. Sélectionnez le modèle `RAPPORT MENSUEL DES VENTES`.
+4. Pour importer les données, vous avez deux méthodes directes :
+
+#### Méthode 1 : Import du fichier CSV conforme
+- Cliquez sur **Importer un fichier Excel/CSV**.
+- Sélectionnez le fichier préparé pour ce modèle :
+  [`donnees_ventes_10_rapports.csv`](file:///d:/programme/Mera_Project/moteur-rapports/donnees_ventes_10_rapports.csv)
+- Validez le mapping des colonnes et confirmez l'import.
+
+#### Méthode 2 : Copier-coller du JSON pré-formaté
+- Si vous préférez coller le JSON directement dans la boîte de saisie, collez le contenu du fichier [`donnees_ventes_sample_batch.json`](file:///d:/programme/Mera_Project/moteur-rapports/donnees_ventes_sample_batch.json).
+
+5. Laissez le champ Webhook vide (ou renseignez une URL valide commençant par `http://` si vous souhaitez tester un webhook).
+6. Cliquez sur **Lancer le traitement par lot**.
+7. **Vérifications attendues** :
+   - Le lot est créé immédiatement avec le statut `EN_COURS`.
+   - La barre de progression avance jusqu'à `100%`.
+   - Le statut passe à `TERMINE` (`COMPLETED`) avec **10/10 succès et 0 échec** !
+   - Cliquez sur **Télécharger ZIP** pour récupérer l'archive compressée contenant tous les rapports générés.
 
 ---
 
-## Étape 7 : Sources de Données Externes & Planifications (Cron)
+## Étape 7 : Connecteurs de Données Distants & Planifications Cron
 
 ### 7.1 Connecteurs de Données (Data Sources)
 1. Rendez-vous sur [http://localhost/data-sources](http://localhost/data-sources).
-2. Cliquez sur **Ajouter une source de données**.
-3. Paramètres de test :
-   - Nom : `API Produits Externes`
+2. **Vérification** : La page charge immédiatement sans boucle infinie.
+3. Cliquez sur **Nouveau Connecteur**.
+4. Remplissez le formulaire de test :
+   - Nom : `API Données Externes Test`
    - Type : `REST_API`
-   - URL : `https://jsonplaceholder.typicode.com/posts`
-   - Méthode : `GET`
-4. Cliquez sur **Tester la connexion**.
+   - Hôte / URL : `https://jsonplaceholder.typicode.com/posts`
+   - Port : `443`
+5. Cliquez sur **Tester la connexion**.
    - **Vérification** : Indicateur vert « Connexion réussie ».
+6. Cliquez sur **Enregistrer**. Le connecteur apparaît dans la liste.
 
 ### 7.2 Tâches Planifiées (Schedules)
 1. Rendez-vous sur [http://localhost/schedules](http://localhost/schedules).
-2. Cliquez sur **Nouvelle planification**.
-3. Paramètres :
+2. **Vérification** : La page charge immédiatement avec la liste des planifications existantes.
+3. Cliquez sur **Nouvelle Planification**.
+4. Configurez :
+   - Nom : `Génération Mensuelle Ventes`
    - Modèle : `RAPPORT MENSUEL DES VENTES`
-   - Expression Cron : `0 0 1 * * ?` (Chaque 1er jour du mois à minuit)
+   - Expression Cron : `0 0 6 1 * *` (Le 1er du mois à 06h00) ou sélectionnez un préréglage dans la liste déroulante.
+   - Format d'export : `PDF`
+   - Destinataires : `direction@camdist.cm`
    - Actif : ✅
-4. Enregistrez.
-   - **Vérification** : Le job apparaît dans la liste avec sa prochaine échéance calculée.
+5. Enregistrez la planification.
+6. Cliquez sur le bouton **Exécuter maintenant** (icône Play) :
+   - **Vérification** : Notification de succès avec durée d'exécution en millisecondes et mise à jour de l'historique d'exécution.
 
 ---
 
-## Étape 8 : Certificats Numériques & Piste d'Audit
+## Étape 8 : Sécurité Cryptographique & Piste d'Audit
 
-### 8.1 Gestion des Certificats de Signature
+### 8.1 Gestion des Certificats de Signature PDF (PAdES)
 1. Rendez-vous sur [http://localhost/certificates](http://localhost/certificates).
-2. Vérifiez la présence du module de gestion des certificats PKCS#12 pour la signature cryptographique des PDF d'entreprise.
+2. Vérifiez le tableau de bord des certificats numériques pour la signature et le scellement officiel des rapports de l'entreprise.
 
 ### 8.2 Piste d'Audit & Gouvernance
 1. Rendez-vous sur [http://localhost/audit](http://localhost/audit).
-2. **Vérification** : Examinez le journal des événements immuables :
-   - Événement `USER_LOGIN` lors de votre connexion.
-   - Événements `TEMPLATE_CREATE` et `TEMPLATE_PUBLISH`.
-   - Événement `DOCUMENT_GENERATE` avec l'ID de la génération et le code entreprise `CAMDIST`.
-   - Toutes les entrées comportent l'adresse IP, le nom de l'utilisateur et la date exacte.
+2. **Vérification** :
+   - La page s'ouvre sans aucune erreur SQL ni crash backend.
+   - Les compteurs statistiques et la liste des journaux d'audit s'affichent avec fluidité.
+   - Vous y retrouvez les événements horodatés :
+     - `DOCUMENT_GENERATE`
+     - `AI_MOCK_DATA_GENERATE`
+     - `TEMPLATE_PUBLISH`
+     - `BATCH_CREATE`
+   - Vous pouvez filtrer par action (`DOCUMENT_GENERATE`, `TEMPLATE_PUBLISH`...) ou consulter les détails d'un événement dans la modale d'inspection JSON.
 
 ---
 
-## Étape 9 : Exécution des Suites de Tests Automatisés
+## Étape 9 : Validation des Suites de Tests Automatisés
 
-Pour valider le bon fonctionnement global au niveau du code :
-
-### 9.1 Tests Unitaires & Intégration Backend (Spring Boot / JUnit 5)
+### 9.1 Tests Unitaires & Intégration Backend (Spring Boot / Maven)
 Dans un terminal PowerShell :
 ```powershell
-cd d:\programme\Mera_Project\moteur-rapports\backend
-mvn test
+docker compose exec backend mvn test
 ```
-- **Résultat attendu** : 46 classes de tests exécutées, **247+ tests réussis**, 0 échec, 0 erreur.
-
-### 9.2 Tests E2E Frontend (Playwright)
-Dans un terminal PowerShell :
-```powershell
-cd d:\programme\Mera_Project\moteur-rapports\frontend
-npx playwright test
-```
-- **Résultat attendu** : Validation des scénarios E2E navigateurs (Auth, Designer, Imports, Pagination).
+- **Résultat attendu** : 100% des tests unitaires et d'intégration réussis, 0 échec.
 
 ---
 
 ## Matrice de Recette & Checklist Finale
 
-- [ ] **Étape 0** : 5/5 conteneurs Docker `Up (healthy)`
-- [ ] **Étape 1** : Inscription et connexion JWT sous le code `CAMDIST` validées
-- [ ] **Étape 2** : Configuration de la feuille A4 sauvegardée et persistée
-- [ ] **Étape 3** : Modèle créé avec variables plates (`[a-zA-Z0-9_]+`) et tableau dynamique lié à `ventes`
-- [ ] **Étape 4** : Modèle passé en statut **PUBLIE** et PDF généré avec succès via Gotenberg (sans erreur 422)
-- [ ] **Étape 5** : Fichier PDF archivé dans MinIO (`entreprises/CAMDIST/reports/`) et téléchargeable depuis `/documents`
-- [ ] **Étape 6** : Batch de 10 rapports CSV traité à 100%
-- [ ] **Étape 7** : Source REST connectée et job Cron créé
-- [ ] **Étape 8** : Audit trail vérifié dans `/audit`
-- [ ] **Étape 9** : Suites de tests automatisés validées (Backend + Frontend)
+- [ ] **Étape 0** : 5/5 conteneurs Docker `Up (healthy)`.
+- [ ] **Étape 1** : Connexion utilisateur avec code entreprise `CAMDIST` validée.
+- [ ] **Étape 2** : Configuration de la feuille A4 sauvegardée.
+- [ ] **Étape 3** : Modèle conçu avec variables conformes (`[a-zA-Z0-9_]+`) et blocs texte multilignes.
+- [ ] **Étape 4** : Modèle passé en statut **PUBLIE**, données remplies (via IA ou formulaire) et PDF généré avec respect scrupuleux des retours à la ligne (`\n`).
+- [ ] **Étape 5** : Document sauvegardé présent dans `/documents`, visionneuse PDF fonctionnelle et stockage MinIO S3 validé sous `entreprises/CAMDIST/reports/`.
+- [ ] **Étape 6** : Batch de 10 rapports avec [`donnees_ventes_10_rapports.csv`](file:///d:/programme/Mera_Project/moteur-rapports/donnees_ventes_10_rapports.csv) exécuté avec 100% de succès.
+- [ ] **Étape 7** : Pages `/data-sources` et `/schedules` réactives et connecteur / tâche cron créés.
+- [ ] **Étape 8** : Module `/certificates` et piste d'audit `/audit` opérationnels et affichant l'historique complet sans erreur.
+

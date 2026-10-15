@@ -109,10 +109,10 @@ $success: #10b981;
   min-width: 55%;
   background: #0e0f16;
   overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
   display: flex;
-  // align-items: center;          /* changement : flex-start -> center */
-  // justify-content: center;      /* inchangé */
-  padding: 32px 0;              /* inchangé, peut être ajusté */
+  padding: 32px 0;
 }
 
 .right-panel {
@@ -382,5 +382,116 @@ select {
       border-radius: 50%;
       transition: 0.2s;
     }
+  }
+}
+
+/* ---------- Navigation Mobile Designer (Dock) ---------- */
+.mobile-designer-nav {
+  display: none;
+  align-items: center;
+  justify-content: space-around;
+  background: $bg-panel;
+  border-top: 1px solid $border;
+  padding: 4px 8px;
+  height: 50px;
+  flex-shrink: 0;
+  z-index: 50;
+
+  .mobile-tab-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    background: transparent;
+    border: none;
+    color: $text-secondary;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    position: relative;
+    padding: 4px 16px;
+    border-radius: 8px;
+    transition: all 0.15s ease;
+
+    &.active {
+      color: $accent;
+      background: rgba(109, 94, 252, 0.14);
+      font-weight: 600;
+    }
+
+    .tab-badge-dot {
+      position: absolute;
+      top: 4px;
+      right: 14px;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: $accent;
+    }
+  }
+}
+
+/* ---------- Responsivité Studio & Tablettes / Mobiles ---------- */
+@media (max-width: 1024px) {
+  .mobile-designer-nav {
+    display: flex;
+  }
+
+  .main-area {
+    &.mobile-tab-layers {
+      .left-panel {
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        flex: 1 1 100% !important;
+      }
+      .canvas-container,
+      .right-panel {
+        display: none !important;
+      }
+    }
+
+    &.mobile-tab-canvas {
+      .canvas-container {
+        display: flex !important;
+        width: 100% !important;
+        min-width: 100% !important;
+        flex: 1 1 100% !important;
+        padding: 16px 8px;
+      }
+      .left-panel,
+      .right-panel {
+        display: none !important;
+      }
+    }
+
+    &.mobile-tab-props {
+      .right-panel {
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        flex: 1 1 100% !important;
+      }
+      .left-panel,
+      .canvas-container {
+        display: none !important;
+      }
+    }
+  }
+
+  .status-bar {
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    font-size: 10px;
+    gap: 6px;
+    padding: 0 8px;
+  }
+
+  .modal-overlay .modal-dialog {
+    width: 95vw !important;
+    max-height: 90vh !important;
+    overflow-y: auto;
   }
 }
