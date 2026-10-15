@@ -1,4 +1,4 @@
-import { User } from './user.model';
+import { User, AccountType, TargetPersona } from './user.model';
 
 export interface LoginRequest {
   email: string;
@@ -10,6 +10,8 @@ export interface RegisterRequest {
   motDePasse: string;
   nom: string;
   prenom?: string;
+  accountType?: AccountType;
+  targetPersona?: TargetPersona;
   codeEntreprise?: string;
   nomEntreprise?: string;
 }

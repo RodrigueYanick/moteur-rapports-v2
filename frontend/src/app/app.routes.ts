@@ -2,7 +2,14 @@ import { Routes } from '@angular/router';
 import { authGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
-  { path: '', redirectTo: '/bibliotheque', pathMatch: 'full' },
+  {
+    path: '',
+    loadComponent: () => import('./public/public-portal.component').then(m => m.PublicPortalComponent)
+  },
+  {
+    path: 'public',
+    loadComponent: () => import('./public/public-portal.component').then(m => m.PublicPortalComponent)
+  },
   {
     path: 'auth/login',
     loadComponent: () => import('./auth/login/login.component').then(m => m.LoginComponent)

@@ -20,6 +20,12 @@ export class AuthService {
   readonly isAuthenticated = computed(() => !!this._token());
   readonly currentRole = computed(() => this._currentUser()?.role || null);
   readonly currentEntrepriseCode = computed(() => this._currentUser()?.codeEntreprise || localStorage.getItem('entrepriseCode') || 'ENT-001');
+  readonly isPersonal = computed(() => this._currentUser()?.accountType === 'PERSONAL');
+  readonly isEnterprise = computed(() => !this.isPersonal() && (this._currentUser()?.accountType === 'ENTERPRISE' || !!this._currentUser()?.codeEntreprise));
+
+  getCurrentUser(): User | null {
+    return this._currentUser();
+  }
 
   constructor(private http: HttpClient, private router: Router) {}
 

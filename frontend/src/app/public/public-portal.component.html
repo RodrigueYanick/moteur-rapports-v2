@@ -1,0 +1,304 @@
+<div class="portal-container">
+  <!-- En-tête Public Convivial -->
+  <header class="portal-header">
+    <div class="header-content">
+      <div class="brand">
+        <div class="brand-logo">
+          <lucide-icon [img]="icons.sparkles" [size]="22"></lucide-icon>
+        </div>
+        <div class="brand-info">
+          <span class="brand-title">Moteur Rapports</span>
+          <span class="brand-tag">Studio Documentaire</span>
+        </div>
+      </div>
+
+      <nav class="header-nav">
+        <a href="#modeles" class="nav-link">Modèles Phares</a>
+        <a href="#personas" class="nav-link">Pour Qui ?</a>
+        <a href="#avantages" class="nav-link">Fonctionnalités</a>
+        <button class="btn-enterprise-link" (click)="goToEnterprise()">
+          <lucide-icon [img]="icons.building" [size]="15"></lucide-icon>
+          <span>Espace Entreprise</span>
+        </button>
+      </nav>
+
+      <div class="header-actions">
+        <ng-container *ngIf="!isLoggedIn; else loggedInTpl">
+          <a routerLink="/auth/login" class="btn-login">Se connecter</a>
+          <a routerLink="/auth/register" [queryParams]="{ accountType: 'PERSONAL' }" class="btn-register-primary">
+            Créer un compte gratuit
+          </a>
+        </ng-container>
+        <ng-template #loggedInTpl>
+          <a routerLink="/bibliotheque" class="btn-dashboard">
+            <span>Accéder à mon espace</span>
+            <lucide-icon [img]="icons.arrowRight" [size]="16"></lucide-icon>
+          </a>
+        </ng-template>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <div class="hero-content">
+      <div class="free-badge">
+        <span class="badge-dot"></span>
+        <span>100% Gratuit pour tous • Zéro carte bancaire • Export HD immédiat</span>
+      </div>
+
+      <h1 class="hero-title">
+        Créez des documents <span class="highlight">d'exception</span> en quelques clics.
+      </h1>
+
+      <p class="hero-subtitle">
+        CV Canadien sans discrimination, CV ATS certifié pour parseurs américains, Rapports de stage universitaires, Factures conformes pour freelances. Tout est conçu pour vous faire briller.
+      </p>
+
+      <div class="hero-cta-group">
+        <a href="#modeles" class="btn-hero-primary">
+          <lucide-icon [img]="icons.sparkles" [size]="18"></lucide-icon>
+          <span>Explorer les modèles</span>
+        </a>
+        <a routerLink="/auth/register" [queryParams]="{ accountType: 'PERSONAL' }" class="btn-hero-secondary">
+          <lucide-icon [img]="icons.zap" [size]="18"></lucide-icon>
+          <span>Créer mon document en 2 min</span>
+        </a>
+      </div>
+
+      <div class="hero-metrics">
+        <div class="metric-item">
+          <span class="metric-number">100%</span>
+          <span class="metric-label">Gratuit au lancement</span>
+        </div>
+        <div class="metric-divider"></div>
+        <div class="metric-item">
+          <span class="metric-number">Normes US & CA</span>
+          <span class="metric-label">Conformité internationale</span>
+        </div>
+        <div class="metric-divider"></div>
+        <div class="metric-item">
+          <span class="metric-number">PDF Vectoriel HD</span>
+          <span class="metric-label">Impression et parsing parfaits</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section Personas & Filtres -->
+  <section id="personas" class="personas-section">
+    <div class="section-header">
+      <span class="section-tag">PERSONAS & CAS D'USAGE</span>
+      <h2 class="section-title">Une expérience sur mesure pour chaque profil</h2>
+      <p class="section-subtitle">Sélectionnez votre situation pour découvrir les modèles adaptés à vos ambitions</p>
+    </div>
+
+    <div class="persona-pills">
+      <button class="persona-pill" [class.active]="selectedPersona === 'ALL'" (click)="filterByPersona('ALL')">
+        <lucide-icon [img]="icons.layers" [size]="16"></lucide-icon>
+        <span>Tous les profils</span>
+      </button>
+
+      <button class="persona-pill" [class.active]="selectedPersona === 'STUDENT'" (click)="filterByPersona('STUDENT')">
+        <lucide-icon [img]="icons.graduation" [size]="16"></lucide-icon>
+        <span>🎓 Étudiants & PFE</span>
+      </button>
+
+      <button class="persona-pill" [class.active]="selectedPersona === 'CANDIDATE'" (click)="filterByPersona('CANDIDATE')">
+        <lucide-icon [img]="icons.briefcase" [size]="16"></lucide-icon>
+        <span>💼 Candidats & Carrière</span>
+      </button>
+
+      <button class="persona-pill" [class.active]="selectedPersona === 'FREELANCE'" (click)="filterByPersona('FREELANCE')">
+        <lucide-icon [img]="icons.receipt" [size]="16"></lucide-icon>
+        <span>📊 Freelances & Facturation</span>
+      </button>
+
+      <button class="persona-pill" [class.active]="selectedPersona === 'INDIVIDUAL'" (click)="filterByPersona('INDIVIDUAL')">
+        <lucide-icon [img]="icons.sparkles" [size]="16"></lucide-icon>
+        <span>🎨 Particuliers & Flyers</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- Grille de Modèles Phares -->
+  <section id="modeles" class="templates-section">
+    <div class="templates-header">
+      <div>
+        <h3 class="templates-count">
+          Modèles Phares Officiels
+          <span class="badge-count">{{ filteredTemplates.length }}</span>
+        </h3>
+        <p class="templates-hint">Cliquez sur un modèle pour générer un aperçu instantané ou le personnaliser</p>
+      </div>
+
+      <div class="search-box">
+        <lucide-icon [img]="icons.search" [size]="16"></lucide-icon>
+        <input
+          type="text"
+          placeholder="Rechercher un modèle (CV, stage, facture...)"
+          [(ngModel)]="searchTerm"
+          (input)="loadTemplates()"
+        />
+      </div>
+    </div>
+
+    <!-- Loader -->
+    <div *ngIf="loading" class="templates-loading">
+      <div class="spinner"></div>
+      <p>Chargement des modèles haute fidélité...</p>
+    </div>
+
+    <!-- Grille -->
+    <div *ngIf="!loading" class="templates-grid">
+      <div *ngFor="let t of filteredTemplates" class="template-card">
+        <div class="card-badge-row">
+          <span class="badge-category">{{ t.categorie || 'DOCUMENT' }}</span>
+          <span class="badge-format">{{ t.formatPapier || 'A4' }}</span>
+          <span class="badge-free">100% GRATUIT</span>
+        </div>
+
+        <div class="card-preview-thumb" (click)="openPreview(t)">
+          <div class="preview-overlay">
+            <button class="btn-quick-view">
+              <lucide-icon [img]="icons.eye" [size]="16"></lucide-icon>
+              <span>Aperçu PDF Direct</span>
+            </button>
+          </div>
+          <div class="doc-sheet-skeleton">
+            <div class="skeleton-line title"></div>
+            <div class="skeleton-line subtitle"></div>
+            <div class="skeleton-line body-1"></div>
+            <div class="skeleton-line body-2"></div>
+            <div class="skeleton-block"></div>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <h4 class="card-title">{{ t.nom }}</h4>
+          <p class="card-desc">{{ t.description }}</p>
+
+          <div class="card-actions">
+            <button class="btn-card-preview" (click)="openPreview(t)" title="Générer un aperçu">
+              <lucide-icon [img]="icons.eye" [size]="16"></lucide-icon>
+              <span>Aperçu</span>
+            </button>
+
+            <button class="btn-card-customize" (click)="customizeTemplate(t)">
+              <span>Personnaliser</span>
+              <lucide-icon [img]="icons.arrowRight" [size]="14"></lucide-icon>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Bannière Passerelle Entreprise B2B -->
+  <section class="enterprise-cta-section">
+    <div class="enterprise-cta-card">
+      <div class="enterprise-cta-info">
+        <div class="enterprise-tag">
+          <lucide-icon [img]="icons.building" [size]="16"></lucide-icon>
+          <span>SOLUTIONS POUR ENTREPRISES & ÉQUIPES</span>
+        </div>
+        <h3 class="enterprise-title">Vous gérez des volumes importants de documents ?</h3>
+        <p class="enterprise-desc">
+          Bénéficiez du Moteur Entreprise complet : Génération par lots jusqu'à 50 000 pièces (Excel/CSV), connecteurs SQL en temps réel, signature électronique légale certifiée PAdES X.509 et gouvernance documentaire complète.
+        </p>
+        <div class="enterprise-features">
+          <div class="feat-item"><lucide-icon [img]="icons.check" [size]="16"></lucide-icon> Traitements massifs par lot</div>
+          <div class="feat-item"><lucide-icon [img]="icons.check" [size]="16"></lucide-icon> Connecteurs PostgreSQL, MySQL, API</div>
+          <div class="feat-item"><lucide-icon [img]="icons.check" [size]="16"></lucide-icon> Signatures X.509 PAdES</div>
+          <div class="feat-item"><lucide-icon [img]="icons.check" [size]="16"></lucide-icon> Journalisation d'audit immuable</div>
+        </div>
+      </div>
+
+      <div class="enterprise-cta-action">
+        <button class="btn-enterprise-cta" (click)="goToEnterprise()">
+          <span>Créer un Espace Entreprise</span>
+          <lucide-icon [img]="icons.arrowRight" [size]="18"></lucide-icon>
+        </button>
+        <span class="cta-subtext">Sans engagement • Déploiement instantané</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Modal d'Aperçu PDF Direct -->
+  <div *ngIf="previewModalOpen" class="preview-modal-backdrop" (click)="closePreview()">
+    <div class="preview-modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title-box">
+          <lucide-icon [img]="icons.fileCheck" [size]="20"></lucide-icon>
+          <div>
+            <h3>{{ previewTemplate?.nom }}</h3>
+            <span class="preview-badge">Aperçu Démo Haute Définition</span>
+          </div>
+        </div>
+        <button class="btn-modal-close" (click)="closePreview()">
+          <lucide-icon [img]="icons.close" [size]="20"></lucide-icon>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div *ngIf="generatingPreview" class="modal-loading">
+          <div class="spinner"></div>
+          <p>Rendu du PDF haute fidélité via Gotenberg...</p>
+        </div>
+
+        <iframe
+          *ngIf="!generatingPreview && safePdfUrl"
+          [src]="safePdfUrl"
+          class="pdf-iframe"
+          title="Aperçu PDF"
+        ></iframe>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closePreview()">Fermer</button>
+        <button class="btn-primary" (click)="customizeTemplate(previewTemplate!)">
+          <span>Utiliser & Personnaliser ce modèle</span>
+          <lucide-icon [img]="icons.arrowRight" [size]="16"></lucide-icon>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer Public -->
+  <footer class="portal-footer">
+    <div class="footer-container">
+      <div class="footer-brand">
+        <div class="brand">
+          <div class="brand-logo mini">
+            <lucide-icon [img]="icons.sparkles" [size]="18"></lucide-icon>
+          </div>
+          <span class="brand-title">Moteur Rapports</span>
+        </div>
+        <p class="footer-text">
+          La plateforme moderne de création de documents et rapports pour particuliers, étudiants, freelances et organisations d'excellence.
+        </p>
+      </div>
+
+      <div class="footer-links">
+        <div class="link-col">
+          <span class="col-title">Modèles Phares</span>
+          <a href="#modeles">CV Canadien</a>
+          <a href="#modeles">CV ATS Américain</a>
+          <a href="#modeles">Rapport de Stage</a>
+          <a href="#modeles">Facture Freelance</a>
+        </div>
+
+        <div class="link-col">
+          <span class="col-title">Plateforme</span>
+          <a routerLink="/auth/register" [queryParams]="{ accountType: 'PERSONAL' }">Inscription Gratuite</a>
+          <a routerLink="/auth/register" [queryParams]="{ accountType: 'ENTERPRISE' }">Espace Entreprise</a>
+          <a routerLink="/auth/login">Se connecter</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <span>© 2026 Moteur Rapports. 100% Gratuit au lancement. Tous droits réservés.</span>
+    </div>
+  </footer>
+</div>

@@ -19,6 +19,8 @@ public class UserPrincipal implements UserDetails {
     private final String password;
     private final String nomComplet;
     private final Role role;
+    private final com.rapports.moteur.entity.AccountType accountType;
+    private final com.rapports.moteur.entity.TargetPersona targetPersona;
     private final String entrepriseCode;
     private final boolean actif;
     private final Collection<? extends GrantedAuthority> authorities;
@@ -29,6 +31,8 @@ public class UserPrincipal implements UserDetails {
         this.password = user.getMotDePasse();
         this.nomComplet = user.getNomComplet();
         this.role = user.getRole();
+        this.accountType = user.getAccountType() != null ? user.getAccountType() : com.rapports.moteur.entity.AccountType.PERSONAL;
+        this.targetPersona = user.getTargetPersona();
         this.entrepriseCode = user.getCodeEntreprise();
         this.actif = Boolean.TRUE.equals(user.getActif());
         this.authorities = List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));

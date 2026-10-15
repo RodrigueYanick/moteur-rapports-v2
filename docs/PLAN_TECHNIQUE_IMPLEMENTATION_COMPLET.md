@@ -406,3 +406,4 @@ erDiagram
    * Connexion en tant qu'entreprise $\to$ Accès vérifié aux menus `/batches` et `/data-sources` $\to$ Succès.
 4. **Validation Responsive Multi-Écrans** :
    * Vérification sur résolutions mobiles ($375\times 667$, $414\times 896$) et tablettes ($768\times 1024$) : aucun débordement horizontal, dock mobile du designer actif et menu hamburger opérationnel.
+

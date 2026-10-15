@@ -162,5 +162,56 @@ class AuthServiceTest {
         assertThatThrownBy(() -> authService.register(request))
                 .isInstanceOf(ValidationException.class);
     }
+
+    @Test
+    @DisplayName("Inscription réussie pour un compte personnel sans aucune information d'entreprise")
+    void register_PersonalAccount_SuccessWithoutEnterprise() {
+        RegisterRequest request = RegisterRequest.builder()
+                .email("personnel@example.com")
+                .motDePasse("pass123")
+                .nom("Dupont")
+                .prenom("Alice")
+                .accountType(com.rapports.moteur.entity.AccountType.PERSONAL)
+                .targetPersona(com.rapports.moteur.entity.TargetPersona.STUDENT)
+                .build();
+
+        when(userRepository.existsByEmail("personnel@example.com")).thenReturn(false);
+        when(passwordEncoder.encode("pass123")).thenReturn("encoded_pass");
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+            User u = invocation.getArgument(0);
+            u.setId(UUID.randomUUID());
+            return u;
+        });
+
+        LoginResponse response = authService.register(request);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getToken()).isNotBlank();
+        assertThat(response.getUser().getEmail()).isEqualTo("personnel@example.com");
+        assertThat(response.getUser().getAccountType()).isEqualTo(com.rapports.moteur.entity.AccountType.PERSONAL);
+        assertThat(response.getUser().getTargetPersona()).isEqualTo(com.rapports.moteur.entity.TargetPersona.STUDENT);
+        assertThat(response.getUser().getCodeEntreprise()).isNull();
+        verify(entrepriseRepository, never()).save(any(Entreprise.class));
+        verify(userRepository).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Échec d'inscription si compte ENTERPRISE sélectionné sans nom ni code entreprise")
+    void register_EnterpriseAccount_WithoutEnterpriseDetails_ThrowsException() {
+        RegisterRequest request = RegisterRequest.builder()
+                .email("pro@entreprise.com")
+                .motDePasse("pass123")
+                .nom("Directeur")
+                .accountType(com.rapports.moteur.entity.AccountType.ENTERPRISE)
+                .nomEntreprise(null)
+                .codeEntreprise(null)
+                .build();
+
+        when(userRepository.existsByEmail("pro@entreprise.com")).thenReturn(false);
+
+        assertThatThrownBy(() -> authService.register(request))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("nom de l'entreprise");
+    }
 }
 

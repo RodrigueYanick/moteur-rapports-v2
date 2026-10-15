@@ -1,11 +1,92 @@
 <div class="auth-container">
   <div class="auth-card">
+    <!-- Header -->
     <div class="auth-header">
       <div class="logo-circle">
-        <lucide-icon [img]="icons.userPlus" [size]="28"></lucide-icon>
+        <lucide-icon [img]="accountType === 'PERSONAL' ? icons.user : icons.building" [size]="28"></lucide-icon>
       </div>
       <h1>Créer un compte</h1>
-      <p class="subtitle">Enregistrez votre entreprise et commencez à générer vos rapports</p>
+      <p class="subtitle" *ngIf="accountType === 'PERSONAL'">
+        Accédez <strong>gratuitement</strong> à tous les modèles (CV, thèses, factures) et à l'export HD illimité.
+      </p>
+      <p class="subtitle" *ngIf="accountType === 'ENTERPRISE'">
+        Espace collaboratif, traitements par lots massifs, signatures PAdES et connecteurs SQL.
+      </p>
+    </div>
+
+    <!-- Sélecteur à deux onglets : Personnel vs Entreprise -->
+    <div class="account-type-tabs">
+      <button
+        type="button"
+        class="tab-btn"
+        [class.active]="accountType === 'PERSONAL'"
+        (click)="setAccountType('PERSONAL')"
+      >
+        <lucide-icon [img]="icons.user" [size]="16"></lucide-icon>
+        <div class="tab-label-group">
+          <span class="tab-title">Compte Personnel</span>
+          <span class="tab-badge">100% Gratuit</span>
+        </div>
+      </button>
+
+      <button
+        type="button"
+        class="tab-btn"
+        [class.active]="accountType === 'ENTERPRISE'"
+        (click)="setAccountType('ENTERPRISE')"
+      >
+        <lucide-icon [img]="icons.building" [size]="16"></lucide-icon>
+        <div class="tab-label-group">
+          <span class="tab-title">Compte Entreprise</span>
+          <span class="tab-badge enterprise">Pro & Équipe</span>
+        </div>
+      </button>
+    </div>
+
+    <!-- Sélecteur de Persona pour Compte Personnel -->
+    <div *ngIf="accountType === 'PERSONAL'" class="persona-selection-box">
+      <span class="persona-label">Vous êtes principalement :</span>
+      <div class="persona-chips">
+        <button
+          type="button"
+          class="persona-chip"
+          [class.selected]="targetPersona === 'STUDENT'"
+          (click)="setPersona('STUDENT')"
+        >
+          <lucide-icon [img]="icons.graduation" [size]="14"></lucide-icon>
+          <span>Étudiant / Académique</span>
+        </button>
+
+        <button
+          type="button"
+          class="persona-chip"
+          [class.selected]="targetPersona === 'CANDIDATE'"
+          (click)="setPersona('CANDIDATE')"
+        >
+          <lucide-icon [img]="icons.briefcase" [size]="14"></lucide-icon>
+          <span>Candidat / Carrière</span>
+        </button>
+
+        <button
+          type="button"
+          class="persona-chip"
+          [class.selected]="targetPersona === 'FREELANCE'"
+          (click)="setPersona('FREELANCE')"
+        >
+          <lucide-icon [img]="icons.receipt" [size]="14"></lucide-icon>
+          <span>Freelance / Indépendant</span>
+        </button>
+
+        <button
+          type="button"
+          class="persona-chip"
+          [class.selected]="targetPersona === 'INDIVIDUAL'"
+          (click)="setPersona('INDIVIDUAL')"
+        >
+          <lucide-icon [img]="icons.sparkles" [size]="14"></lucide-icon>
+          <span>Particulier / Événement</span>
+        </button>
+      </div>
     </div>
 
     <div *ngIf="errorMessage" class="error-banner">
@@ -31,7 +112,7 @@
       </div>
 
       <div class="form-group">
-        <label for="email">Adresse email *</label>
+        <label for="email">{{ accountType === 'ENTERPRISE' ? 'Email Professionnel *' : 'Adresse Email *' }}</label>
         <div class="input-wrapper">
           <lucide-icon [img]="icons.mail" [size]="18" class="input-icon"></lucide-icon>
           <input
@@ -39,7 +120,7 @@
             type="email"
             [(ngModel)]="email"
             name="email"
-            placeholder="sophie.martin@entreprise.com"
+            [placeholder]="accountType === 'ENTERPRISE' ? 'sophie@votre-entreprise.com' : 'sophie.martin@email.com'"
             required
             autocomplete="email"
           />
@@ -62,49 +143,55 @@
         </div>
       </div>
 
-      <div class="form-divider">
-        <span>Informations Entreprise</span>
-      </div>
-
-      <div class="form-group">
-        <label for="nomEntreprise">Nom de l'entreprise</label>
-        <div class="input-wrapper">
-          <lucide-icon [img]="icons.building" [size]="18" class="input-icon"></lucide-icon>
-          <input
-            id="nomEntreprise"
-            type="text"
-            [(ngModel)]="nomEntreprise"
-            name="nomEntreprise"
-            placeholder="Ex: Acme Corporation"
-          />
+      <!-- Section réservée aux comptes Entreprise -->
+      <ng-container *ngIf="accountType === 'ENTERPRISE'">
+        <div class="form-divider">
+          <span>Organisation Entreprise</span>
         </div>
-      </div>
 
-      <div class="form-group">
-        <label for="codeEntreprise">Code Entreprise (Optionnel)</label>
-        <div class="input-wrapper">
-          <input
-            id="codeEntreprise"
-            type="text"
-            [(ngModel)]="codeEntreprise"
-            name="codeEntreprise"
-            placeholder="Ex: ACME (ou généré automatiquement)"
-            style="text-transform: uppercase;"
-          />
+        <div class="form-group">
+          <label for="nomEntreprise">Nom de l'entreprise *</label>
+          <div class="input-wrapper">
+            <lucide-icon [img]="icons.building" [size]="18" class="input-icon"></lucide-icon>
+            <input
+              id="nomEntreprise"
+              type="text"
+              [(ngModel)]="nomEntreprise"
+              name="nomEntreprise"
+              placeholder="Ex: Acme Corporation SAS"
+              required
+            />
+          </div>
         </div>
-      </div>
+
+        <div class="form-group">
+          <label for="codeEntreprise">Code Organisation (Optionnel)</label>
+          <div class="input-wrapper">
+            <input
+              id="codeEntreprise"
+              type="text"
+              [(ngModel)]="codeEntreprise"
+              name="codeEntreprise"
+              placeholder="Ex: ACME (ou généré automatiquement)"
+              style="text-transform: uppercase;"
+            />
+          </div>
+          <span class="field-hint">Si votre organisation existe déjà, saisissez son code pour la rejoindre.</span>
+        </div>
+      </ng-container>
 
       <button type="submit" class="submit-btn" [disabled]="loading">
-        <span *ngIf="!loading">Créer mon compte</span>
+        <span *ngIf="!loading">
+          {{ accountType === 'PERSONAL' ? 'Créer mon compte gratuit' : 'Créer mon espace entreprise' }}
+        </span>
         <span *ngIf="loading">Création en cours...</span>
         <lucide-icon *ngIf="!loading" [img]="icons.arrowRight" [size]="18"></lucide-icon>
       </button>
     </form>
 
     <div class="auth-footer">
-      <span>Vous avez déjà un compte ?</span>
+      <span>Vous possédez déjà un compte ?</span>
       <a routerLink="/auth/login">Se connecter</a>
     </div>
   </div>
 </div>
-

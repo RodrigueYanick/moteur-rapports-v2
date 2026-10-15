@@ -60,39 +60,56 @@ public class AuthService {
             throw new ValidationException(List.of("Un utilisateur avec cet email existe déjà : " + email));
         }
 
-        // Résolution ou création de l'entreprise
-        Entreprise entreprise = null;
-        String codeEntreprise = (request.getCodeEntreprise() != null && !request.getCodeEntreprise().isBlank())
-                ? request.getCodeEntreprise().trim().toUpperCase()
-                : null;
+        com.rapports.moteur.entity.AccountType accountType = request.getAccountType() != null 
+                ? request.getAccountType() 
+                : (request.getNomEntreprise() != null && !request.getNomEntreprise().isBlank() ? com.rapports.moteur.entity.AccountType.ENTERPRISE : com.rapports.moteur.entity.AccountType.PERSONAL);
+        com.rapports.moteur.entity.TargetPersona targetPersona = request.getTargetPersona();
 
-        if (codeEntreprise != null) {
-            entreprise = entrepriseRepository.findByCode(codeEntreprise)
-                    .orElseGet(() -> {
-                        String nom = (request.getNomEntreprise() != null && !request.getNomEntreprise().isBlank())
-                                ? request.getNomEntreprise().trim()
-                                : "Entreprise " + codeEntreprise;
-                        return entrepriseRepository.save(
-                                Entreprise.builder()
-                                        .code(codeEntreprise)
-                                        .nom(nom)
-                                        .actif(true)
-                                        .build()
-                        );
-                    });
-        } else if (request.getNomEntreprise() != null && !request.getNomEntreprise().isBlank()) {
-            String nom = request.getNomEntreprise().trim();
-            String generatedCode = "ENT-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
-            entreprise = entrepriseRepository.save(
-                    Entreprise.builder()
-                            .code(generatedCode)
-                            .nom(nom)
-                            .actif(true)
-                            .build()
-            );
+        if (accountType == com.rapports.moteur.entity.AccountType.ENTERPRISE) {
+            boolean hasNom = request.getNomEntreprise() != null && !request.getNomEntreprise().isBlank();
+            boolean hasCode = request.getCodeEntreprise() != null && !request.getCodeEntreprise().isBlank();
+            if (!hasNom && !hasCode) {
+                throw new ValidationException(List.of("Le nom de l'entreprise ou le code organisation est obligatoire pour un compte Entreprise"));
+            }
         }
 
-        Role role = request.getRole() != null ? request.getRole() : Role.ADMIN_ENTREPRISE;
+        // Résolution ou création de l'entreprise uniquement si mode ENTREPRISE ou si des infos entreprise sont renseignées
+        Entreprise entreprise = null;
+        if (accountType == com.rapports.moteur.entity.AccountType.ENTERPRISE || (request.getNomEntreprise() != null && !request.getNomEntreprise().isBlank()) || (request.getCodeEntreprise() != null && !request.getCodeEntreprise().isBlank())) {
+            String codeEntreprise = (request.getCodeEntreprise() != null && !request.getCodeEntreprise().isBlank())
+                    ? request.getCodeEntreprise().trim().toUpperCase()
+                    : null;
+
+            if (codeEntreprise != null) {
+                entreprise = entrepriseRepository.findByCode(codeEntreprise)
+                        .orElseGet(() -> {
+                            String nom = (request.getNomEntreprise() != null && !request.getNomEntreprise().isBlank())
+                                    ? request.getNomEntreprise().trim()
+                                    : "Entreprise " + codeEntreprise;
+                            return entrepriseRepository.save(
+                                    Entreprise.builder()
+                                            .code(codeEntreprise)
+                                            .nom(nom)
+                                            .actif(true)
+                                            .build()
+                            );
+                        });
+            } else if (request.getNomEntreprise() != null && !request.getNomEntreprise().isBlank()) {
+                String nom = request.getNomEntreprise().trim();
+                String generatedCode = "ENT-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+                entreprise = entrepriseRepository.save(
+                        Entreprise.builder()
+                                .code(generatedCode)
+                                .nom(nom)
+                                .actif(true)
+                                .build()
+                );
+            }
+        }
+
+        Role role = request.getRole() != null 
+                ? request.getRole() 
+                : (accountType == com.rapports.moteur.entity.AccountType.ENTERPRISE ? Role.ADMIN_ENTREPRISE : Role.DESIGNER);
 
         User user = User.builder()
                 .email(email)
@@ -100,6 +117,8 @@ public class AuthService {
                 .nom(request.getNom().trim())
                 .prenom(request.getPrenom() != null ? request.getPrenom().trim() : null)
                 .role(role)
+                .accountType(accountType)
+                .targetPersona(targetPersona)
                 .entreprise(entreprise)
                 .actif(true)
                 .build();

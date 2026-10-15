@@ -1,6 +1,8 @@
 package com.rapports.moteur.dto.dtoAuth;
 
+import com.rapports.moteur.entity.AccountType;
 import com.rapports.moteur.entity.Role;
+import com.rapports.moteur.entity.TargetPersona;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
@@ -31,5 +33,9 @@ public class RegisterRequest {
     private String nomEntreprise;
 
     private Role role;
+
+    private AccountType accountType;
+
+    private TargetPersona targetPersona;
 }
 

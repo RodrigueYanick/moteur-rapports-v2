@@ -36,6 +36,15 @@ public class User {
     @Builder.Default
     private Role role = Role.DESIGNER;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "account_type", length = 30)
+    @Builder.Default
+    private AccountType accountType = AccountType.PERSONAL;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "target_persona", length = 30)
+    private TargetPersona targetPersona;
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "entreprise_id")
     private Entreprise entreprise;
@@ -54,6 +63,9 @@ public class User {
         }
         if (actif == null) {
             actif = true;
+        }
+        if (accountType == null) {
+            accountType = AccountType.PERSONAL;
         }
     }
 

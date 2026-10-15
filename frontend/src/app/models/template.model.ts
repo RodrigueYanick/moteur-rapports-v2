@@ -43,6 +43,8 @@ export interface Template {
   dataSourceQuery?: string | null;
 }
 
+export type TemplateResponse = Template;
+
 export interface TemplateVersionDto {
   id: string;
   nom: string;

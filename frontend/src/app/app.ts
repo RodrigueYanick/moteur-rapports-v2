@@ -51,14 +51,23 @@ import { CommandPaletteComponent } from '@shared/components/command-palette/comm
 
       <!-- Liens Desktop -->
       <div class="nav-links desktop-only" *ngIf="auth.isAuthenticated()">
-        <a routerLink="/bibliotheque" routerLinkActive="active">Bibliothèque</a>
+        <a routerLink="/bibliotheque" routerLinkActive="active">Modèles</a>
         <a routerLink="/documents" routerLinkActive="active">Mes documents</a>
-        <a routerLink="/batches" routerLinkActive="active">Lots & Webhooks</a>
-        <a routerLink="/data-sources" routerLinkActive="active">Connecteurs</a>
-        <a routerLink="/schedules" routerLinkActive="active">Planification</a>
-        <a routerLink="/certificates" routerLinkActive="active">Certificats</a>
-        <a routerLink="/audit" routerLinkActive="active" *ngIf="auth.currentRole() === 'SUPER_ADMIN' || auth.currentRole() === 'ADMIN_ENTREPRISE'">Audit</a>
-        <a routerLink="/feuille-travail" routerLinkActive="active">Personnaliser la feuille</a>
+        <a routerLink="/feuille-travail" routerLinkActive="active">Personnaliser</a>
+
+        <!-- Menu Entreprise uniquement -->
+        <ng-container *ngIf="auth.isEnterprise()">
+          <a routerLink="/batches" routerLinkActive="active">Lots & Webhooks</a>
+          <a routerLink="/data-sources" routerLinkActive="active">Connecteurs</a>
+          <a routerLink="/schedules" routerLinkActive="active">Planification</a>
+          <a routerLink="/certificates" routerLinkActive="active">Certificats</a>
+          <a routerLink="/audit" routerLinkActive="active" *ngIf="auth.currentRole() === 'SUPER_ADMIN' || auth.currentRole() === 'ADMIN_ENTREPRISE'">Audit</a>
+        </ng-container>
+
+        <!-- CTA Espace Entreprise pour compte personnel -->
+        <a routerLink="/auth/register" [queryParams]="{ accountType: 'ENTERPRISE' }" class="upgrade-enterprise-link" *ngIf="auth.isPersonal()" title="Découvrir la suite Entreprise (Lots, Signatures X.509, SQL)">
+          🏢 Espace Entreprise
+        </a>
       </div>
 
       <div class="nav-right">
@@ -88,11 +97,15 @@ import { CommandPaletteComponent } from '@shared/components/command-palette/comm
             <span class="role-badge" [ngClass]="auth.currentRole() || ''">{{ formatRole(auth.currentRole()) }}</span>
           </div>
 
-          <button type="button" class="company-badge-btn desktop-only" (click)="openChangeCodeModal()" title="Entreprise active">
+          <button type="button" class="company-badge-btn desktop-only" (click)="openChangeCodeModal()" title="Entreprise active" *ngIf="auth.isEnterprise()">
             <span class="badge-icon">🏢</span>
             <span class="badge-code">{{ auth.currentEntrepriseCode() }}</span>
             <span class="badge-edit" *ngIf="auth.currentRole() === 'SUPER_ADMIN'">✎</span>
           </button>
+
+          <div class="personal-badge-pill desktop-only" *ngIf="auth.isPersonal()">
+            <span>✨ Compte Gratuit</span>
+          </div>
 
           <button type="button" class="logout-btn desktop-only" (click)="auth.logout()" title="Se déconnecter">
             <span>Déconnexion</span>
@@ -100,6 +113,10 @@ import { CommandPaletteComponent } from '@shared/components/command-palette/comm
         </ng-container>
 
         <ng-template #loginLink>
+          <div class="nav-visitor-actions desktop-only">
+            <a routerLink="/public" class="visitor-nav-link">Explorer</a>
+            <a routerLink="/auth/register" [queryParams]="{ accountType: 'ENTERPRISE' }" class="visitor-enterprise-link">Espace Entreprise</a>
+          </div>
           <a routerLink="/auth/login" class="login-nav-btn">Connexion</a>
         </ng-template>
       </div>
@@ -124,7 +141,7 @@ import { CommandPaletteComponent } from '@shared/components/command-palette/comm
         <button type="button" class="close-drawer-btn" (click)="closeMobileMenu()" aria-label="Fermer le menu">✕</button>
       </div>
 
-      <div class="mobile-drawer-company">
+      <div class="mobile-drawer-company" *ngIf="auth.isEnterprise()">
         <button type="button" class="company-badge-btn-mobile" (click)="openChangeCodeModal(); closeMobileMenu()" title="Entreprise active">
           <span class="badge-icon">🏢</span>
           <span class="badge-text">Entreprise active :</span>
@@ -136,35 +153,45 @@ import { CommandPaletteComponent } from '@shared/components/command-palette/comm
       <nav class="mobile-drawer-links">
         <a routerLink="/bibliotheque" routerLinkActive="active" (click)="closeMobileMenu()">
           <span class="nav-icon">📚</span>
-          <span>Bibliothèque</span>
+          <span>Modèles</span>
         </a>
         <a routerLink="/documents" routerLinkActive="active" (click)="closeMobileMenu()">
           <span class="nav-icon">📄</span>
           <span>Mes documents</span>
         </a>
-        <a routerLink="/batches" routerLinkActive="active" (click)="closeMobileMenu()">
-          <span class="nav-icon">📦</span>
-          <span>Lots & Webhooks</span>
-        </a>
-        <a routerLink="/data-sources" routerLinkActive="active" (click)="closeMobileMenu()">
-          <span class="nav-icon">🔌</span>
-          <span>Connecteurs</span>
-        </a>
-        <a routerLink="/schedules" routerLinkActive="active" (click)="closeMobileMenu()">
-          <span class="nav-icon">⏰</span>
-          <span>Planification</span>
-        </a>
-        <a routerLink="/certificates" routerLinkActive="active" (click)="closeMobileMenu()">
-          <span class="nav-icon">🔐</span>
-          <span>Certificats</span>
-        </a>
-        <a routerLink="/audit" routerLinkActive="active" *ngIf="auth.currentRole() === 'SUPER_ADMIN' || auth.currentRole() === 'ADMIN_ENTREPRISE'" (click)="closeMobileMenu()">
-          <span class="nav-icon">🛡️</span>
-          <span>Audit & Sécurité</span>
-        </a>
         <a routerLink="/feuille-travail" routerLinkActive="active" (click)="closeMobileMenu()">
           <span class="nav-icon">📐</span>
           <span>Personnaliser la feuille</span>
+        </a>
+
+        <!-- Liens Entreprise uniquement -->
+        <ng-container *ngIf="auth.isEnterprise()">
+          <a routerLink="/batches" routerLinkActive="active" (click)="closeMobileMenu()">
+            <span class="nav-icon">📦</span>
+            <span>Lots & Webhooks</span>
+          </a>
+          <a routerLink="/data-sources" routerLinkActive="active" (click)="closeMobileMenu()">
+            <span class="nav-icon">🔌</span>
+            <span>Connecteurs</span>
+          </a>
+          <a routerLink="/schedules" routerLinkActive="active" (click)="closeMobileMenu()">
+            <span class="nav-icon">⏰</span>
+            <span>Planification</span>
+          </a>
+          <a routerLink="/certificates" routerLinkActive="active" (click)="closeMobileMenu()">
+            <span class="nav-icon">🔐</span>
+            <span>Certificats</span>
+          </a>
+          <a routerLink="/audit" routerLinkActive="active" *ngIf="auth.currentRole() === 'SUPER_ADMIN' || auth.currentRole() === 'ADMIN_ENTREPRISE'" (click)="closeMobileMenu()">
+            <span class="nav-icon">🛡️</span>
+            <span>Audit & Sécurité</span>
+          </a>
+        </ng-container>
+
+        <!-- Passer en mode Entreprise depuis un compte personnel -->
+        <a routerLink="/auth/register" [queryParams]="{ accountType: 'ENTERPRISE' }" class="upgrade-drawer-link" *ngIf="auth.isPersonal()" (click)="closeMobileMenu()">
+          <span class="nav-icon">🏢</span>
+          <span>Créer un Espace Entreprise</span>
         </a>
       </nav>
 

@@ -19,7 +19,7 @@
 
 .auth-header {
   text-align: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 
   .logo-circle {
     width: 56px;
@@ -31,6 +31,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: all 0.2s ease;
   }
 
   h1 {
@@ -45,7 +46,127 @@
     color: #64748b;
     margin: 0;
     line-height: 1.4;
+
+    strong {
+      color: #0284c7;
+    }
   }
+}
+
+.account-type-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  background: #f1f5f9;
+  padding: 0.35rem;
+  border-radius: 10px;
+  margin-bottom: 1.5rem;
+
+  .tab-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.65rem 0.5rem;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    color: #64748b;
+    transition: all 0.2s ease;
+
+    .tab-label-group {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      text-align: left;
+
+      .tab-title {
+        font-size: 0.82rem;
+        font-weight: 700;
+        line-height: 1.2;
+      }
+
+      .tab-badge {
+        font-size: 0.68rem;
+        font-weight: 600;
+        color: #16a34a;
+
+        &.enterprise {
+          color: #0284c7;
+        }
+      }
+    }
+
+    &:hover {
+      color: #0f172a;
+    }
+
+    &.active {
+      background: #ffffff;
+      color: #0f172a;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+  }
+}
+
+.persona-selection-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.85rem;
+  margin-bottom: 1.25rem;
+
+  .persona-label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.5rem;
+  }
+
+  .persona-chips {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.45rem;
+
+    .persona-chip {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.45rem 0.65rem;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #334155;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+
+      &:hover {
+        border-color: #94a3b8;
+        background: #f1f5f9;
+      }
+
+      &.selected {
+        background: #e0f2fe;
+        border-color: #0284c7;
+        color: #0369a1;
+      }
+    }
+  }
+}
+
+.field-hint {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 0.25rem;
 }
 
 .form-row {

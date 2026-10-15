@@ -1,6 +1,8 @@
 package com.rapports.moteur.dto.dtoAuth;
 
+import com.rapports.moteur.entity.AccountType;
 import com.rapports.moteur.entity.Role;
+import com.rapports.moteur.entity.TargetPersona;
 import com.rapports.moteur.entity.User;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -21,6 +23,8 @@ public class UserResponse {
     private String prenom;
     private String nomComplet;
     private Role role;
+    private AccountType accountType;
+    private TargetPersona targetPersona;
     private String codeEntreprise;
     private String nomEntreprise;
 
@@ -32,6 +36,8 @@ public class UserResponse {
                 .prenom(user.getPrenom())
                 .nomComplet(user.getNomComplet())
                 .role(user.getRole())
+                .accountType(user.getAccountType() != null ? user.getAccountType() : AccountType.PERSONAL)
+                .targetPersona(user.getTargetPersona())
                 .codeEntreprise(user.getCodeEntreprise())
                 .nomEntreprise(user.getEntreprise() != null ? user.getEntreprise().getNom() : null)
                 .build();
