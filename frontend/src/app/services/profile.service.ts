@@ -25,3 +25,4 @@ export class ProfileService {
     return this.http.put<ProfileApiResponse<PersonaProfileDto>>(this.baseUrl, profile);
   }
 }
+

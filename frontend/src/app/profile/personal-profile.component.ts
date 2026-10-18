@@ -149,3 +149,4 @@ export class PersonalProfileComponent implements OnInit {
     this.profile.competences[type]?.splice(index, 1);
   }
 }
+

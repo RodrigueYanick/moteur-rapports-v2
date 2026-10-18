@@ -18,3 +18,4 @@ public class PersonaProfileDto {
     private Map<String, Object> preferences;
     private LocalDateTime dateModification;
 }
+

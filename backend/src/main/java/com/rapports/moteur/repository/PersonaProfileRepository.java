@@ -21,3 +21,4 @@ public interface PersonaProfileRepository extends JpaRepository<PersonaProfile, 
     @Query("SELECT COUNT(p) > 0 FROM PersonaProfile p WHERE p.user.id = :userId")
     boolean existsByUser_Id(@Param("userId") UUID userId);
 }
+

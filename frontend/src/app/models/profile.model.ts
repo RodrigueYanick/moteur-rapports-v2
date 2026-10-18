@@ -60,3 +60,4 @@ export interface PublicDocumentViewDto {
   qrCodeDataUri: string;
   htmlContent: string;
 }
+
