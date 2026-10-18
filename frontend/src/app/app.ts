@@ -53,6 +53,7 @@ import { CommandPaletteComponent } from '@shared/components/command-palette/comm
       <div class="nav-links desktop-only" *ngIf="auth.isAuthenticated()">
         <a routerLink="/bibliotheque" routerLinkActive="active">Modèles</a>
         <a routerLink="/documents" routerLinkActive="active">Mes documents</a>
+        <a routerLink="/profil" routerLinkActive="active" title="Mon Profil Universel (Mes données réutilisables)">👤 Mon Profil</a>
         <a routerLink="/feuille-travail" routerLinkActive="active">Personnaliser</a>
 
         <!-- Menu Entreprise uniquement -->
@@ -158,6 +159,10 @@ import { CommandPaletteComponent } from '@shared/components/command-palette/comm
         <a routerLink="/documents" routerLinkActive="active" (click)="closeMobileMenu()">
           <span class="nav-icon">📄</span>
           <span>Mes documents</span>
+        </a>
+        <a routerLink="/profil" routerLinkActive="active" (click)="closeMobileMenu()">
+          <span class="nav-icon">👤</span>
+          <span>Mon Profil Universel</span>
         </a>
         <a routerLink="/feuille-travail" routerLinkActive="active" (click)="closeMobileMenu()">
           <span class="nav-icon">📐</span>

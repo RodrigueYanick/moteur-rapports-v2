@@ -7,7 +7,25 @@
       <h1>Nouveau modèle de rapport</h1>
       <p class="subtitle">Sélectionnez un modèle pré-conçu prêt à l'emploi ou commencez à partir d'une feuille vierge.</p>
     </div>
+  <!-- ===== Bannière Assistant IA Multi-Persona ===== -->
+  <div class="ai-persona-banner">
+    <div class="ai-banner-content">
+      <span class="ai-banner-icon">✨</span>
+      <div class="ai-banner-text">
+        <h3>Assistant IA Multi-Persona (Grand Public & Pro)</h3>
+        <p>Générez un CV canadien sans discrimination, un CV ATS américain, un rapport de stage ou une facture freelance, personnalisé en 1 clic avec votre profil universel !</p>
+      </div>
+    </div>
+    <button type="button" class="btn btn-ai-wizard" (click)="openAiWizard()">
+      ✨ Générer avec l'IA →
+    </button>
   </div>
+
+  <app-ai-persona-wizard
+    [isOpen]="aiWizardOpen"
+    (close)="aiWizardOpen = false"
+    (templateGenerated)="onAiTemplateGenerated($event)">
+  </app-ai-persona-wizard>
 
   <!-- ===== Section Galerie de Starter Templates ===== -->
   <div class="starter-section">

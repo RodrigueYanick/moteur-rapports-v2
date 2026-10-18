@@ -20,11 +20,13 @@ import {
   Loader2
 } from 'lucide-angular';
 import { STARTER_TEMPLATES, StarterTemplate } from '../starter-templates/starter-templates.data';
+import { AiPersonaWizardComponent } from '../../designer/components/ai-persona-wizard/ai-persona-wizard.component';
+import { AiPersonaGenerationResponse } from '../../services/ai-persona.service';
 
 @Component({
   selector: 'app-template-create',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, LucideAngularModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, LucideAngularModule, AiPersonaWizardComponent],
   templateUrl: './template-create.html',
   styleUrls: ['./template-create.scss'],
 })
@@ -32,6 +34,7 @@ export class TemplateCreate {
   error: string | null = null;
   submitting = false;
   form: FormGroup;
+  aiWizardOpen = false;
 
   // Modèles types (Starter Templates)
   starterTemplates: StarterTemplate[] = STARTER_TEMPLATES;
@@ -165,6 +168,34 @@ export class TemplateCreate {
         this.cdr.detectChanges();
         console.error(err);
       },
+    });
+  }
+
+  openAiWizard(): void {
+    this.aiWizardOpen = true;
+  }
+
+  onAiTemplateGenerated(res: AiPersonaGenerationResponse): void {
+    this.submitting = true;
+    const payload: any = {
+      nom: res.nom,
+      description: res.description,
+      categorie: res.categorie || 'AUTRES',
+      formatPapier: res.formatPapier || 'A4',
+      contenuDesign: res.contenuDesign,
+      schema: res.schema,
+      modePagination: 'FIXED'
+    };
+
+    this.api.createTemplate(payload).subscribe({
+      next: (template) => {
+        this.router.navigate(['/templates', template.id]);
+      },
+      error: (err) => {
+        this.submitting = false;
+        this.error = 'Erreur lors de la création du modèle IA.';
+        this.cdr.detectChanges();
+      }
     });
   }
 }

@@ -1,0 +1,226 @@
+<div class="profile-container">
+  <div class="profile-header">
+    <div class="title-section">
+      <h1><span class="badge-icon">👤</span> Mon Profil Universel</h1>
+      <p class="subtitle">Renseignez vos données une seule fois. Elles serviront à pré-remplir automatiquement tous vos CV, rapports de stage et documents professionnels.</p>
+    </div>
+    <div class="action-section">
+      <button class="btn btn-primary" (click)="saveProfile()" [disabled]="saving()">
+        <span *ngIf="saving()" class="spinner-small"></span>
+        <span *ngIf="!saving()">💾 Enregistrer mon profil</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Messages d'état -->
+  <div *ngIf="successMessage()" class="alert alert-success animate-fade-in">
+    {{ successMessage() }}
+  </div>
+  <div *ngIf="errorMessage()" class="alert alert-danger animate-fade-in">
+    {{ errorMessage() }}
+  </div>
+
+  <!-- Navigation par Onglets -->
+  <div class="tabs-nav">
+    <button class="tab-btn" [class.active]="activeTab() === 'identity'" (click)="activeTab.set('identity')">
+      📋 Identité & Contact
+    </button>
+    <button class="tab-btn" [class.active]="activeTab() === 'experiences'" (click)="activeTab.set('experiences')">
+      💼 Expériences Professionnelles ({{ profile.experiences.length }})
+    </button>
+    <button class="tab-btn" [class.active]="activeTab() === 'formations'" (click)="activeTab.set('formations')">
+      🎓 Formations & Diplômes ({{ profile.formations.length }})
+    </button>
+    <button class="tab-btn" [class.active]="activeTab() === 'skills'" (click)="activeTab.set('skills')">
+      ⚡ Compétences & Langues
+    </button>
+  </div>
+
+  <!-- Contenu des Onglets -->
+  <div class="card tab-content">
+
+    <!-- Onglet 1: Identité & Contact -->
+    <div *ngIf="activeTab() === 'identity'" class="tab-pane animate-fade-in">
+      <h3>Informations Personnelles</h3>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Prénom</label>
+          <input type="text" [(ngModel)]="profile.personalInfo.prenom" placeholder="Jean" class="form-control" />
+        </div>
+        <div class="form-group">
+          <label>Nom</label>
+          <input type="text" [(ngModel)]="profile.personalInfo.nom" placeholder="Dupont" class="form-control" />
+        </div>
+        <div class="form-group">
+          <label>Titre Professionnel ou Rôle Cible</label>
+          <input type="text" [(ngModel)]="profile.personalInfo.titreProfessionnel" placeholder="Ingénieur DevOps / Développeur Fullstack" class="form-control" />
+        </div>
+        <div class="form-group">
+          <label>Email de Contact</label>
+          <input type="email" [(ngModel)]="profile.personalInfo.email" placeholder="jean.dupont@email.com" class="form-control" />
+        </div>
+        <div class="form-group">
+          <label>Téléphone</label>
+          <input type="tel" [(ngModel)]="profile.personalInfo.telephone" placeholder="+1 (514) 000-0000" class="form-control" />
+        </div>
+        <div class="form-group">
+          <label>Ville & Région</label>
+          <input type="text" [(ngModel)]="profile.personalInfo.ville" placeholder="Montréal, QC ou Paris, France" class="form-control" />
+        </div>
+        <div class="form-group">
+          <label>Pays</label>
+          <input type="text" [(ngModel)]="profile.personalInfo.pays" placeholder="Canada, France..." class="form-control" />
+        </div>
+        <div class="form-group">
+          <label>Profil LinkedIn</label>
+          <input type="text" [(ngModel)]="profile.personalInfo.linkedin" placeholder="linkedin.com/in/jeandupont" class="form-control" />
+        </div>
+        <div class="form-group">
+          <label>GitHub ou Portfolio</label>
+          <input type="text" [(ngModel)]="profile.personalInfo.github" placeholder="github.com/jeandupont" class="form-control" />
+        </div>
+      </div>
+
+      <div class="form-group full-width" style="margin-top: 1.5rem;">
+        <label>Bio & Sommaire Exécutif (Pitch)</label>
+        <textarea rows="3" [(ngModel)]="profile.personalInfo.bioSommaire" placeholder="Passionné par les architectures cloud et la livraison continue..." class="form-control"></textarea>
+      </div>
+    </div>
+
+    <!-- Onglet 2: Expériences -->
+    <div *ngIf="activeTab() === 'experiences'" class="tab-pane animate-fade-in">
+      <div class="section-top">
+        <h3>Parcours & Expériences Professionnelles</h3>
+        <button class="btn btn-secondary" (click)="addExperience()">+ Ajouter une expérience</button>
+      </div>
+
+      <div *ngIf="profile.experiences.length === 0" class="empty-state">
+        <p>Aucune expérience enregistrée pour l'instant.</p>
+        <button class="btn btn-outline" (click)="addExperience()">Ajouter ma première expérience</button>
+      </div>
+
+      <div *ngFor="let exp of profile.experiences; let i = index" class="item-card">
+        <div class="item-header">
+          <span class="item-number">#{{ i + 1 }}</span>
+          <button class="btn-delete" (click)="removeExperience(i)">🗑️ Supprimer</button>
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Intitulé du poste</label>
+            <input type="text" [(ngModel)]="exp.titre" placeholder="Développeur Backend" class="form-control" />
+          </div>
+          <div class="form-group">
+            <label>Entreprise / Organisation</label>
+            <input type="text" [(ngModel)]="exp.entreprise" placeholder="Desjardins / Société Générale" class="form-control" />
+          </div>
+          <div class="form-group">
+            <label>Lieu / Ville</label>
+            <input type="text" [(ngModel)]="exp.ville" placeholder="Montréal, QC" class="form-control" />
+          </div>
+          <div class="form-group">
+            <label>Période (Début - Fin)</label>
+            <div class="date-row">
+              <input type="text" [(ngModel)]="exp.dateDebut" placeholder="2022" class="form-control" />
+              <span>à</span>
+              <input type="text" [(ngModel)]="exp.dateFin" placeholder="Présent" class="form-control" [disabled]="!!exp.enCours" />
+            </div>
+            <label class="checkbox-label">
+              <input type="checkbox" [(ngModel)]="exp.enCours" /> Poste actuel en cours
+            </label>
+          </div>
+        </div>
+        <div class="form-group full-width" style="margin-top: 1rem;">
+          <label>Missions & Réalisations chiffrées</label>
+          <textarea rows="3" [(ngModel)]="exp.description" placeholder="• Conception d'une API traitant 500k requêtes/jour.&#10;• Automatisation des pipelines CI/CD." class="form-control"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Onglet 3: Formations -->
+    <div *ngIf="activeTab() === 'formations'" class="tab-pane animate-fade-in">
+      <div class="section-top">
+        <h3>Diplômes & Formations Académiques</h3>
+        <button class="btn btn-secondary" (click)="addFormation()">+ Ajouter une formation</button>
+      </div>
+
+      <div *ngIf="profile.formations.length === 0" class="empty-state">
+        <p>Aucune formation ajoutée pour l'instant.</p>
+        <button class="btn btn-outline" (click)="addFormation()">Ajouter mon diplôme</button>
+      </div>
+
+      <div *ngFor="let form of profile.formations; let i = index" class="item-card">
+        <div class="item-header">
+          <span class="item-number">#{{ i + 1 }}</span>
+          <button class="btn-delete" (click)="removeFormation(i)">🗑️ Supprimer</button>
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Intitulé du diplôme / certification</label>
+            <input type="text" [(ngModel)]="form.diplome" placeholder="Baccalauréat en Génie Logiciel" class="form-control" />
+          </div>
+          <div class="form-group">
+            <label>Établissement / Université</label>
+            <input type="text" [(ngModel)]="form.etablissement" placeholder="Polytechnique Montréal / Sorbonne" class="form-control" />
+          </div>
+          <div class="form-group">
+            <label>Ville</label>
+            <input type="text" [(ngModel)]="form.ville" placeholder="Montréal, QC" class="form-control" />
+          </div>
+          <div class="form-group">
+            <label>Année d'obtention</label>
+            <input type="text" [(ngModel)]="form.anneeObtention" placeholder="2025" class="form-control" />
+          </div>
+        </div>
+        <div class="form-group full-width" style="margin-top: 1rem;">
+          <label>Détails complémentaires ou mentions</label>
+          <input type="text" [(ngModel)]="form.details" placeholder="Mention Très Bien, Spécialité Cloud Computing" class="form-control" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Onglet 4: Compétences & Langues -->
+    <div *ngIf="activeTab() === 'skills'" class="tab-pane animate-fade-in">
+      <h3>Compétences & Atouts</h3>
+
+      <div class="skills-block">
+        <label>Compétences Techniques</label>
+        <div class="skill-input-row">
+          <input type="text" [(ngModel)]="newCompetenceTech" (keyup.enter)="addSkill('techniques')" placeholder="Ex: Java, Angular, Kubernetes, Docker..." class="form-control" />
+          <button class="btn btn-secondary" (click)="addSkill('techniques')">Ajouter</button>
+        </div>
+        <div class="tags-container">
+          <span *ngFor="let s of profile.competences.techniques; let i = index" class="tag">
+            {{ s }} <button class="tag-close" (click)="removeSkill('techniques', i)">×</button>
+          </span>
+        </div>
+      </div>
+
+      <div class="skills-block">
+        <label>Outils & Méthodologies</label>
+        <div class="skill-input-row">
+          <input type="text" [(ngModel)]="newCompetenceOutil" (keyup.enter)="addSkill('outils')" placeholder="Ex: Git, Jira, CI/CD, Agile Scrum..." class="form-control" />
+          <button class="btn btn-secondary" (click)="addSkill('outils')">Ajouter</button>
+        </div>
+        <div class="tags-container">
+          <span *ngFor="let s of profile.competences.outils; let i = index" class="tag">
+            {{ s }} <button class="tag-close" (click)="removeSkill('outils', i)">×</button>
+          </span>
+        </div>
+      </div>
+
+      <div class="skills-block">
+        <label>Langues</label>
+        <div class="skill-input-row">
+          <input type="text" [(ngModel)]="newLangue" (keyup.enter)="addSkill('langues')" placeholder="Ex: Français (Langue maternelle), Anglais (Professionnel C1)..." class="form-control" />
+          <button class="btn btn-secondary" (click)="addSkill('langues')">Ajouter</button>
+        </div>
+        <div class="tags-container">
+          <span *ngFor="let s of profile.competences.langues; let i = index" class="tag">
+            {{ s }} <button class="tag-close" (click)="removeSkill('langues', i)">×</button>
+          </span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>

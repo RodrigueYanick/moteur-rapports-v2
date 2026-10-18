@@ -76,10 +76,11 @@ public class DocumentService {
 
         String currentCode = entrepriseService.getCurrentCodeEntreprise();
         if (currentCode == null || currentCode.isBlank()) {
-            currentCode = (template.getCodeEntreprise() != null && !template.getCodeEntreprise().isBlank())
-                ? template.getCodeEntreprise()
-                : "ENT-001";
-            throw new ValidationException(List.of("Un code entreprise est requis pour enregistrer un document"));
+            if (template.getCodeEntreprise() != null && !template.getCodeEntreprise().isBlank()) {
+                currentCode = template.getCodeEntreprise();
+            } else {
+                throw new ValidationException(List.of("Un code entreprise ou une session personnelle est requise pour enregistrer un document"));
+            }
         }
 
         String donneesJson;
@@ -184,6 +185,39 @@ public class DocumentService {
             .collect(Collectors.toList());
     }
 
+    @Transactional
+    public DocumentResponse enablePublicSharing(UUID documentId) {
+        Document document = documentRepository.findById(documentId)
+                .orElseThrow(() -> new ValidationException("Document introuvable"));
+
+        String currentCode = entrepriseService.getCurrentCodeEntreprise();
+        if (currentCode == null || !currentCode.equals(document.getCodeEntreprise())) {
+            throw new ValidationException("Non autorisé à partager ce document");
+        }
+
+        if (document.getShareToken() == null || document.getShareToken().isBlank()) {
+            document.setShareToken(UUID.randomUUID().toString().replace("-", ""));
+        }
+        document.setIsPublicShared(true);
+        Document saved = documentRepository.save(document);
+        return mapToDto(saved);
+    }
+
+    @Transactional
+    public DocumentResponse disablePublicSharing(UUID documentId) {
+        Document document = documentRepository.findById(documentId)
+                .orElseThrow(() -> new ValidationException("Document introuvable"));
+
+        String currentCode = entrepriseService.getCurrentCodeEntreprise();
+        if (currentCode == null || !currentCode.equals(document.getCodeEntreprise())) {
+            throw new ValidationException("Non autorisé à modifier le partage de ce document");
+        }
+
+        document.setIsPublicShared(false);
+        Document saved = documentRepository.save(document);
+        return mapToDto(saved);
+    }
+
     private DocumentResponse mapToDto(Document document) {
         Object donnees;
         try {
@@ -201,6 +235,8 @@ public class DocumentService {
                 .dateModification(document.getDateModification())
                 .templateNom(document.getTemplate().getNom())
                 .codeEntreprise(document.getCodeEntreprise())
+                .shareToken(document.getShareToken())
+                .isPublicShared(document.getIsPublicShared())
                 .build();
     }
 }

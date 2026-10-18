@@ -91,6 +91,10 @@
             <lucide-icon [img]="icons.mail" [size]="13"></lucide-icon>
             Email
           </button>
+          <button class="hover-btn share" (click)="openShareModal(doc, $event)" title="Partager publiquement (Lien Web & QR Code)">
+            <lucide-icon [img]="icons.share" [size]="13"></lucide-icon>
+            Partager
+          </button>
           <button class="hover-btn ghost" [disabled]="deletingId === doc.id" (click)="deleteDocument(doc, $event)" title="Supprimer">
             <lucide-icon [img]="deletingId === doc.id ? icons.loader : icons.trash" [size]="13" [class.spin]="deletingId === doc.id"></lucide-icon>
           </button>
@@ -151,6 +155,9 @@
             <button (click)="openEmailForDocument(doc, $event)" class="icon-action email" title="Envoyer par email">
               <lucide-icon [img]="icons.mail" [size]="15"></lucide-icon>
             </button>
+            <button (click)="openShareModal(doc, $event)" class="icon-action share" [disabled]="sharingDocId === doc.id" title="Partager publiquement (Lien & QR Code)">
+              <lucide-icon [img]="sharingDocId === doc.id ? icons.loader : icons.share" [size]="15" [class.spin]="sharingDocId === doc.id"></lucide-icon>
+            </button>
             <button (click)="deleteDocument(doc, $event)" class="icon-action danger" [disabled]="deletingId === doc.id" title="Supprimer">
               <lucide-icon [img]="deletingId === doc.id ? icons.loader : icons.trash" [size]="15" [class.spin]="deletingId === doc.id"></lucide-icon>
             </button>
@@ -188,5 +195,35 @@
     [documentNom]="activeDocForEmail?.nom || ''"
     (closed)="emailModalVisible = false">
   </app-document-email-modal>
+
+  <!-- Modal Partage Public & QR Code -->
+  <div class="qr-modal-backdrop" *ngIf="qrModalDoc" (click)="closeShareModal()">
+    <div class="qr-share-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>🔗 Partage Public & QR Code</h3>
+        <button class="close-btn" (click)="closeShareModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-doc-title">Document : <b>{{ qrModalDoc.nom }}</b></p>
+        <p class="modal-desc">
+          Ce document est maintenant accessible en ligne. Tout recruteur, client ou collaborateur peut le consulter et le télécharger directement sans compte.
+        </p>
+        
+        <div class="link-copy-group">
+          <input type="text" readonly [value]="qrModalUrl" class="link-input" />
+          <button type="button" class="btn btn-copy" (click)="copyShareUrl()">
+            <span *ngIf="!qrModalCopied">Copier le lien</span>
+            <span *ngIf="qrModalCopied">Copié !</span>
+          </button>
+        </div>
+
+        <div class="modal-actions">
+          <a [href]="qrModalUrl" target="_blank" class="btn btn-open-view">
+            Ouvrir la page publique →
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
 
 </div>

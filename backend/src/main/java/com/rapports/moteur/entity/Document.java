@@ -43,6 +43,13 @@ public class Document {
     @Column(name = "date_modification")
     private LocalDateTime dateModification;
 
+    @Column(name = "share_token", length = 64)
+    private String shareToken;
+
+    @Column(name = "is_public_shared")
+    @Builder.Default
+    private Boolean isPublicShared = false;
+
     @PrePersist
     protected void onCreate() {
         dateCreation = LocalDateTime.now();

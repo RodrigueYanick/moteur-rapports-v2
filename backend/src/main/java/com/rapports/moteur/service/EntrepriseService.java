@@ -29,6 +29,10 @@ public class EntrepriseService {
             if (principal.getEntrepriseCode() != null && !principal.getEntrepriseCode().isBlank()) {
                 return principal.getEntrepriseCode();
             }
+            // Pour les utilisateurs personnels sans entreprise : isolation par compte utilisateur
+            if (principal.getAccountType() == com.rapports.moteur.entity.AccountType.PERSONAL) {
+                return "USER-" + principal.getId();
+            }
         }
 
         // 2. Repli gracieux pour tests unitaires, Swagger ou requêtes de compatibilité

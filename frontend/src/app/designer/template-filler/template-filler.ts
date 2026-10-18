@@ -11,6 +11,7 @@ import {
   LucideAngularModule, ClipboardList, Plus, Save, Loader2, FolderOpen, Printer, Trash2, FileSpreadsheet
 } from 'lucide-angular';
 import { ExcelImportModalComponent } from '../../shared/components/excel-import-modal/excel-import-modal.component';
+import { ProfileService } from '../../services/profile.service';
 
 @Component({
   selector: 'app-template-filler',
@@ -57,6 +58,7 @@ export class TemplateFiller implements OnInit, OnDestroy {
   constructor(
     private api: TemplateApiService,
     private fillerData: FillerDataService,
+    private profileService: ProfileService,
     private cdr: ChangeDetectorRef
   ) {
     this.fillerData.values$.subscribe((values) => {
@@ -344,5 +346,36 @@ export class TemplateFiller implements OnInit, OnDestroy {
       for (const row of block.lignes) for (const cell of row) scan(cell.value);
     }
     return names;
+  }
+
+  fillWithUniversalProfile(): void {
+    this.profileService.getProfile().subscribe({
+      next: (res) => {
+        if (!res.data) return;
+        const pi = res.data.personalInfo || {};
+
+        Object.keys(this.values).forEach((key) => {
+          const lKey = key.toLowerCase();
+          if (lKey.includes('prenom') && pi.prenom) { this.values[key] = pi.prenom; }
+          else if (lKey.includes('nom') && !lKey.includes('complet') && pi.nom) { this.values[key] = pi.nom; }
+          else if ((lKey.includes('nom_complet') || lKey.includes('full_name') || lKey.includes('etudiant')) && (pi.prenom || pi.nom)) {
+            this.values[key] = `${pi.prenom || ''} ${pi.nom || ''}`.trim();
+          }
+          else if (lKey.includes('email') && pi.email) { this.values[key] = pi.email; }
+          else if ((lKey.includes('telephone') || lKey.includes('phone')) && pi.telephone) { this.values[key] = pi.telephone; }
+          else if ((lKey.includes('ville') || lKey.includes('city')) && pi.ville) { this.values[key] = pi.ville; }
+          else if ((lKey.includes('titre') || lKey.includes('poste') || lKey.includes('title')) && pi.titreProfessionnel) {
+            this.values[key] = pi.titreProfessionnel;
+          }
+          else if ((lKey.includes('bio') || lKey.includes('sommaire') || lKey.includes('summary')) && pi.bioSommaire) {
+            this.values[key] = pi.bioSommaire;
+          }
+          else if (lKey.includes('linkedin') && pi.linkedin) { this.values[key] = pi.linkedin; }
+        });
+
+        this.fillerData.setValues(this.values);
+        this.cdr.detectChanges();
+      }
+    });
   }
 }

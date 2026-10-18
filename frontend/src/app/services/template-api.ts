@@ -255,5 +255,17 @@ updateTemplate(id: string, form: any): Observable<Template> {
   testWebhook(req: import('../models/batch.model').WebhookTestRequest): Observable<import('../models/batch.model').WebhookTestResponse> {
     return this.http.post<import('../models/batch.model').WebhookTestResponse>('/api/batches/webhooks/test', req);
   }
+
+  // ==========================================
+  // Partage Public et QR Code Viral
+  // ==========================================
+
+  shareDocument(documentId: string): Observable<GeneratedDocument> {
+    return this.http.post<GeneratedDocument>(`/api/documents/${documentId}/share`, {});
+  }
+
+  unshareDocument(documentId: string): Observable<GeneratedDocument> {
+    return this.http.delete<GeneratedDocument>(`/api/documents/${documentId}/share`);
+  }
 }
 

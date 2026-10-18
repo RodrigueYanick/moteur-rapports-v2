@@ -11,6 +11,19 @@ export const routes: Routes = [
     loadComponent: () => import('./public/public-portal.component').then(m => m.PublicPortalComponent)
   },
   {
+    path: 'portal',
+    loadComponent: () => import('./public/public-portal.component').then(m => m.PublicPortalComponent)
+  },
+  {
+    path: 'view/:shareToken',
+    loadComponent: () => import('./public/document-viewer/document-viewer.component').then(m => m.DocumentViewerComponent)
+  },
+  {
+    path: 'profil',
+    loadComponent: () => import('./profile/personal-profile.component').then(m => m.PersonalProfileComponent),
+    canActivate: [authGuard]
+  },
+  {
     path: 'auth/login',
     loadComponent: () => import('./auth/login/login.component').then(m => m.LoginComponent)
   },

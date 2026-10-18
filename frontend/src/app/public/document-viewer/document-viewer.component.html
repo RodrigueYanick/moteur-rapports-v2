@@ -1,0 +1,87 @@
+<div class="viewer-wrapper">
+
+  <!-- Top Bar -->
+  <header class="viewer-nav">
+    <div class="nav-left">
+      <a routerLink="/portal" class="brand-link">
+        <span class="brand-logo">✨</span>
+        <span class="brand-name">MoteurRapports</span>
+      </a>
+      <div class="doc-badge" *ngIf="documentData()">
+        <span class="status-dot"></span> Document Public Certifié
+      </div>
+    </div>
+
+    <div class="nav-center" *ngIf="documentData()">
+      <h2 class="doc-title">{{ documentData()?.nom }}</h2>
+      <span class="doc-meta">{{ documentData()?.templateNom }} • Format {{ documentData()?.formatPapier }}</span>
+    </div>
+
+    <div class="nav-right" *ngIf="documentData()">
+      <button class="btn btn-secondary" (click)="openQrModal()">
+        📱 QR Code
+      </button>
+      <button class="btn btn-primary" (click)="downloadPdf()">
+        📥 Télécharger le PDF
+      </button>
+    </div>
+  </header>
+
+  <!-- Loading State -->
+  <div *ngIf="loading()" class="loading-state">
+    <div class="spinner"></div>
+    <p>Chargement du document haute fidélité...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="errorMessage()" class="error-container">
+    <div class="error-card">
+      <span class="error-icon">🔒</span>
+      <h2>Document Indisponible</h2>
+      <p>{{ errorMessage() }}</p>
+      <a routerLink="/portal" class="btn btn-primary">Explorer les modèles publics</a>
+    </div>
+  </div>
+
+  <!-- Document Paper Canvas -->
+  <main class="viewer-body" *ngIf="!loading() && documentData() && sanitizedHtml()">
+    <div class="paper-container" [class.letter]="documentData()?.formatPapier === 'Letter'" [class.a4]="documentData()?.formatPapier !== 'Letter'">
+      <div class="paper-sheet" [innerHTML]="sanitizedHtml()"></div>
+    </div>
+  </main>
+
+  <!-- Sticky CTA on Mobile -->
+  <div class="mobile-bottom-bar" *ngIf="documentData()">
+    <button class="btn btn-secondary" (click)="openQrModal()">QR Code</button>
+    <button class="btn btn-primary" (click)="downloadPdf()">Télécharger PDF</button>
+  </div>
+
+  <!-- QR Code Modal -->
+  <div class="qr-modal-backdrop" *ngIf="showQrModal()" (click)="closeQrModal()">
+    <div class="qr-modal" (click)="$event.stopPropagation()">
+      <div class="qr-header">
+        <h3>Partage Viral & QR Code</h3>
+        <button class="close-btn" (click)="closeQrModal()">✕</button>
+      </div>
+
+      <div class="qr-body">
+        <p class="qr-instructions">
+          Scannez ce code pour consulter ce document directement sur smartphone ou partagez le lien sécurisé :
+        </p>
+
+        <div class="qr-image-container" *ngIf="documentData()?.qrCodeDataUri">
+          <img [src]="documentData()?.qrCodeDataUri" alt="QR Code du document" class="qr-img" />
+        </div>
+
+        <div class="share-url-box">
+          <input type="text" readonly [value]="documentData()?.shareUrl" class="share-input" />
+          <button class="btn btn-secondary" (click)="copyShareUrl()">
+            <span *ngIf="!copied()">Copier</span>
+            <span *ngIf="copied()">Copié !</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

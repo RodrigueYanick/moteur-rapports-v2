@@ -10,6 +10,9 @@
       <lucide-icon [img]="icons.spreadsheet" [size]="13"></lucide-icon>
       Importer Excel
     </button>
+    <button type="button" class="btn-import-excel" style="background:#0284c7;color:#fff;border-color:#0284c7;margin-left:6px;" (click)="fillWithUniversalProfile()" title="Pré-remplir automatiquement avec vos données enregistrées">
+      ⚡ Mon Profil
+    </button>
   </div>
 
   <div class="filter-row" *ngIf="selectedBlock">

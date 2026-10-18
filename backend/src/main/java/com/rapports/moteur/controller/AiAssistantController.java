@@ -23,6 +23,17 @@ public class AiAssistantController {
     private final AiTemplateBuilderService aiTemplateBuilderService;
     private final AiMockDataService aiMockDataService;
     private final AiClientManager aiClientManager;
+    private final com.rapports.moteur.service.ai.AiPersonaTemplateService aiPersonaTemplateService;
+
+    @PostMapping("/persona-generate")
+    @Operation(summary = "Générer un document complet spécialisé par persona",
+               description = "Génère un modèle conforme aux normes spécifiques (CV Canadien sans discrimination, CV ATS 1-page, Rapport PFE, Facture Freelance)")
+    public ResponseEntity<ApiResponse<AiPersonaGenerationResponse>> generatePersonaTemplate(
+            @Valid @RequestBody AiPersonaPromptRequest request) {
+        log.info("Requête de génération de document par persona reçue : {}", request.getPersonaType());
+        AiPersonaGenerationResponse response = aiPersonaTemplateService.generatePersonaTemplate(request);
+        return ResponseEntity.ok(ApiResponse.success("Document persona généré avec succès", response));
+    }
 
     @PostMapping("/generate-template")
     @Operation(summary = "Générer un modèle de document par prompt IA",

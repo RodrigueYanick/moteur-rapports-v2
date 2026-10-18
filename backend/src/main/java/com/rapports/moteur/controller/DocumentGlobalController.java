@@ -53,4 +53,26 @@ public class DocumentGlobalController {
             @RequestParam(required = false) String q) {
         return ResponseEntity.ok(documentService.getAll(visibilite, q));
     }
+
+    @Operation(
+        summary = "Activer le partage public d'un document",
+        description = "Génère un token unique et active la consultation publique non authentifiée"
+    )
+    @org.springframework.web.bind.annotation.PostMapping("/{id}/share")
+    public ResponseEntity<DocumentResponse> enableSharing(
+            @Parameter(description = "ID du document à partager")
+            @org.springframework.web.bind.annotation.PathVariable java.util.UUID id) {
+        return ResponseEntity.ok(documentService.enablePublicSharing(id));
+    }
+
+    @Operation(
+        summary = "Désactiver le partage public d'un document",
+        description = "Révise l'accès public au document"
+    )
+    @org.springframework.web.bind.annotation.DeleteMapping("/{id}/share")
+    public ResponseEntity<DocumentResponse> disableSharing(
+            @Parameter(description = "ID du document")
+            @org.springframework.web.bind.annotation.PathVariable java.util.UUID id) {
+        return ResponseEntity.ok(documentService.disablePublicSharing(id));
+    }
 }

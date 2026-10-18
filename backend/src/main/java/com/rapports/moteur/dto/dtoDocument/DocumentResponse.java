@@ -34,4 +34,10 @@ public class DocumentResponse {
 
     @Schema(description = "Date de dernière modification", example = "2026-08-19T14:22:10")
     private LocalDateTime dateModification;
+
+    @Schema(description = "Jeton de partage public")
+    private String shareToken;
+
+    @Schema(description = "Indique si le document est partagé publiquement")
+    private Boolean isPublicShared;
 }

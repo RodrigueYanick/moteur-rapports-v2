@@ -1,0 +1,142 @@
+<div class="wizard-backdrop" *ngIf="isOpen" (click)="closeModal()">
+  <div class="wizard-modal" (click)="$event.stopPropagation()">
+
+    <!-- En-tête -->
+    <div class="wizard-header">
+      <div class="header-title">
+        <span class="icon">✨</span>
+        <h2>Assistant IA Multi-Persona</h2>
+      </div>
+      <button class="close-btn" (click)="closeModal()">✕</button>
+    </div>
+
+    <!-- Stepper Indicator -->
+    <div class="stepper">
+      <div class="step-item" [class.active]="currentStep() === 1" [class.done]="currentStep() > 1">
+        <div class="step-circle">1</div>
+        <span class="step-label">Persona Cible</span>
+      </div>
+      <div class="step-line" [class.filled]="currentStep() > 1"></div>
+      <div class="step-item" [class.active]="currentStep() === 2" [class.done]="currentStep() > 2">
+        <div class="step-circle">2</div>
+        <span class="step-label">Prompt & Besoins</span>
+      </div>
+      <div class="step-line" [class.filled]="currentStep() > 2"></div>
+      <div class="step-item" [class.active]="currentStep() === 3">
+        <div class="step-circle">3</div>
+        <span class="step-label">Aperçu & Studio</span>
+      </div>
+    </div>
+
+    <!-- Message d'erreur -->
+    <div *ngIf="errorMessage()" class="alert-error">
+      {{ errorMessage() }}
+    </div>
+
+    <!-- CONTENU ÉTAPE 1: Choix du Persona -->
+    <div *ngIf="currentStep() === 1" class="step-content">
+      <p class="step-intro">Choisissez le type de document certifié que vous souhaitez générer :</p>
+      <div class="personas-grid">
+        <div *ngFor="let p of personas" 
+             class="persona-card" 
+             [class.selected]="selectedPersona.code === p.code"
+             (click)="selectPersona(p)">
+          <div class="card-top">
+            <span class="persona-icon">{{ p.icon }}</span>
+            <span class="badge">{{ p.badge }}</span>
+          </div>
+          <h4>{{ p.titre }}</h4>
+          <p class="desc">{{ p.description }}</p>
+          <div class="format-indicator">Format: <b>{{ p.paperFormat }}</b></div>
+        </div>
+      </div>
+      <div class="wizard-footer">
+        <div></div>
+        <button class="btn btn-primary" (click)="goToStep(2)">
+          Continuer vers l'étape suivante →
+        </button>
+      </div>
+    </div>
+
+    <!-- CONTENU ÉTAPE 2: Description et Prompt -->
+    <div *ngIf="currentStep() === 2" class="step-content">
+      <div class="selected-persona-banner">
+        <span>Persona sélectionné : <b>{{ selectedPersona.icon }} {{ selectedPersona.titre }}</b> ({{ selectedPersona.badge }})</span>
+        <button class="btn-link" (click)="goToStep(1)">Changer</button>
+      </div>
+
+      <div class="form-group">
+        <label>Décrivez votre profil, vos réalisations ou votre besoin :</label>
+        <textarea rows="4" 
+                  [(ngModel)]="userPrompt" 
+                  placeholder="Ex: Ingénieur logiciel spécialisé Cloud AWS avec 5 ans d'expérience dans le secteur bancaire..."
+                  class="form-control"></textarea>
+      </div>
+
+      <!-- Suggestions rapides de prompts -->
+      <div class="suggestions-box" *ngIf="selectedPersona.samplePrompts.length > 0">
+        <span class="sugg-title">💡 Idées rapides de prompts :</span>
+        <div class="sugg-chips">
+          <button *ngFor="let prompt of selectedPersona.samplePrompts" 
+                  class="sugg-chip"
+                  (click)="useSamplePrompt(prompt)">
+            {{ prompt }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Options avancées -->
+      <div class="options-box">
+        <label class="checkbox-label">
+          <input type="checkbox" [(ngModel)]="useUniversalProfile" />
+          <span><b>⚡ Pré-remplir automatiquement avec mon Profil Universel</b> (nom, contact, compétences)</span>
+        </label>
+      </div>
+
+      <div class="wizard-footer">
+        <button class="btn btn-secondary" (click)="goToStep(1)">← Précédent</button>
+        <button class="btn btn-primary" (click)="generate()" [disabled]="loading()">
+          <span *ngIf="loading()" class="spinner-small"></span>
+          <span *ngIf="!loading()">✨ Générer le modèle avec l'IA</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- CONTENU ÉTAPE 3: Résultat et Chargement dans le Studio -->
+    <div *ngIf="currentStep() === 3" class="step-content">
+      <div class="result-success-box" *ngIf="generatedResponse">
+        <div class="success-icon">🎉</div>
+        <h3>Modèle généré avec succès !</h3>
+        <p class="result-title"><b>{{ generatedResponse.nom }}</b></p>
+        <p class="result-desc">{{ generatedResponse.description }}</p>
+
+        <div class="specs-grid">
+          <div class="spec-item">
+            <span class="spec-label">Format Papier</span>
+            <span class="spec-val">{{ generatedResponse.formatPapier }}</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-label">Catégorie</span>
+            <span class="spec-val">{{ generatedResponse.categorie }}</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-label">Moteur IA</span>
+            <span class="spec-val">{{ generatedResponse.provider }}</span>
+          </div>
+        </div>
+
+        <div class="constraints-notice" *ngIf="selectedPersona.code === 'CV_CANADIAN' || selectedPersona.code === 'CV_ATS'">
+          🛡️ <b>Conformité garantie :</b> Les photos et données personnelles sensibles ont été vérifiées et filtrées conformément aux lois en vigueur.
+        </div>
+      </div>
+
+      <div class="wizard-footer">
+        <button class="btn btn-secondary" (click)="goToStep(2)">Modifier le prompt</button>
+        <button class="btn btn-success" (click)="applyToDesigner()">
+          🚀 Ouvrir et personnaliser dans le Studio
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>

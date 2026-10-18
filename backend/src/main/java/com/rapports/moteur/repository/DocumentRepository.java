@@ -24,4 +24,7 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
 
     // Méthode de compatibilité
     List<Document> findByCodeEntreprise(String codeEntreprise);
+
+    Optional<Document> findByShareTokenAndIsPublicSharedTrue(String shareToken);
+    Optional<Document> findByShareToken(String shareToken);
 }

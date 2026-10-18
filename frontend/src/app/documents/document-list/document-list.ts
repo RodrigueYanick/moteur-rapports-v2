@@ -24,6 +24,8 @@ import {
   Send,
   Image,
   FileCode,
+  Share2,
+  QrCode,
 } from 'lucide-angular';
 
 @Component({
@@ -64,6 +66,12 @@ export class DocumentList implements OnInit {
   emailModalVisible = false;
   activeDocForEmail: GeneratedDocument | null = null;
 
+  // Modal Partage Public & QR Code
+  sharingDocId: string | null = null;
+  qrModalDoc: GeneratedDocument | null = null;
+  qrModalUrl = '';
+  qrModalCopied = false;
+
   readonly icons = {
     file: FileText,
     search: Search,
@@ -80,6 +88,8 @@ export class DocumentList implements OnInit {
     send: Send,
     image: Image,
     code: FileCode,
+    share: Share2,
+    qrCode: QrCode,
   };
 
   private templateColors = [
@@ -343,6 +353,45 @@ export class DocumentList implements OnInit {
         this.cdr.detectChanges();
         alert('Erreur lors de la suppression du document.');
       },
+    });
+  }
+
+  openShareModal(doc: GeneratedDocument, event?: Event): void {
+    event?.stopPropagation();
+    if (doc.isPublicShared && doc.shareToken) {
+      this.qrModalDoc = doc;
+      this.qrModalUrl = `${window.location.origin}/view/${doc.shareToken}`;
+      return;
+    }
+
+    this.sharingDocId = doc.id;
+    this.api.shareDocument(doc.id).subscribe({
+      next: (res) => {
+        this.sharingDocId = null;
+        doc.shareToken = res.shareToken;
+        doc.isPublicShared = true;
+        this.qrModalDoc = doc;
+        this.qrModalUrl = `${window.location.origin}/view/${res.shareToken}`;
+        this.toast.success(`Le document « ${doc.nom} » est désormais accessible en ligne via lien et QR Code.`, 'Partage activé');
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.sharingDocId = null;
+        this.toast.error('Erreur lors de l\'activation du partage du document.', 'Erreur');
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  closeShareModal(): void {
+    this.qrModalDoc = null;
+    this.qrModalCopied = false;
+  }
+
+  copyShareUrl(): void {
+    navigator.clipboard.writeText(this.qrModalUrl).then(() => {
+      this.qrModalCopied = true;
+      setTimeout(() => this.qrModalCopied = false, 3000);
     });
   }
 }

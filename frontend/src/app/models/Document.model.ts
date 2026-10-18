@@ -6,4 +6,8 @@ export interface GeneratedDocument {
   donnees: any;
   dateCreation: string;
   dateModification: string;
+  shareToken?: string;
+  isPublicShared?: boolean;
+  statut?: string;
+  codeEntreprise?: string;
 }
