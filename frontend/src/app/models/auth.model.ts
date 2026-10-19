@@ -22,3 +22,21 @@ export interface LoginResponse {
   user: User;
 }
 
+export interface SocialLoginRequest {
+  provider: 'GOOGLE' | 'GITHUB' | 'MICROSOFT';
+  email: string;
+  socialId?: string;
+  nom?: string;
+  prenom?: string;
+  avatarUrl?: string;
+  idToken?: string;
+}
+
+export interface EnterpriseUpgradeRequest {
+  nomEntreprise: string;
+  codeEntreprise?: string;
+  siret?: string;
+  adresse?: string;
+  telephone?: string;
+  emailContact?: string;
+}

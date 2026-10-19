@@ -2,6 +2,7 @@ package com.rapports.moteur.repository;
 
 import com.rapports.moteur.entity.Document;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -27,4 +28,8 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
 
     Optional<Document> findByShareTokenAndIsPublicSharedTrue(String shareToken);
     Optional<Document> findByShareToken(String shareToken);
+
+    @Modifying
+    @Query("UPDATE Document d SET d.codeEntreprise = :newCode WHERE d.codeEntreprise = :oldCode")
+    int updateCodeEntreprise(@Param("oldCode") String oldCode, @Param("newCode") String newCode);
 }

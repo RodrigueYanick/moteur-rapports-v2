@@ -145,5 +145,45 @@ public class AuthService {
 
         return UserResponse.fromEntity(user);
     }
+
+    @Transactional
+    public LoginResponse socialLogin(com.rapports.moteur.dto.dtoAuth.SocialLoginRequest request) {
+        String email = request.getEmail().trim().toLowerCase();
+        User user = userRepository.findByEmail(email).orElse(null);
+
+        if (user != null) {
+            if (!Boolean.TRUE.equals(user.getActif())) {
+                throw new ValidationException(List.of("Ce compte utilisateur est désactivé."));
+            }
+        } else {
+            String nom = request.getNom() != null && !request.getNom().isBlank()
+                    ? request.getNom().trim()
+                    : "Utilisateur";
+            String prenom = request.getPrenom() != null && !request.getPrenom().isBlank()
+                    ? request.getPrenom().trim()
+                    : null;
+
+            user = User.builder()
+                    .email(email)
+                    .nom(nom)
+                    .prenom(prenom)
+                    .motDePasse(passwordEncoder.encode(UUID.randomUUID().toString()))
+                    .role(Role.DESIGNER)
+                    .accountType(com.rapports.moteur.entity.AccountType.PERSONAL)
+                    .targetPersona(com.rapports.moteur.entity.TargetPersona.INDIVIDUAL)
+                    .actif(true)
+                    .build();
+
+            user = userRepository.save(user);
+        }
+
+        String token = tokenProvider.generateToken(user);
+
+        return LoginResponse.builder()
+                .token(token)
+                .tokenType("Bearer")
+                .user(UserResponse.fromEntity(user))
+                .build();
+    }
 }
 

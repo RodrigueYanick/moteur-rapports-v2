@@ -5,15 +5,17 @@ import { RouterModule } from '@angular/router';
 import { ProfileService } from '../services/profile.service';
 import { AuthService } from '../services/auth.service';
 import { PersonaProfileDto, ExperienceItem, FormationItem } from '../models/profile.model';
+import { UpgradeEnterpriseModalComponent } from '../shared/components/upgrade-enterprise-modal/upgrade-enterprise-modal.component';
 
 @Component({
   selector: 'app-personal-profile',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule, UpgradeEnterpriseModalComponent],
   templateUrl: './personal-profile.component.html',
   styleUrls: ['./personal-profile.component.scss']
 })
 export class PersonalProfileComponent implements OnInit {
+  showUpgradeModal = false;
   activeTab = signal<'identity' | 'experiences' | 'formations' | 'skills'>('identity');
   loading = signal<boolean>(false);
   saving = signal<boolean>(false);

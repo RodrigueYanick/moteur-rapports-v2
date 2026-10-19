@@ -71,13 +71,19 @@ $accent: #6366f1;
     align-items: center;
     gap: 0.4rem;
 
-    a {
+    a, button {
       color: var(--text-secondary);
       text-decoration: none;
       padding: 0.45rem 0.85rem;
       border-radius: 8px;
       font-size: 0.9rem;
       font-weight: 500;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      display: inline-flex;
+      align-items: center;
       transition: all 0.18s var(--ease-spring);
 
       &:hover {
@@ -93,7 +99,7 @@ $accent: #6366f1;
         box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
       }
 
-      &.upgrade-enterprise-link {
+      &.upgrade-enterprise-link, &.upgrade-enterprise-btn {
         background: rgba(2, 132, 199, 0.1);
         border: 1px solid rgba(2, 132, 199, 0.25);
         color: #0284c7;
@@ -472,7 +478,7 @@ $accent: #6366f1;
     gap: 0.35rem;
     flex: 1;
 
-    a {
+    a, button {
       display: flex;
       align-items: center;
       gap: 0.75rem;
@@ -482,6 +488,12 @@ $accent: #6366f1;
       text-decoration: none;
       font-size: 0.95rem;
       font-weight: 500;
+      background: none;
+      border: none;
+      width: 100%;
+      cursor: pointer;
+      text-align: left;
+      font-family: inherit;
       transition: all 0.15s ease;
 
       .nav-icon {

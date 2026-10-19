@@ -4,6 +4,79 @@
   padding: 0 1.5rem;
 }
 
+.enterprise-upgrade-card {
+  background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
+  border: 1px solid #bfdbfe;
+  border-radius: 16px;
+  padding: 1.25rem 1.75rem;
+  margin-bottom: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.06);
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .card-left {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+
+    .upgrade-icon {
+      font-size: 2.2rem;
+      background: #ffffff;
+      width: 54px;
+      height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 14px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      flex-shrink: 0;
+    }
+
+    .upgrade-info {
+      h4 {
+        margin: 0 0 0.3rem;
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #1e3a8a;
+      }
+
+      p {
+        margin: 0;
+        font-size: 0.88rem;
+        color: #475569;
+        line-height: 1.45;
+      }
+    }
+  }
+
+  .btn-upgrade {
+    padding: 0.75rem 1.4rem;
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 0.9rem;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+    transition: all 0.2s;
+
+    &:hover {
+      background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
+    }
+  }
+}
+
 .profile-header {
   display: flex;
   justify-content: space-between;

@@ -2,6 +2,7 @@ package com.rapports.moteur.repository;
 
 import com.rapports.moteur.entity.ReportTemplate;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -27,4 +28,8 @@ public interface ReportTemplateRepository extends JpaRepository<ReportTemplate, 
 
     @Query("SELECT t FROM ReportTemplate t WHERE t.codeEntreprise IS NULL AND LOWER(t.nom) LIKE LOWER(CONCAT('%', :q, '%'))")
     List<ReportTemplate> findByCodeEntrepriseIsNullAndNomContaining(@Param("q") String q);
+
+    @Modifying
+    @Query("UPDATE ReportTemplate t SET t.codeEntreprise = :newCode WHERE t.codeEntreprise = :oldCode")
+    int updateCodeEntreprise(@Param("oldCode") String oldCode, @Param("newCode") String newCode);
 }

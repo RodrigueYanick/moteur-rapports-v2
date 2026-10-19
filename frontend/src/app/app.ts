@@ -3,6 +3,7 @@ import { Router, NavigationEnd, RouterLink, RouterLinkActive, RouterOutlet } fro
 import { CommonModule } from '@angular/common';
 import { Subscription, filter } from 'rxjs';
 import { CodeEntrepriseModal } from '@shared/components/code-entreprise-modal/code-entreprise-modal';
+import { UpgradeEnterpriseModalComponent } from '@shared/components/upgrade-enterprise-modal/upgrade-enterprise-modal.component';
 import { AuthService } from '@services/auth.service';
 import { ToastContainerComponent } from '@shared/components/toast-container/toast-container.component';
 import { ThemeService } from '@shared/services/theme.service';
@@ -17,6 +18,7 @@ import { CommandPaletteComponent } from '@shared/components/command-palette/comm
     RouterLinkActive,
     CommonModule,
     CodeEntrepriseModal,
+    UpgradeEnterpriseModalComponent,
     ToastContainerComponent,
     CommandPaletteComponent,
   ],
@@ -26,6 +28,11 @@ import { CommandPaletteComponent } from '@shared/components/command-palette/comm
       *ngIf="showModal"
       (submitted)="onCodeSubmitted($event)">
     </app-code-entreprise-modal>
+
+    <app-upgrade-enterprise-modal
+      *ngIf="showUpgradeModal"
+      (closed)="showUpgradeModal = false">
+    </app-upgrade-enterprise-modal>
 
     <app-toast-container></app-toast-container>
     <app-command-palette [(isOpen)]="commandPaletteOpen"></app-command-palette>
@@ -66,9 +73,9 @@ import { CommandPaletteComponent } from '@shared/components/command-palette/comm
         </ng-container>
 
         <!-- CTA Espace Entreprise pour compte personnel -->
-        <a routerLink="/auth/register" [queryParams]="{ accountType: 'ENTERPRISE' }" class="upgrade-enterprise-link" *ngIf="auth.isPersonal()" title="Découvrir la suite Entreprise (Lots, Signatures X.509, SQL)">
+        <button type="button" class="upgrade-enterprise-btn" (click)="openUpgradeModal()" *ngIf="auth.isPersonal()" title="Créer mon organisation entreprise (Lots, Signatures X.509, SQL)">
           🏢 Espace Entreprise
-        </a>
+        </button>
       </div>
 
       <div class="nav-right">
@@ -194,10 +201,10 @@ import { CommandPaletteComponent } from '@shared/components/command-palette/comm
         </ng-container>
 
         <!-- Passer en mode Entreprise depuis un compte personnel -->
-        <a routerLink="/auth/register" [queryParams]="{ accountType: 'ENTERPRISE' }" class="upgrade-drawer-link" *ngIf="auth.isPersonal()" (click)="closeMobileMenu()">
+        <button type="button" class="upgrade-drawer-link" *ngIf="auth.isPersonal()" (click)="openUpgradeModal(); closeMobileMenu()">
           <span class="nav-icon">🏢</span>
           <span>Créer un Espace Entreprise</span>
-        </a>
+        </button>
       </nav>
 
       <div class="mobile-drawer-footer">
@@ -215,6 +222,7 @@ import { CommandPaletteComponent } from '@shared/components/command-palette/comm
 })
 export class App implements OnInit, OnDestroy {
   showModal = false;
+  showUpgradeModal = false;
   commandPaletteOpen = false;
   mobileMenuOpen = false;
   private routerSub?: Subscription;
@@ -225,6 +233,11 @@ export class App implements OnInit, OnDestroy {
     private router: Router,
     private cdr: ChangeDetectorRef
   ) {}
+
+  openUpgradeModal(): void {
+    this.showUpgradeModal = true;
+    this.cdr.detectChanges();
+  }
 
   ngOnInit(): void {
     this.routerSub = this.router.events

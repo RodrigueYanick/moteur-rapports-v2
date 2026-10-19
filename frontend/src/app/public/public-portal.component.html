@@ -68,18 +68,23 @@
 
       <div class="hero-metrics">
         <div class="metric-item">
-          <span class="metric-number">100%</span>
-          <span class="metric-label">Gratuit au lancement</span>
+          <span class="metric-number">+{{ animatedDocsCount.toLocaleString('fr-FR') }}</span>
+          <span class="metric-label">Documents générés</span>
         </div>
         <div class="metric-divider"></div>
         <div class="metric-item">
-          <span class="metric-number">Normes US & CA</span>
-          <span class="metric-label">Conformité internationale</span>
+          <span class="metric-number">+{{ animatedUsersCount.toLocaleString('fr-FR') }}</span>
+          <span class="metric-label">Utilisateurs actifs</span>
         </div>
         <div class="metric-divider"></div>
         <div class="metric-item">
-          <span class="metric-number">PDF Vectoriel HD</span>
-          <span class="metric-label">Impression et parsing parfaits</span>
+          <span class="metric-number">{{ animatedTemplatesCount }}</span>
+          <span class="metric-label">Modèles certifiés</span>
+        </div>
+        <div class="metric-divider"></div>
+        <div class="metric-item">
+          <span class="metric-number">{{ (publicStats?.satisfactionRate || 99.4) }}%</span>
+          <span class="metric-label">Taux de satisfaction</span>
         </div>
       </div>
     </div>

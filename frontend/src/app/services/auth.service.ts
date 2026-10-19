@@ -1,7 +1,7 @@
 import { Injectable, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
-import { LoginRequest, LoginResponse, RegisterRequest } from '../models/auth.model';
+import { LoginRequest, LoginResponse, RegisterRequest, SocialLoginRequest, EnterpriseUpgradeRequest } from '../models/auth.model';
 import { User, Role } from '../models/user.model';
 import { Router } from '@angular/router';
 
@@ -37,6 +37,18 @@ export class AuthService {
 
   register(request: RegisterRequest): Observable<LoginResponse> {
     return this.http.post<LoginResponse>('/api/auth/register', request).pipe(
+      tap((res) => this.handleAuthSuccess(res))
+    );
+  }
+
+  socialLogin(request: SocialLoginRequest): Observable<LoginResponse> {
+    return this.http.post<LoginResponse>('/api/auth/social-login', request).pipe(
+      tap((res) => this.handleAuthSuccess(res))
+    );
+  }
+
+  upgradeToEnterprise(request: EnterpriseUpgradeRequest): Observable<LoginResponse> {
+    return this.http.post<LoginResponse>('/api/user/upgrade-to-enterprise', request).pipe(
       tap((res) => this.handleAuthSuccess(res))
     );
   }

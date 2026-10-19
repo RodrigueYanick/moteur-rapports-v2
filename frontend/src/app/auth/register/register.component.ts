@@ -127,4 +127,35 @@ export class RegisterComponent implements OnInit {
       }
     });
   }
+
+  registerWithSocial(provider: 'GOOGLE' | 'GITHUB'): void {
+    this.loading = true;
+    this.errorMessage = '';
+
+    const defaultEmail = provider === 'GOOGLE' ? 'nouveau.google@gmail.com' : 'nouveau.github@dev.io';
+    const defaultNom = provider === 'GOOGLE' ? 'Google' : 'GitHub';
+    const defaultPrenom = 'Membre';
+
+    this.auth.socialLogin({
+      provider,
+      email: defaultEmail,
+      nom: defaultNom,
+      prenom: defaultPrenom
+    }).subscribe({
+      next: () => {
+        this.loading = false;
+        this.cdr.detectChanges();
+        if (this.templateIdToOpen) {
+          this.router.navigate(['/templates', this.templateIdToOpen]);
+        } else {
+          this.router.navigate(['/bibliotheque']);
+        }
+      },
+      error: (err) => {
+        this.loading = false;
+        this.errorMessage = err.error?.message || "Échec de l'inscription sociale.";
+        this.cdr.detectChanges();
+      }
+    });
+  }
 }

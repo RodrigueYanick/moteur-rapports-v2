@@ -76,5 +76,32 @@ export class LoginComponent {
     }
     this.onSubmit();
   }
+
+  loginWithSocial(provider: 'GOOGLE' | 'GITHUB'): void {
+    this.loading = true;
+    this.errorMessage = '';
+
+    const defaultEmail = provider === 'GOOGLE' ? 'utilisateur.google@gmail.com' : 'utilisateur.github@dev.io';
+    const defaultNom = provider === 'GOOGLE' ? 'Google' : 'GitHub';
+    const defaultPrenom = 'Utilisateur';
+
+    this.auth.socialLogin({
+      provider,
+      email: defaultEmail,
+      nom: defaultNom,
+      prenom: defaultPrenom
+    }).subscribe({
+      next: () => {
+        this.loading = false;
+        this.cdr.detectChanges();
+        this.router.navigateByUrl(this.returnUrl);
+      },
+      error: (err) => {
+        this.loading = false;
+        this.errorMessage = err.error?.message || "Échec de l'authentification sociale.";
+        this.cdr.detectChanges();
+      }
+    });
+  }
 }
 

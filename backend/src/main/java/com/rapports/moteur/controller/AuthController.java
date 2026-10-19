@@ -50,6 +50,18 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.CREATED).body(authService.register(request));
     }
 
+    @Operation(summary = "Connexion sociale OAuth2", description = "Authentifie ou inscrit instantanément un utilisateur via Google, GitHub ou Microsoft et retourne un jeton JWT.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Connexion sociale réussie",
+                     content = @Content(schema = @Schema(implementation = LoginResponse.class))),
+        @ApiResponse(responseCode = "400", description = "Données d'authentification sociale invalides",
+                     content = @Content(schema = @Schema(implementation = ApiError.class)))
+    })
+    @PostMapping("/social-login")
+    public ResponseEntity<LoginResponse> socialLogin(@Valid @RequestBody com.rapports.moteur.dto.dtoAuth.SocialLoginRequest request) {
+        return ResponseEntity.ok(authService.socialLogin(request));
+    }
+
     @Operation(summary = "Profil de l'utilisateur connecté", description = "Retourne les informations de l'utilisateur connecté basé sur son jeton Bearer JWT.")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Profil utilisateur retourné",

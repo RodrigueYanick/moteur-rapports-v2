@@ -11,12 +11,26 @@ export interface PublicCategory {
   icon: string;
 }
 
+export interface PublicStats {
+  totalDocuments: number;
+  totalUsers: number;
+  totalTemplates: number;
+  satisfactionRate: number;
+  activeCountries: number;
+  availableCategories: number;
+  lastUpdated?: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class PublicPortalService {
   private http = inject(HttpClient);
   private apiUrl = '/api/public';
+
+  getPublicStats(): Observable<PublicStats> {
+    return this.http.get<PublicStats>(`${this.apiUrl}/stats`);
+  }
 
   getPublicTemplates(categorie?: string, q?: string): Observable<TemplateResponse[]> {
     let params = new HttpParams();

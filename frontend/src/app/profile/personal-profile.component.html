@@ -1,4 +1,23 @@
 <div class="profile-container">
+  <app-upgrade-enterprise-modal
+    *ngIf="showUpgradeModal"
+    (closed)="showUpgradeModal = false">
+  </app-upgrade-enterprise-modal>
+
+  <!-- Bannière Passerelle Entreprise -->
+  <div class="enterprise-upgrade-card" *ngIf="authService.isPersonal()">
+    <div class="card-left">
+      <span class="upgrade-icon">🏢</span>
+      <div class="upgrade-info">
+        <h4>Besoin de fonctionnalités d'équipe ou organisationnelles ?</h4>
+        <p>Basculez en 1 clic vers l'Espace Entreprise pour activer les lots massifs, les connecteurs SQL et la signature PAdES. Tous vos documents actuels sont conservés.</p>
+      </div>
+    </div>
+    <button type="button" class="btn btn-upgrade" (click)="showUpgradeModal = true">
+      🏢 Créer mon Espace Entreprise
+    </button>
+  </div>
+
   <div class="profile-header">
     <div class="title-section">
       <h1><span class="badge-icon">👤</span> Mon Profil Universel</h1>

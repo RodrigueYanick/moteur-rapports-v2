@@ -1,0 +1,134 @@
+<div class="modal-overlay" (click)="closeModal()">
+  <div class="modal-card" (click)="$event.stopPropagation()">
+    
+    <!-- Header -->
+    <div class="modal-header">
+      <div class="header-icon">
+        <lucide-icon [img]="icons.building" [size]="28"></lucide-icon>
+      </div>
+      <div class="header-text">
+        <h2>Créer mon Espace Entreprise</h2>
+        <p>Basculez votre compte personnel vers une organisation professionnelle avec tous vos documents conservés.</p>
+      </div>
+      <button class="close-btn" (click)="closeModal()" [disabled]="loading" title="Fermer">
+        <lucide-icon [img]="icons.close" [size]="20"></lucide-icon>
+      </button>
+    </div>
+
+    <!-- Avantages inclus -->
+    <div class="benefits-banner">
+      <div class="benefit-item">
+        <lucide-icon [img]="icons.check" [size]="16" class="check-icon"></lucide-icon>
+        <span>Continuité totale : vos documents restent accessibles</span>
+      </div>
+      <div class="benefit-item">
+        <lucide-icon [img]="icons.check" [size]="16" class="check-icon"></lucide-icon>
+        <span>Traitements par lots massifs & Connecteurs SQL</span>
+      </div>
+      <div class="benefit-item">
+        <lucide-icon [img]="icons.check" [size]="16" class="check-icon"></lucide-icon>
+        <span>Signatures numériques PAdES & Pistes d'audit</span>
+      </div>
+    </div>
+
+    <!-- Messages -->
+    <div *ngIf="errorMessage" class="error-banner">
+      {{ errorMessage }}
+    </div>
+
+    <div *ngIf="successMessage" class="success-banner">
+      {{ successMessage }}
+    </div>
+
+    <!-- Formulaire -->
+    <form (ngSubmit)="submitUpgrade()" class="upgrade-form" *ngIf="!successMessage">
+      <div class="form-group required">
+        <label for="nomEntreprise">Nom de l'entreprise ou organisation *</label>
+        <input
+          id="nomEntreprise"
+          type="text"
+          [(ngModel)]="form.nomEntreprise"
+          name="nomEntreprise"
+          placeholder="Ex: Acme Solutions, Cabinet Durand, Agence Web"
+          required
+          minlength="2"
+        />
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="codeEntreprise">Code organisation (Optionnel)</label>
+          <input
+            id="codeEntreprise"
+            type="text"
+            [(ngModel)]="form.codeEntreprise"
+            name="codeEntreprise"
+            placeholder="Ex: ACME-001 (auto-généré si vide)"
+          />
+          <small class="field-hint">Laissez vide pour générer un code unique automatiquement.</small>
+        </div>
+
+        <div class="form-group">
+          <label for="siret">SIRET / Numéro d'enregistrement</label>
+          <input
+            id="siret"
+            type="text"
+            [(ngModel)]="form.siret"
+            name="siret"
+            placeholder="Ex: 123 456 789 00012"
+          />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="emailContact">Email professionnel de contact</label>
+          <input
+            id="emailContact"
+            type="email"
+            [(ngModel)]="form.emailContact"
+            name="emailContact"
+            placeholder="contact@entreprise.com"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="telephone">Téléphone</label>
+          <input
+            id="telephone"
+            type="tel"
+            [(ngModel)]="form.telephone"
+            name="telephone"
+            placeholder="+33 1 23 45 67 89"
+          />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="adresse">Adresse du siège social</label>
+        <input
+          id="adresse"
+          type="text"
+          [(ngModel)]="form.adresse"
+          name="adresse"
+          placeholder="Ex: 12 avenue des Champs-Élysées, 75008 Paris"
+        />
+      </div>
+
+      <!-- Footer Buttons -->
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" (click)="closeModal()" [disabled]="loading">
+          Annuler
+        </button>
+        <button type="submit" class="btn-submit" [disabled]="loading || !form.nomEntreprise">
+          <lucide-icon *ngIf="loading" [img]="icons.loader" [size]="18" class="spin-icon"></lucide-icon>
+          <span *ngIf="!loading">Activer mon Espace Entreprise</span>
+          <span *ngIf="loading">Activation en cours...</span>
+          <lucide-icon *ngIf="!loading" [img]="icons.arrowRight" [size]="18"></lucide-icon>
+        </button>
+      </div>
+    </form>
+
+  </div>
+</div>
+
