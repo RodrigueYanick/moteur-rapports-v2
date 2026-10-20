@@ -12,13 +12,20 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 @Component
-@RequiredArgsConstructor
 @Slf4j
 public class DataSeeder implements CommandLineRunner {
 
     private final EntrepriseRepository entrepriseRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+
+    public DataSeeder(EntrepriseRepository entrepriseRepository,
+                      UserRepository userRepository,
+                      PasswordEncoder passwordEncoder) {
+        this.entrepriseRepository = entrepriseRepository;
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
 
     @Override
     public void run(String... args) {
